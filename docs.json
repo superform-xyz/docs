@@ -16,12 +16,15 @@
     "tabs": [
       {
         "tab": "Learn",
-        "pages": [
-          "introduction",
-          "supervaults/overview",
-          "usdup"
-        ],
         "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "supervaults/overview",
+              "usdup"
+            ]
+          },
           {
             "group": "Protocol",
             "pages": [

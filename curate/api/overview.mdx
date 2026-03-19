@@ -1,0 +1,136 @@
+---
+title: "API Overview"
+description: "Four backends, one auth model. Route-to-backend matrix and common patterns for the SuperVaults API."
+---
+
+SuperVaults exposes ~127 endpoints across four backend services. All share a single JWT auth model issued by Dynamic.xyz.
+
+## Backend Services
+
+| Service | Language | Base URL | OpenAPI Spec |
+|---------|----------|----------|-------------|
+| **Erebor** | Go | `https://erebor.superform.xyz` | ✅ Available |
+| **Superman** | Python | `https://superman.superform.xyz` | ❌ Not yet generated |
+| **Strategy Engine** | Go | `https://strategy.superform.xyz` | ✅ Available |
+| **OMS** | Go | `https://oms.superform.xyz` | ✅ Available |
+
+<Warning>
+The **Superman Python** backend (ladder, history, services) does not yet have an OpenAPI spec. The [Superman API reference](/curate/api/superman) is manually maintained. Treat endpoint shapes as best-effort until a spec is generated.
+</Warning>
+
+## Authentication
+
+All endpoints except explicitly public ones require a Bearer JWT:
+
+```
+Authorization: Bearer <jwt>
+```
+
+The JWT is issued by Dynamic.xyz upon wallet connection. See [Authentication](/curate/authentication) for the full flow.
+
+### Public Endpoints
+
+| Endpoint | Backend |
+|----------|---------|
+| `GET /api/v1/public/vaults` | Erebor |
+| `GET /api/v1/registry/token-assets` | Erebor |
+
+## On-Chain Settings
+
+Settings changes (fees, PPS parameters, timelocks, banned leaves) are **on-chain transactions**. The curator UI constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (e.g., `fee_config` and `upkeep_info` fields in the response).
+
+## Common Patterns
+
+### Prepare Pattern
+
+On-chain operations use a two-phase flow:
+
+1. **Prepare** — POST to a `prepare-*` endpoint. Returns raw EVM calldata.
+2. **Sign** — Pass `{ to, data, value }` to your wallet.
+3. **Confirm** (where applicable) — Notify Erebor of the transaction hash.
+
+```json
+{
+  "to": "0xContractAddress...",
+  "data": "0xencoded_calldata...",
+  "value": "0"
+}
+```
+
+Used for: vault creation, yield source management, user management, merkle root proposals, emergency pause.
+
+### Pagination
+
+Erebor supports cursor-based and offset-based pagination:
+
+```
+?limit=50&offset=0
+?limit=50&cursor=<next_cursor>
+```
+
+Most list responses include `has_more` or `next_cursor`.
+
+### Async Jobs
+
+Long-running operations (vault creation, merkle tree generation) return a `job_id`:
+
+1. Trigger operation → receive `job_id`
+2. Poll `GET /api/v1/.../jobs/{job_id}` with exponential backoff
+3. Status: `pending` → `running` → `completed` / `failed`
+
+### Optimistic Concurrency
+
+Strategy Engine PUT operations require a `version` field. Concurrent edits return `409 Conflict`. Refresh and retry with the latest version.
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `400` | Invalid parameters |
+| `401` | Missing or expired JWT |
+| `403` | JWT valid, insufficient role |
+| `404` | Resource not found |
+| `409` | Duplicate or version conflict |
+| `500` | Internal server error |
+
+## Route-to-Backend Matrix
+
+| Feature | Backend | Auth |
+|---------|---------|------|
+| Home vault list | Erebor | None |
+| Dashboard analytics | Erebor | JWT |
+| Strategy canvas | Strategy Engine | JWT |
+| Ladder config | Superman | JWT |
+| Merkle tree management | Erebor | JWT |
+| Yield source management | Erebor | JWT |
+| User management | Erebor | JWT |
+| Vault settings | Erebor | JWT |
+| Execution history | Superman | JWT |
+| Service health | Superman | JWT |
+| Pause operations | Erebor | JWT |
+| Registry management | Erebor | JWT |
+| Admin backfill | Erebor | JWT |
+| Vault creation | Erebor | JWT |
+| DeFiX intents | OMS | JWT |
+
+## Rate Limits
+
+Rate limits are not yet published. Recommended polling intervals for automation:
+
+| Data | Interval |
+|------|----------|
+| Vault state | 15s |
+| Analytics | 60s |
+| Service health | 30s |
+
+Implement exponential backoff on `429 Too Many Requests`.
+
+## Endpoint Counts
+
+| Backend | Endpoints |
+|---------|----------|
+| Erebor | ~89 |
+| Superman | ~20 |
+| Strategy Engine | 14 |
+| OMS | 4 |
+| **Total** | **~127** |

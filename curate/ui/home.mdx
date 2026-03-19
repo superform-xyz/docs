@@ -1,0 +1,75 @@
+---
+title: "Home"
+description: "The global overview page showing total TVL, vault count, best APY, and a filterable vault list."
+---
+
+The **Home** page (`/`) is the top-level entry point at [curators.superform.xyz](https://curators.superform.xyz). It provides a global overview of all SuperVault deployments. No authentication required. Data refreshes from `GET /api/v1/public/vaults` (Erebor) with a 5-minute stale time.
+
+## Overview Cards
+
+Three summary cards appear at the top of the page:
+
+| Card | Description |
+|------|-------------|
+| **Total TVL** | Aggregate USD value locked across all vaults |
+| **Total Vaults** | Number of deployed SuperVaults |
+| **Best APY** | Highest current annualized yield across all vaults |
+
+## Vault List
+
+Below the overview cards, a searchable and filterable vault list displays every deployed SuperVault:
+
+| Field | Description |
+|-------|-------------|
+| Vault Name | Curator-defined name |
+| Underlying Asset | Token depositors supply (USDC, WETH, etc.) |
+| TVL (USD) | Total value locked |
+| APY | Current annualized yield |
+| Chain | Ethereum or Base |
+
+### Filtering and Search
+
+| Control | Options |
+|---------|---------|
+| Chain filter | All, Ethereum (1), Base (8453) |
+| Search | Text match by vault name or asset |
+
+Clicking a vault navigates to its [Dashboard](/curate/ui/dashboard) under the **Curate** section at `/dashboard?chainId={id}&vaultAddress={addr}`.
+
+## Navigation Context
+
+Home is one of three top-level sections in the curator app:
+
+| Section | Path | Purpose |
+|---------|------|---------|
+| **Home** | `/` | Global overview — TVL, vault count, APY, vault list |
+| **Curate** | `/dashboard` | Per-vault management — dashboard, strategy, merkle trees, yield sources, settings, alerts |
+| **Manage** | `/manage` | Admin — deployers, providers, vault registry and approval queues |
+
+## API Reference
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/v1/public/vaults` | GET | None | All vault deployments with TVL/APY |
+| `/api/v1/registry/token-assets` | GET | None | Token metadata (symbol, decimals, logo) |
+
+```json
+// GET /api/v1/public/vaults — response shape
+[
+  {
+    "vault_address": "0x...",
+    "escrow_address": "0x...",
+    "chain_id": 8453,
+    "name": "USDC Yield Vault",
+    "symbol": "svUSDC",
+    "vault_share_decimals": 18,
+    "underlying_asset_symbol": "USDC",
+    "underlying_asset_decimals": 6,
+    "underlying_asset_address": "0x...",
+    "tvl_usd": 1250000.00,
+    "apy": 0.0847
+  }
+]
+```
+
+Token metadata is fetched separately via `GET /api/v1/registry/token-assets?chain_id={}&addresses={}` and cached for the session (infinite stale time).

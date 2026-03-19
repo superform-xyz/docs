@@ -1,0 +1,92 @@
+---
+title: "Services"
+description: "Monitor and control the 7 Celery keeper workers and infrastructure components powering your vault."
+---
+
+![SuperVaults Services — infrastructure status and keeper worker health monitoring panel](/curate/images/screenshots/services.jpg)
+
+The Services page shows real-time health of all keeper workers and infrastructure components. Use it to diagnose stalled operations, pause or resume individual services, adjust execution frequency, and verify the Celery scheduler is healthy.
+
+<Note>
+Service health data comes from the **Superman Python** backend. All `/health` and `/services/*` endpoints hit `superman.superform.xyz`. This backend does not yet have an OpenAPI spec.
+</Note>
+
+## Infrastructure Health
+
+Six components, each reporting `operational`, `degraded`, or `down`:
+
+| Component | Description |
+|-----------|-------------|
+| **API** | Superman Python API availability |
+| **Database** | PostgreSQL connectivity |
+| **Redis** | Celery task broker |
+| **Celery** | Worker process health |
+| **Subgraph** | Indexer sync status (per chain) |
+| **RPC** | Node endpoint availability (per chain) |
+
+Polls every 30 seconds. API: `GET /health`
+
+## Service Health (7 Workers)
+
+| Service | Purpose |
+|---------|---------|
+| `fulfill_deposits` | Allocates free vault assets per deposit ladder |
+| `fulfill_redeems` | Processes pending ERC-7540 redemption requests |
+| `fulfill_claims` | Claims reward tokens from external protocols |
+| `fulfill_swaps` | Swaps non-underlying tokens to vault's base asset |
+| `redemption_queue_engine` | Monitors subgraph for new redemption requests |
+| `cleanup_processed_redeems` | Reconciles pending redemptions with on-chain state |
+| `tx_manager` | Broadcasts transactions, monitors confirmations, handles reorgs |
+
+Per-service metrics: status (healthy/warning/critical/paused), success rate, last run, next run, schedule interval, average execution time, total executions.
+
+API: `GET /services/status`
+
+## Pausing and Resuming
+
+```bash
+POST /services/{service_name}/pause
+POST /services/{service_name}/resume
+```
+
+Per-vault service control is also available via Erebor: `PUT /api/v1/vaults/{chain_id}/{vault}/services/{name}/pause`. See [Pause](/curate/ui/pause).
+
+## Updating Schedules
+
+```bash
+PUT /services/schedules/{service_name}
+{ "interval_seconds": 60 }
+```
+
+After updating, the app polls `GET /services/scheduler/status` until the Celery beat confirms the new interval (exponential backoff, 30s timeout).
+
+<Tip>
+Increase `fulfill_redeems` frequency during high redemption demand to improve depositor experience. Return to standard intervals during low-activity periods to reduce RPC costs.
+</Tip>
+
+## Scheduler Status
+
+The Celery beat scheduler triggers services on their configured intervals.
+
+| Field | Description |
+|-------|-------------|
+| `last_sync_at` | When the beat last loaded the schedule |
+| `next_sync_in_seconds` | Time until next schedule sync |
+| `is_leader` | Whether this instance is the elected beat leader |
+| `instance_id` | Responding worker instance |
+| `status` | `healthy`, `stale`, or `unknown` |
+
+API: `GET /services/scheduler/status`
+
+If status is `stale`, the beat may not be applying schedule changes. Check Celery worker logs.
+
+## All Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Infrastructure component health |
+| `/services/status` | GET | All 7 service statuses |
+| `/services/{name}/pause` | POST | Pause a service |
+| `/services/{name}/resume` | POST | Resume a service |
+| `/services/schedules/{name}` | PUT | Update schedule interval |
+| `/services/scheduler/status` | GET | Beat/scheduler health |

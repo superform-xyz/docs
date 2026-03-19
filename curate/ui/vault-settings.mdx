@@ -1,0 +1,137 @@
+---
+title: "Vault Settings"
+description: "Configure fees, PPS parameters, redeem timelock, banned hook leaves, and upkeep balance for your vault."
+---
+
+![SuperVaults Vault Settings — sidebar with Fee Config, PPS settings, Redeem Timelock, Banned Hook Leaves, and Upkeep sections](/curate/images/screenshots/vault-settings.jpg)
+
+Vault Settings is the configuration hub for vault-level parameters. The left sidebar organizes settings into five categories: **Fees**, **PPS**, **Timing**, **Security**, and **Balance**. Primary manager only — secondary managers receive `403 Forbidden`.
+
+<Note>
+Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **on-chain transactions**. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
+</Note>
+
+---
+
+## Fees
+
+### Fee Config
+
+Configure the vault's fee structure: performance fee percentage, management fee percentage, and the fee recipient address.
+
+The current configuration is displayed as a read-only summary. To modify fees, click **Propose Change** — fee changes go through a proposal flow to protect depositors from unexpected fee increases.
+
+**Fields:**
+
+| Field | Description |
+|-------|-------------|
+| Performance Fee (%) | Percentage of yield above the high-water mark taken as fees |
+| Management Fee (%) | Annualized percentage of TVL taken as fees |
+| Recipient Address | Wallet that receives accrued fees when skimmed |
+
+These settings are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current fee values are read from `GET /api/v1/vaults/{chain_id}/{address}` (`fee_config` field in the response).
+
+<Warning>
+Fee changes are subject to an on-chain timelock. Depositors can observe pending fee proposals and withdraw before they take effect.
+</Warning>
+
+---
+
+## PPS
+
+Price-per-share parameters control how PPS updates are validated and when staleness triggers operational blocks.
+
+### Deviation Threshold
+
+The maximum allowed deviation between the off-chain calculated PPS and the current on-chain PPS. If an update exceeds this threshold, it is rejected to prevent erroneous PPS values from being posted.
+
+A value of `100` means 1% — any PPS update differing by more than 1% from the current on-chain value will be rejected.
+
+### PPS Expiration
+
+The staleness window (in hours) after which vault operations are blocked. If PPS has not been updated within this window, deposits, withdrawals, and strategy execution are halted until a fresh PPS is posted.
+
+### Min Update Interval
+
+The minimum time (in seconds) between consecutive PPS updates. Prevents excessive on-chain updates that waste gas without meaningful price changes.
+
+PPS parameters are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current PPS configuration values are read from `GET /api/v1/vaults/{chain_id}/{address}`.
+
+---
+
+## Timing
+
+### Redeem Timelock
+
+A mandatory delay (in seconds) between redemption request submission and fulfillment eligibility. When set to 0 or not configured, redemptions execute as soon as liquidity is available.
+
+**Use cases:**
+- **Fraud prevention** — time for the primary manager to intervene on suspicious redemptions
+- **Liquidity management** — keepers source liquidity from yield sources before fulfillment
+- **Regulatory compliance** — some contexts require enforced redemption delays
+
+The redeem timelock is managed via the Superman Python backend:
+
+```bash
+PUT /vaults/{chain_id}/{vault_address}/redeem-timelock
+{ "redeem_timelock_seconds": 86400 }
+```
+
+Setting `redeem_timelock_seconds` to `null` removes the timelock (instant redemptions).
+
+<Warning>
+Setting a timelock on a live vault affects all future redemption requests. Requests submitted before the change are not retroactively affected.
+</Warning>
+
+---
+
+## Security
+
+### Banned Hook Leaves
+
+Merkle leaves that have been explicitly banned from execution, even if they appear in an authorized merkle tree. Use this to emergency-block a specific hook+parameter combination without regenerating and resyncing the entire merkle tree.
+
+When a leaf is banned, keepers attempting to execute that leaf will receive a rejection even though the leaf's proof verifies against the on-chain root.
+
+Banned hook leaves are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
+
+<Tip>
+Banning a leaf is an immediate control mechanism. Use it as a fast-response mechanism while you prepare a proper merkle tree update.
+</Tip>
+
+---
+
+## Balance
+
+### Upkeep
+
+The $UP token balance required to pay keeper upkeep costs. The UI displays the current balance and warns when it drops below the minimum threshold.
+
+If the upkeep balance reaches zero, keeper services for the vault are suspended until the balance is replenished.
+
+Upkeep balance is included in the vault detail response:
+
+```bash
+GET /api/v1/vaults/{chain_id}/{vault_address}
+
+# Response includes upkeep_info:
+{
+  "upkeep_info": {
+    "balance": "1500.00",
+    "payment_enabled": true
+  }
+}
+```
+
+<Warning>
+Monitor upkeep balance regularly. When the balance is low, the UI displays a warning badge. If it reaches zero, all keeper operations (deposits, withdrawals, rebalancing, PPS updates) halt until $UP is deposited.
+</Warning>
+
+---
+
+## API Reference
+
+| Endpoint | Method | Backend | Description |
+|----------|--------|---------|-------------|
+| `GET /api/v1/vaults/{chain_id}/{vault_address}` | GET | Erebor | Full vault detail including `fee_config` and `upkeep_info` fields |
+| `PUT /vaults/{chain_id}/{vault_address}/redeem-timelock` | PUT | Superman | Set/update redeem timelock |

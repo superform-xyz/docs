@@ -1,0 +1,20 @@
+---
+title: "Superform Protocol"
+description: "Overview of Superform Core and Superform Periphery — the protocol architecture powering single-signature, Merkle-verified execution across chains."
+---
+
+# Superform Protocol
+
+## Introduction
+
+The Superform Protocol consists of [Superform Core](https://github.com/superform-xyz/v2-core) and [Superform Periphery](https://github.com/superform-xyz/v2-periphery).
+
+Superform Core is a suite of persistent, non‑upgradeable contracts that compresses arbitrary actions into a single, Merkle‑verified signature. Execution lives inside ERC‑7579 Smart Accounts and composition comes from plug‑and‑play Hooks. Anyone can deploy Superform core and add new hooks to the protocol.
+
+On top of Superform Core, various structured products have been created to optimize and simplify the yield generation process, collectively referred to as Superform Periphery. SuperVaults are permissionlessly createable, validator‑secured vaults that can run arbitrary hooks while exposing deterministic price‑per‑share (PPS) and fee rules. SuperAssets are user-facing omnichain savings tokens (e.g., SuperUSD, SuperETH) that support decentralized allocation and incentivized rebalancing across many SuperVault positions.
+
+### Why Superform v2?
+
+- One‑signature UX verifiable onchain: Hook bundles turn bridge → swap → lend → deposit into one click regardless of the number of chains without usage of offchain API's.
+- Validator-secured vaults: Economically bonded signers attest to SuperVault price‑per‑share, slashing on misconduct, minimizing the risk surface around centralized strategists.
+- Omnichain liquidity: SuperAssets stream yield from any chain back to Ethereum L1.

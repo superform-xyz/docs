@@ -1,0 +1,58 @@
+---
+title: "Architecture"
+description: "SuperVault architecture — vault triads, governance coordination, and PPS validation systems."
+---
+
+# Architecture
+
+## Introduction
+
+The architecture of SuperVaults comprises three main systems: Vault triads, governance and price-per-share (PPS) validation.
+
+## Key Components
+
+<Frame>
+  <img src="/images/supervault-architecture.png" alt="SuperVault Architecture" />
+</Frame>
+
+## Vault Triads
+
+#### Aggregator
+
+Factory and registry for SuperVault triads. Single source of truth for price-per-share updates, manager authorization, and strategy pause controls.
+
+#### SuperVault
+
+The entry-point vault contract that implements ERC7540 synchronous deposits and asynchronous redeems. Manages share accounting and serves as the user-facing component of the architecture.
+
+#### Strategy
+
+Executes hook bundles, tracks price per share high water mark, queues/fulfills redemption requests, and enforces fee policies. It is the active component that interacts with external protocols.
+
+#### Escrow
+
+Holds user shares during the redemption process rather than burning them immediately, allowing users to cancel pending redemptions if needed. Also holds assets due to be claimed by users at the end of the redemption process.
+
+## Governance & Coordination
+
+#### UP Token
+
+$UP enables participation in the coordination of the Superform Protocol. Managers stake $UP to gain access to the validator network and $UP is used to cover the costs of price-per-share update writes.
+
+#### SuperGovernor
+
+Central registry and access control hub for the Superform periphery. Manages role-based permissions, timelocked parameter updates, and emergency intervention powers.
+
+#### SuperBank
+
+Protocol treasury that handles protocol fees and executes governance-approved hook operations.
+
+## PPS Validation
+
+#### ECDSAPPSOracle
+
+The ECDSA price-per-share oracle validates price updates using ECDSA signatures. Once validated, these price updates get forwarded to the Aggregator.
+
+#### Validator Network
+
+Validators monitor price-per-share updates and submit attestations to the network. The network then performs consensus verification and economic slashing if required.

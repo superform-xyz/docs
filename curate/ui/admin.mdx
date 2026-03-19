@@ -1,0 +1,89 @@
+---
+title: "Admin: Backfill & Maintenance"
+description: "Internal data maintenance tools for backfilling APY, TVL, and event history for vaults."
+---
+
+The Admin page provides data backfill utilities for Erebor's historical analytics. Use these when vault data is missing from the analytics database: after onboarding a vault with existing on-chain history, or after a data pipeline incident.
+
+<Note>
+Backfill operations are long-running (up to 120s per request). The API client timeout is overridden accordingly. Requires `registry_maintainer` permission.
+</Note>
+
+## Backfill Types
+
+### APY Backfill
+
+Recomputes and stores APY snapshots for a vault over a specified date range. Max 90 days.
+
+```bash
+POST /api/v1/admin/backfill/apy
+{ "chain_id": 8453, "vault_address": "0x...", "days": 30 }
+```
+
+Response:
+```json
+{
+  "snapshots_updated": 28,
+  "snapshots_failed": 2,
+  "snapshots_skipped": 0,
+  "errors": ["2025-01-03: missing PPS data for this date"]
+}
+```
+
+### TVL Backfill
+
+Recomputes and stores TVL snapshots. Max 90 days.
+
+```bash
+POST /api/v1/admin/backfill/tvl
+{ "chain_id": 8453, "vault_address": "0x...", "days": 30 }
+```
+
+Response:
+```json
+{
+  "days_backfilled": 29,
+  "days_failed": 1,
+  "days_requested": 30,
+  "errors": ["2025-01-15: RPC error fetching block"]
+}
+```
+
+### Events Backfill
+
+Re-indexes deposit, withdrawal, and other on-chain events. Max 365 days.
+
+```bash
+POST /api/v1/admin/backfill/events
+{ "chain_id": 8453, "vault_address": "0x...", "days": 90 }
+```
+
+Response:
+```json
+{
+  "deposits_found": 142,
+  "withdrawals_found": 38,
+  "events_created": 178,
+  "events_skipped_duplicate": 2
+}
+```
+
+## Using the UI
+
+1. Select backfill type (APY, TVL, or Events)
+2. Select chain and vault
+3. Choose days (presets: 7, 30, 90; Events adds 365)
+4. Click **Run Backfill** and wait for results (up to 120s)
+5. Review the results summary (updated/failed/skipped counts)
+
+<Warning>
+Backfills can spike database load. Run during off-peak hours. Do not run concurrent backfills for the same vault.
+</Warning>
+
+## API Reference
+
+| Endpoint | Method | Timeout | Description |
+|----------|--------|---------|-------------|
+| `/api/v1/admin/backfill/apy` | POST | 120s | APY snapshots (max 90 days) |
+| `/api/v1/admin/backfill/tvl` | POST | 120s | TVL snapshots (max 90 days) |
+| `/api/v1/admin/backfill/events` | POST | 120s | On-chain events (max 365 days) |

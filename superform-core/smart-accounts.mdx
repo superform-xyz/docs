@@ -1,0 +1,23 @@
+---
+title: "Smart Accounts"
+description: "ERC-7579 Smart Accounts powering Superform — gas abstraction, passkey login, and session keys while remaining fully self-custodial."
+---
+
+# Smart Accounts
+
+## Introduction
+
+Superform routes every interaction through lightweight ERC‑7579 Smart Accounts. They add gas abstraction, passkey or social‑recovery login, and session keys, while remaining fully self‑custodial. All accounts created through Superform currently use [Biconomy Nexus v1.2.0](https://github.com/bcnmy/nexus/releases/tag/v1.2.0).
+
+## Modules
+
+Smart accounts are able to access Superform by installing four ERC-7579 modules.
+
+| Module | Purpose |
+| --- | --- |
+| SuperExecutor | Executes same-chain ordered Hook bundles atomically |
+| SuperDestinationExecutor | Executes cross-chain ordered Hook bundles |
+| SuperValidator | Validates same-chain Merkle proofs & bundled signatures (EIP-1271 compliant) |
+| SuperDestinationValidator | Validates cross-chain Merkle proofs & bundled signatures (not EIP-1271 compliant, don't use for EntryPoint calls) |
+
+EOA users can opt to only passthrough these smart accounts via EIP‑7702 if they do not wish to store funds on the smart account.

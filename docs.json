@@ -1,0 +1,213 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Superform",
+  "colors": {
+    "primary": "#00C571",
+    "light": "#33D48D",
+    "dark": "#00A35D"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Protocol",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "what-is-superform"
+            ]
+          },
+          {
+            "group": "Superform Core",
+            "pages": [
+              "superform-core/overview",
+              "superform-core/smart-accounts",
+              "superform-core/hooks",
+              "superform-core/security",
+              "superform-core/deployment-addresses"
+            ]
+          },
+          {
+            "group": "SuperVaults",
+            "pages": [
+              "supervaults/overview",
+              "supervaults/architecture",
+              "supervaults/transaction-lifecycle",
+              "supervaults/economics",
+              "supervaults/security",
+              "supervaults/deployment-addresses"
+            ]
+          },
+          {
+            "group": "Tokenomics",
+            "pages": [
+              "usdup"
+            ]
+          },
+          {
+            "group": "Build on Superform",
+            "pages": [
+              "build-on-superform/write-hooks",
+              "manage-a-supervault",
+              "become-a-validator"
+            ]
+          },
+          {
+            "group": "Integrate Superform",
+            "pages": [
+              "integrate-superform/deployment-addresses"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "technical-resources",
+              "glossary",
+              "resources/security-and-audits",
+              "resources/links"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Curate",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "curate/index",
+              "curate/curator-role",
+              "curate/concepts"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "curate/prerequisites",
+              "curate/authentication",
+              "curate/permissions",
+              "curate/quickstart"
+            ]
+          },
+          {
+            "group": "Vault Setup",
+            "pages": [
+              "curate/ui/home",
+              "curate/ui/create-vault"
+            ]
+          },
+          {
+            "group": "Vault Operations",
+            "pages": [
+              "curate/ui/dashboard",
+              "curate/ui/ladder",
+              "curate/ui/strategy",
+              "curate/ui/history",
+              "curate/ui/services"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "curate/ui/yield-sources",
+              "curate/ui/merkle-trees",
+              "curate/ui/vault-settings",
+              "curate/ui/user-management"
+            ]
+          },
+          {
+            "group": "Registry & Admin",
+            "pages": [
+              "curate/ui/manage",
+              "curate/ui/registry",
+              "curate/ui/admin"
+            ]
+          },
+          {
+            "group": "Emergency & Alerts",
+            "pages": [
+              "curate/ui/pause",
+              "curate/ui/alerts"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "curate/api/overview",
+              "curate/api/erebor",
+              "curate/api/superman",
+              "curate/api/strategy",
+              "curate/api/oms"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Automation",
+        "groups": [
+          {
+            "group": "Automation Guide",
+            "pages": [
+              "curate/automation/overview",
+              "curate/automation/monitoring",
+              "curate/automation/ladders",
+              "curate/automation/services",
+              "curate/automation/webhooks"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Superform App",
+          "href": "https://app.superform.xyz",
+          "icon": "arrow-up-right-from-square"
+        },
+        {
+          "anchor": "Curator App",
+          "href": "https://curators.superform.xyz",
+          "icon": "gauge-high"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/superform-xyz",
+          "icon": "github"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "superform.xyz",
+        "href": "https://superform.xyz"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Launch App",
+      "href": "https://app.superform.xyz"
+    }
+  },
+  "footer": {
+    "socials": {
+      "x": "https://twitter.com/superformxyz",
+      "github": "https://github.com/superform-xyz",
+      "discord": "https://discord.gg/superform"
+    }
+  }
+}

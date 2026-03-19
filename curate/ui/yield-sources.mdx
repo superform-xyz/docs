@@ -1,0 +1,74 @@
+---
+title: "Yield Source Management"
+description: "Whitelist, remove, and update yield sources and their oracle assignments for your vault."
+---
+
+![SuperVaults Yield Source Management — whitelisted yield sources table with type and oracle assignments](/curate/images/screenshots/yield-sources.jpg)
+
+This page controls which external protocols your vault can deploy capital to. Each yield source requires a contract address and a paired oracle that prices the position back into the vault's underlying asset.
+
+All add/remove/update operations use the prepare pattern: Erebor constructs on-chain calldata, your wallet signs the transaction.
+
+## Page Layout
+
+**Whitelisted Yield Sources:** The main table shows yield sources currently on-chain for your vault, with name, address, oracle assignment, type (`erc4626` or `pendle_pt`), and actions (Remove, Update Oracle).
+
+**Yield Source Registry:** Browse global yield sources (filtered by chain, active only) to find new sources to add. This registry is specific to SuperVaults and is separate from the main Superform app registry.
+
+**Oracle Registry:** Browse global oracles (filtered by chain, active only) for pairing with yield sources.
+
+## Adding a Yield Source
+
+1. Select a yield source from the registry
+2. Select a compatible oracle
+3. Click **Add** — Erebor calls `POST /api/v1/yield-sources/prepare-add` → returns calldata
+4. Sign the transaction
+
+Use **Bulk Add** to whitelist multiple yield sources in one transaction via `POST /api/v1/yield-sources/prepare-bulk-add`.
+
+## Removing a Yield Source
+
+1. Click **Remove** next to the yield source
+2. Erebor calls `POST /api/v1/yield-sources/prepare-remove` → returns calldata
+3. Sign the transaction
+
+<Warning>
+Removing a yield source while capital is deployed to it does not automatically unwind the position. Ensure the redemption ladder processes the unwind first, or you risk stranded assets.
+</Warning>
+
+## Updating an Oracle
+
+1. Click **Update Oracle** and select the new oracle
+2. Erebor calls `POST /api/v1/yield-sources/prepare-update-oracle`
+3. Sign the transaction
+
+## Yield Source Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `erc4626` | Standard ERC-4626 vault | Morpho, Aave wrappers |
+| `pendle_pt` | Pendle Principal Token | Fixed-rate yield position |
+
+## Oracle Types
+
+| Type | Pricing Method |
+|------|---------------|
+| `erc4626` | Share price of the underlying vault |
+| `pendle_pt` | Spot market price |
+| `pendle_pt_amortized` | Linear decay to par value as PT approaches maturity |
+
+## API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/yield-sources/{chain_id}/{vault_address}` | GET | Whitelisted yield sources |
+| `/api/v1/registry/yield-sources` | GET | Registry browse (`?chain_id={}&is_active=true&limit=250`) |
+| `/api/v1/registry/oracles` | GET | Oracle registry browse |
+| `/api/v1/yield-sources/prepare-add` | POST | Prepare add tx |
+| `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove tx |
+| `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update tx |
+| `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add tx |
+| `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove tx |
+| `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update tx |
+
+All `prepare-*` endpoints return `{ "to": "0x...", "data": "0x...", "value": "0" }`. Pass this directly to `eth_sendTransaction`.

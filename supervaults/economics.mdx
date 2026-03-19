@@ -1,0 +1,24 @@
+---
+title: "Economics"
+description: "SuperVault fee structure — management fees, performance fees, upkeep costs, and the fee skimming mechanism."
+---
+
+# Economics
+
+## Introduction
+
+All fees taken are configurable by the strategist with a split to Superform that can be turned on by governance.
+
+| Fee Type | Description |
+| --- | --- |
+| Management | Configurable by the strategist, applied to the initial deposit amount |
+| Performance | Configurable by the strategist, applied to profits above cost basis when users redeem |
+| Upkeep | Strategists pay UP tokens for validators to update prices |
+
+### Fee Skimming Mechanism
+
+Performance fees are taken only from realized profits, these fees are obtained periodically via the fee skimming mechanism.
+
+The high-water mark is the last price-per-share level at which performance fees were taken; fees are only charged on PPS growth above this baseline, and after each fee skim the new (post-fee) PPS becomes the updated high-water mark for future calculations.
+
+Because deposits and redemptions are PPS-neutral, the high-water mark only moves when yield has actually been realized and fees are skimmed on that realized profit.

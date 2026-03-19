@@ -1,0 +1,150 @@
+---
+title: "Webhooks and Event Streaming"
+description: "Webhook delivery is planned but not yet implemented. Use audit logs and polling as the current event stream."
+---
+
+<Warning>
+The **webhook system is not yet implemented**. This page documents what is available today (audit logs + polling) and the planned webhook schema for integrators building against the future API.
+</Warning>
+
+## Current: Audit Logs as Event Stream
+
+The audit log endpoint in Erebor serves as an interim event stream for vault operations:
+
+### Query Audit Logs
+
+```bash
+GET /api/v1/audit/logs
+Authorization: Bearer <jwt>
+
+# Query params:
+# ?vault_address={addr}&chain_id={id}
+# &limit=100&offset=0
+# &action_type={type}
+# &from_timestamp={iso}&to_timestamp={iso}
+```
+
+```json
+{
+  "logs": [
+    {
+      "id": "uuid",
+      "timestamp": "2025-03-01T10:00:00Z",
+      "action_type": "yield_source_add",
+      "vault_address": "0x...",
+      "chain_id": 8453,
+      "actor_wallet": "0xManager...",
+      "details": {
+        "yield_source": "0xMorphoVault...",
+        "oracle": "0xOracle..."
+      }
+    }
+  ],
+  "total": 48,
+  "has_more": false
+}
+```
+
+### Export Audit Logs
+
+```bash
+GET /api/v1/audit/export
+Authorization: Bearer <jwt>
+# Returns CSV or JSON depending on Accept header
+```
+
+### Polling Pattern
+
+```python
+import requests
+import time
+from datetime import datetime, timezone
+
+EREBOR_URL = "https://erebor.superform.xyz"
+headers = {"Authorization": "Bearer <jwt>"}
+CHAIN_ID = 8453
+VAULT = "0xYourVault..."
+
+def poll_audit_logs(since: datetime):
+    resp = requests.get(
+        f"{EREBOR_URL}/api/v1/audit/logs",
+        headers=headers,
+        params={
+            "vault_address": VAULT,
+            "chain_id": CHAIN_ID,
+            "from_timestamp": since.isoformat(),
+            "limit": 100
+        }
+    )
+    resp.raise_for_status()
+    return resp.json().get("logs", [])
+
+last_check = datetime.now(timezone.utc)
+
+while True:
+    new_events = poll_audit_logs(since=last_check)
+    for event in new_events:
+        print(f"New event: {event['action_type']} by {event['actor_wallet']}")
+        # Process event...
+
+    if new_events:
+        last_check = datetime.now(timezone.utc)
+
+    time.sleep(60)  # Poll every 60s
+```
+
+---
+
+## Planned: Webhook System
+
+When the webhook system ships, it will provide push-based event delivery.
+
+### Planned Events
+
+| Event Type | Description |
+|------------|-------------|
+| `pps.stale` | PPS staleness threshold crossed |
+| `pps.updated` | New PPS recorded on-chain |
+| `vault.paused` | Vault paused on-chain |
+| `vault.unpaused` | Vault unpaused |
+| `service.degraded` | Service success rate below threshold |
+| `service.down` | Service stopped responding |
+| `merkle.synced` | New merkle root confirmed on-chain |
+| `yield_source.added` | Yield source whitelisted |
+| `yield_source.removed` | Yield source removed |
+| `redemption.fulfilled` | Redemption request(s) fulfilled |
+| `deposit.fulfilled` | Deposit executed |
+
+### Planned Delivery Format
+
+```json
+{
+  "event_id": "evt_uuid",
+  "event_type": "pps.stale",
+  "timestamp": "2025-03-01T10:00:00Z",
+  "vault_address": "0x...",
+  "chain_id": 8453,
+  "data": {
+    "remaining_seconds": 120,
+    "last_update": "2025-03-01T07:00:00Z"
+  }
+}
+```
+
+### Planned Integrations
+
+Slack, PagerDuty, Discord, and custom HTTPS endpoints. Failed deliveries retried with exponential backoff (1s → 2s → 4s → 8s → 16s, max 5 attempts).
+
+---
+
+## Current Workaround Summary
+
+| Need | Solution |
+|------|---------|
+| Vault state changes | Poll `GET /api/v1/vaults/{chain_id}/{address}` every 15s |
+| Service degradation | Poll `GET /services/status` every 30s |
+| Operation events | Poll `GET /api/v1/audit/logs` every 60s |
+| PPS staleness | Calculate from `remaining_staleness_time` in vault state |
+| Redemption activity | Poll `GET /fulfill-redeems/executions` every 60s |
+
+See [Monitoring Vault State](/curate/automation/monitoring) for production-ready polling examples.

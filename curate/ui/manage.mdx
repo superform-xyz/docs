@@ -1,0 +1,97 @@
+---
+title: "Manage"
+description: "Admin-level registry view for browsing all vaults, managing vault deployments, and provider administration."
+---
+
+![SuperVaults Manage Vaults — full registry table with chain filter, search, and Add Vault actions](/curate/images/screenshots/manage-vaults.jpg)
+
+The Manage section is the admin-level registry view, accessible from the top navigation bar. It provides a comprehensive view of all registered SuperVaults across chains, vault deployment management, and provider administration.
+
+---
+
+## Vaults
+
+**Route:** `/manage`
+
+The primary Manage view is the full vault registry table. All authenticated users can browse the complete list of registered vaults.
+
+### Registry Table
+
+The table displays all registered SuperVaults (576+ as of March 2026) with the following columns:
+
+| Column | Description |
+|--------|-------------|
+| Name | Vault display name |
+| Chain | Deployment chain (e.g., Ethereum, Base, Arbitrum) |
+| Symbol | Vault token symbol |
+| Providers | Number of yield source providers configured |
+| TVL | Total value locked in USD |
+| APY | Current annualized percentage yield |
+| Availability | Public / Private vault status |
+| Created | Vault creation timestamp |
+
+### Filtering and Search
+
+- **Chain filter** — dropdown to filter vaults by deployment chain
+- **Search** — search by vault name or contract address
+
+All columns are sortable. Click a column header to sort ascending/descending.
+
+### Actions
+
+| Action | Description |
+|--------|-------------|
+| **Add Vault** | Register a new vault in the registry. Opens the vault registration flow. |
+| **Add Provider** | Register a new yield source provider. |
+
+---
+
+## My Vaults
+
+**Route:** `/manage/my-vaults`
+
+The vault deployment and approval queue for registry maintainers. This sub-page shows vaults you've deployed or submitted for registry inclusion, along with their approval status.
+
+<Warning>
+My Vaults requires the `registry_maintainer` role. Users without this role will see an **Access Denied** message.
+</Warning>
+
+---
+
+## Providers
+
+**Route:** `/manage/providers`
+
+Provider management for registry maintainers, organized into two sub-tabs:
+
+| Tab | Description |
+|-----|-------------|
+| **My Providers** | Providers you've registered, with edit and status controls |
+| **Queue** | Pending provider submissions awaiting approval |
+
+<Warning>
+The Providers sub-page requires the `registry_maintainer` role. Users without this role will see an **Access Denied** message.
+</Warning>
+
+---
+
+## Permission Model
+
+| Section | Required Role | Description |
+|---------|--------------|-------------|
+| Vaults (registry table) | Any authenticated user | Browse and search the full vault registry |
+| My Vaults | `registry_maintainer` | Manage vault deployments and approval queue |
+| Providers | `registry_maintainer` | Manage provider registrations and approval queue |
+
+---
+
+## API Reference
+
+Vault list data comes from `GET /api/v1/public/vaults` (unauthenticated) or `GET /api/v1/vaults` (authenticated). Yield source and oracle registry data comes from `/api/v1/registry/yield-sources` and `/api/v1/registry/oracles`.
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `GET /api/v1/public/vaults` | GET | None | Public vault list (no auth, used on Home page) |
+| `GET /api/v1/vaults` | GET | JWT | Authenticated vault list (`?detail=minimal&limit=500`) |
+| `GET /api/v1/registry/yield-sources` | GET | JWT | List yield sources (`?chain_id={}&is_active=true`) |
+| `GET /api/v1/registry/oracles` | GET | JWT | List oracles |

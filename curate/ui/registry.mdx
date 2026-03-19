@@ -1,0 +1,113 @@
+---
+title: "Registry Management"
+description: "Manage the global yield source, oracle, and hook registries. Registry Maintainer access required."
+---
+
+The Registry page is an internal tool for managing Erebor's global registries. Registry Maintainers can create, update, and delete yield sources, oracles, and hooks across three tabs.
+
+<Note>
+Registry access requires the `registry_maintainer` permission, separate from vault manager roles. Unlike the Yield Sources page (which filters to active entries for a vault), the Registry shows all entries including inactive ones.
+</Note>
+
+## Tab 1: Yield Sources
+
+Every supported yield-generating protocol contract, organized by chain.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `chain_id` | integer | Deployment chain |
+| `address` | address | Yield source contract |
+| `name` | string | Human-readable name (e.g., "Morpho USDC") |
+| `underlying_asset` | address | Asset the yield source accepts |
+| `yield_source_type` | enum | `erc4626` or `pendle_pt` |
+| `is_active` | boolean | Available for curator whitelisting |
+
+### Syncing from Providers
+
+Import yield sources from external providers (Morpho, Pendle):
+
+```bash
+POST /api/v1/registry/yield-sources/sync
+{ "url": "https://api.morpho.org/vaults", "name": "Morpho Import" }
+```
+
+The sync endpoint parses the provider format and creates or updates registry entries.
+
+### CRUD
+
+```bash
+POST /api/v1/registry/yield-sources           # Create
+PUT  /api/v1/registry/yield-sources/{chain_id}/{address}  # Update
+DELETE /api/v1/registry/yield-sources/{id}     # Delete
+```
+
+## Tab 2: Oracles
+
+Oracles price yield source positions back into the vault's underlying asset.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `chain_id` | integer | Deployment chain |
+| `oracle_address` | address | Oracle contract |
+| `oracle_id` | string | Identifier for on-chain config |
+| `oracle_type` | enum | `erc4626`, `pendle_pt`, or `pendle_pt_amortized` |
+| `is_active` | boolean | Available for curator assignment |
+
+### CRUD
+
+```bash
+POST /api/v1/registry/oracles                  # Create
+PUT  /api/v1/registry/oracles/{chain_id}/{oracle_address}  # Update
+DELETE /api/v1/registry/oracles/{id}            # Delete
+```
+
+## Tab 3: Hooks
+
+On-chain modules that keepers call during deposit, withdrawal, and rebalance operations.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Hook name |
+| `hook_type` | enum | `DEPOSIT`, `WITHDRAWAL`, `REBALANCE` |
+| `addresses` | array | Per-chain `{ chain_id, address }` pairs |
+| `inspect_params` | array | Typed parameters for merkle tree leaf structure |
+| `is_active` | boolean | Available in hook config editor |
+
+### inspectParams
+
+Define the structure of each merkle tree leaf for this hook:
+
+```json
+[
+  { "name": "yield_source", "solidity_type": "address", "ref_type": "yield_source", "param_order": 0 },
+  { "name": "token", "solidity_type": "address", "ref_type": "token", "param_order": 1 }
+]
+```
+
+`ref_type` determines the picker UI in the Merkle Trees config editor: address picker for yield sources, token picker for ERC-20s.
+
+### CRUD
+
+```bash
+POST /api/v1/registry/hooks          # Create
+PUT  /api/v1/registry/hooks/{id}     # Update
+DELETE /api/v1/registry/hooks/{id}   # Delete
+```
+
+<Note>
+Hooks are global entities with per-chain addresses. A single hook entry can have addresses on both Ethereum and Base.
+</Note>
+
+## All Registry Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/registry/yield-sources` | GET/POST | List all / Create |
+| `/api/v1/registry/yield-sources/{chain_id}/{address}` | PUT | Update |
+| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete |
+| `/api/v1/registry/yield-sources/sync` | POST | Import from provider |
+| `/api/v1/registry/oracles` | GET/POST | List all / Create |
+| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | PUT | Update |
+| `/api/v1/registry/oracles/{id}` | DELETE | Delete |
+| `/api/v1/registry/hooks` | GET/POST | List all / Create |
+| `/api/v1/registry/hooks/{id}` | PUT/DELETE | Update / Delete |

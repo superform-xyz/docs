@@ -1,0 +1,29 @@
+---
+title: "Glossary"
+description: "Definitions of key terms used throughout the Superform protocol documentation."
+---
+
+# Glossary
+
+- **Aggregator** — Registry/oracle contract where new `Vault`, `Strategy`, and `Escrow` clones are permissionlessly deployed and where validators attest to Price‑Per‑Share updates.
+- **Circuit Breaker** — On‑chain guard that pauses swaps or vault actions when oracle‑price dispersion or depeg thresholds are breached.
+- **Depeg Guard** — Absolute price‑deviation threshold for an individual asset in a SuperAsset. If breached, swaps pause and the asset weight decays.
+- **Dispersion Guard** — Parameterised limit on the standard deviation of constituent‑asset prices inside a SuperAsset; tripping it triggers a circuit breaker.
+- [**EIP‑7702**](https://eip7702.io/) — Ethereum standard that allows EOAs to act as smart accounts, enabling existing wallets to interact with account‑abstraction systems without migration.
+- [**ERC‑4337**](https://www.erc4337.io/) — Account‑abstraction standard that lets smart‑contract wallets function like EOAs via a `UserOperation` mempool and bundler system.
+- [**ERC‑7540**](https://eips.ethereum.org/EIPS/eip-7540) — Vault standard defining interfaces for asynchronous deposits and withdrawals.
+- [**ERC‑7579**](https://erc7579.com/) — Modular smart‑account standard enabling plug‑and‑play functionality through a standardised module interface.
+- **Escrow** — Immutable contract that holds idle funds between strategy steps and enforces withdrawal rights.
+- **Hook** — Lightweight, ERC‑7579‑compliant module that performs a single action (e.g., lend, bridge) inside a strategy call‑graph.
+- **Insurance Fund** — Reserve funded by yield earned and swap fees; used to cover shortfalls during black‑swan events.
+- **Ki** — Governance‑set efficiency coefficient that weights a vault's importance when computing incentives.
+- **Price‑Per‑Share (PPS)** — Cumulative value of a SuperVault denominated in its underlying asset; monotonically increasing and signed by validators.
+- **SuperBank** — Coordination contract that routes protocol‑level fees, burns `$UP` for upkeep, and handles escrow/bond commitments.
+- **SuperBundler** — Off‑chain relayer that batches user deposits and executes hook graphs across chains, returning a single receipt.
+- **SuperGovernor** — On‑chain module where `sUP` holders propose and vote on protocol events, such as SuperAsset target weights.
+- **SuperOracle** — Modular oracle‑adapter set providing fair‑market prices and volatility metrics to SuperAssets and circuit breakers.
+- **SuperPosition** — ERC‑20 receipt minted by Vault Banks representing a user's position on the source chain; streams yield back to mainnet.
+- **SuperVault** — Validator‑secured vault template that can run arbitrary hook‑based strategies while exposing deterministic PPS and fee rules.
+- **$UP / sUP** — `$UP` is the utility token of the Superform Protocol; staking it yields `sUP`, granting governance rights and enabling validator/strategist bonding.
+- **Validator** — Economically‑bonded actor that signs SuperVault PPS updates and, in future, other oracle data; slashable for misbehaviour.
+- **Vault Bank** — Chain‑specific deposit contract that mints SuperPositions and handles cross‑chain locking/unlocking for SuperVaults.

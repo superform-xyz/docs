@@ -1,0 +1,106 @@
+---
+title: "Merkle Trees"
+description: "Manage hook configurations and on-chain merkle root authorization for vault keeper operations."
+---
+
+![SuperVaults Merkle Trees — Hook Configs and Merkle Trees tabs with Create Hook Config action](/curate/images/screenshots/merkle-trees.jpg)
+
+The Merkle Trees page is the authorization control center for keeper operations. Every on-chain action a keeper can perform must be encoded as a leaf in the vault's merkle tree and verified against the on-chain root before execution.
+
+The workflow: create a hook config defining authorized operations, generate a merkle tree from that config, then sync the tree root on-chain through a timelocked proposal-execute cycle.
+
+## Tab 1: Hook Configs
+
+### Version History
+
+Each vault maintains a history of hook configuration versions. The active version is highlighted. Previous versions are read-only for audit purposes.
+
+### Creating a Config
+
+Click **Create New Config**. For each hook to authorize:
+
+1. **Select Hook** — from the global Hook Registry (`GET /api/v1/registry/hooks`)
+2. **Set Parameters** — for each `inspectParam` defined by the hook:
+   - `yield_source` ref → yield source address
+   - `token` ref → ERC-20 token address
+   - `oracle` ref → oracle address
+   - `others` → freeform hex value
+
+Each row becomes one **leaf** in the merkle tree. A keeper can only call a hook with the exact parameter combination matching a leaf.
+
+### Activating a Config
+
+Click **Activate** on a config version. Only one version is active at a time. The active config is used for the next tree generation.
+
+## Tab 2: Merkle Trees
+
+Generated trees for the vault, showing:
+
+| Field | Description |
+|-------|-------------|
+| Root Hash | 32-byte merkle root |
+| Leaf Count | Number of authorized (hook, params) combinations |
+| Config Hash | Hash of the source config version |
+| Is Current | Whether this root is active on-chain |
+
+Click a tree to view individual leaves: hook name and address, encoded argument values, leaf hash, index, and merkle proof path. This makes the contents of each leaf explicit to depositors and operators, including the hook name and parameter values that were authorized.
+
+<Note>
+SuperVaults use two merkle roots for hook authorization: a governance-controlled global hooks root with a 15-minute timelock, and a curator-controlled strategy hooks root with a 7-day timelock. A hook must be included in either root to execute.
+</Note>
+
+## Generating a Tree
+
+Click **Generate Merkle Tree**. Erebor starts an async job:
+
+- Polling uses exponential backoff: 2s → 4s → 8s → 15s
+- `409 Conflict` = generation already in progress
+- Job status: `pending` → `running` → `completed` / `failed`
+
+```bash
+POST /api/v1/merkle/generate
+{ "vault_address": "0x...", "chain_id": 8453 }
+
+GET /api/v1/merkle/jobs/{job_id}
+```
+
+## Syncing to Chain
+
+After generation, click **Sync to Chain**. Erebor evaluates on-chain state and returns the required action:
+
+| Sync Action | Description |
+|-------------|-------------|
+| `in_sync` | On-chain root matches. No action needed. |
+| `needs_generation` | No tree exists for the active config. |
+| `propose` | Tree ready. Sign and submit root proposal (starts timelock). |
+| `pending_timelock` | Root proposed. Waiting for timelock expiry. Shows `effectiveTime`. |
+| `execute` | Timelock expired. Sign to activate the new root on-chain. |
+
+```bash
+GET /api/v1/merkle/sync?vault_address={addr}&chain_id={id}
+# Returns 204 No Content when already in sync
+```
+
+<Note>
+Keepers cannot execute against yield sources until the merkle root is synced on-chain. A pending timelock means your authorization changes are queued but not yet active.
+</Note>
+
+## Merkle Proofs
+
+Proofs for each leaf are available via `GET /api/v1/merkle/proofs?vault_address={}&chain_id={}`. Use these for programmatic validation or custom keeper implementations.
+
+## All Merkle Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/merkle/configs/versions` | GET | Config version history |
+| `/api/v1/merkle/configs/version` | GET | Single version by number |
+| `/api/v1/merkle/configs/active` | GET | Active config |
+| `/api/v1/merkle/configs` | POST | Create new config |
+| `/api/v1/merkle/configs/activate` | PUT | Activate a version |
+| `/api/v1/merkle/trees` | GET | All trees for vault |
+| `/api/v1/merkle/proofs` | GET | All leaf proofs |
+| `/api/v1/merkle/generate` | POST | Start generation job |
+| `/api/v1/merkle/jobs/{id}` | GET | Poll job status |
+| `/api/v1/merkle/jobs` | GET | Recent jobs list |
+| `/api/v1/merkle/sync` | GET | Sync status and required action |

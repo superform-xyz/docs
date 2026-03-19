@@ -1,0 +1,125 @@
+---
+title: "Ladder Configuration"
+description: "Configure deposit priority, redemption priority, reserve, claim rewards, and swap ladders for your vault."
+---
+
+The Ladder page controls how Superman's keeper workers allocate and deallocate vault assets. Five tabs cover deposit ordering, redemption sequencing, reserve ratios, reward claiming thresholds, and swap floors.
+
+<Note>
+Ladder configuration is stored in and served from the **Superman Python** backend (`superman.superform.xyz`), not Erebor. This backend does not yet have an OpenAPI spec; endpoint shapes documented here are derived from source code analysis.
+</Note>
+
+## Vault Enabled Toggle
+
+The master toggle at the top of the page. When disabled:
+- All keeper workers stop processing for this vault
+- Deposits and redemptions queue but are not fulfilled
+- No yield source interactions occur
+
+Use this for planned maintenance. For emergency stops, use the on-chain [Pause](/curate/ui/pause).
+
+## Tab 1: Deposit Priority
+
+Controls which yield sources receive free vault assets first.
+
+The ordered list shows each yield source with its name, address, protocol, and current allocation. **Drag to reorder.** Top of list = deployed first. Workers process top-to-bottom until free assets are exhausted.
+
+**API:** `PUT /ladder/{chainId}/{vaultAddress}/deposit-priority`
+
+```json
+{
+  "deposit_priority": [
+    { "address": "0xYieldSource1..." },
+    { "address": "0xYieldSource2..." }
+  ]
+}
+```
+
+## Tab 2: Redemption Priority
+
+Controls which yield sources are unwound first to fulfill redemptions.
+
+Same drag-and-drop interface. Each entry includes a `min_balance_to_keep` field: workers will not withdraw below this threshold, protecting against full liquidation of illiquid positions.
+
+**API:** `PUT /ladder/{chainId}/{vaultAddress}/redemption-priority`
+
+```json
+{
+  "redemption_priority": [
+    {
+      "address": "0xYieldSource1...",
+      "min_balance_to_keep": "1000000000000000000"
+    }
+  ]
+}
+```
+
+<Tip>
+Set `min_balance_to_keep` to a non-zero value for yield sources with exit fees or liquidity constraints. This prevents workers from triggering expensive partial redemptions.
+</Tip>
+
+## Tab 3: Reserve
+
+Percentage of vault assets held liquid (not deployed to yield sources).
+
+- Range: 0-100%
+- Typical configuration: 5-10%
+- Higher reserve = faster redemptions, lower yield
+- Workers will not deploy assets beyond `(1 - reserve_percent)` of TVL
+
+**API:** `PUT /ladder/{chainId}/{vaultAddress}/reserve`
+
+```json
+{ "reserve_percent": 5 }
+```
+
+## Tab 4: Claim Rewards
+
+Configures the `fulfill_claims` worker for harvesting accumulated reward tokens from external protocols (Merkl distributions, Aave incentives, etc.).
+
+Per reward token:
+- **Floor Amount** — minimum accumulated balance before claiming. Below this, claiming is skipped.
+- **Is Enabled** — toggle per token
+- **Claimable Amount** — live balance via `GET /ladder/{chainId}/{vaultAddress}/claimable-rewards`
+
+**APIs:**
+- `GET /ladder/{chainId}/{vaultAddress}/claim-rewards-ladder`
+- `PUT /ladder/{chainId}/{vaultAddress}/claim-rewards-ladder`
+- `GET /ladder/{chainId}/{vaultAddress}/claimable-rewards`
+
+## Tab 5: Swap
+
+Configures the `fulfill_swaps` worker for converting non-underlying tokens back to the vault's base asset.
+
+Per swappable token:
+- **Floor Amount** — minimum balance before triggering a swap
+- **Is Enabled** — toggle per token
+- **Token Balance** — live balance via `GET /ladder/{chainId}/{vaultAddress}/swappable-tokens`
+
+**APIs:**
+- `GET /ladder/{chainId}/{vaultAddress}/swap-ladder`
+- `PUT /ladder/{chainId}/{vaultAddress}/swap-ladder`
+- `GET /ladder/{chainId}/{vaultAddress}/swappable-tokens`
+
+## Optimistic UI
+
+Ladder updates reflect immediately in the UI while the API call is in flight. On API error, the change rolls back with an error notification.
+
+## All Ladder Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/ladder/ladders` | GET | All ladder configs (filtered client-side) |
+| `/vaults/{normalizedAddress}` | GET | Vault state |
+| `/ladder/{chainId}/{vault}/deposit-priority` | PUT | Update deposit order |
+| `/ladder/{chainId}/{vault}/redemption-priority` | PUT | Update redemption order |
+| `/ladder/{chainId}/{vault}/reserve` | PUT | Set reserve percentage |
+| `/vaults/{chainId}/{vault}/enabled` | PUT | Master keeper toggle |
+| `/ladder/{chainId}/{vault}/claim-rewards-ladder` | GET/PUT | Claim thresholds |
+| `/ladder/{chainId}/{vault}/claimable-rewards` | GET | Live reward balances |
+| `/ladder/{chainId}/{vault}/swap-ladder` | GET/PUT | Swap thresholds |
+| `/ladder/{chainId}/{vault}/swappable-tokens` | GET | Live token balances |
+
+<Warning>
+All amounts in ladder APIs are in **wei** (18-decimal fixed-point by default, adjusted per token decimals). Use `parseToWei`/`formatFromWei` utilities or equivalent.
+</Warning>

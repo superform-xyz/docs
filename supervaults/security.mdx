@@ -1,0 +1,198 @@
+---
+title: "SuperVault Security"
+description: "Comprehensive security architecture — dual Merkle validation, emergency mechanisms, access controls, and audit history."
+---
+
+# Security
+
+## Introduction
+
+SuperVaults provide superior security through a combination of hook validation, emergency circuit breakers, and comprehensive access controls with timelocks.
+
+## Security Architecture
+
+### Hook Validation System
+
+The dual Merkle tree system provides layered security while retaining flexibility needed for competitive returns.
+
+#### Global Hooks Root
+
+- Governance Managed: Updated by SuperGovernor with timelock
+- Protocol-Wide: Applies to all strategies
+- Guardian Veto: Can be vetoed by guardians to prevent malicious updates
+
+#### Strategy Hooks Root
+
+- Strategist Managed: Updated by primary strategist
+- Vault-Specific: Applies only to individual strategies
+- Guardian Veto: Can also be vetoed by guardians
+
+```solidity
+function _validateSingleHook(
+    address strategy,
+    bytes calldata hookArgs,
+    bytes32[] calldata globalProof,
+    bytes32[] calldata strategyProof,
+    bool globalVetoed,
+    bool strategyVetoed
+) internal view returns (bool) {
+    // If both roots are vetoed, all hooks are invalid
+    if (globalVetoed && strategyVetoed) return false;
+
+    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(hookArgs))));
+
+    // Try global root first
+    if (!globalVetoed && _globalHooksRoot != bytes32(0)) {
+        if (MerkleProof.verify(globalProof, _globalHooksRoot, leaf)) return true;
+    }
+
+    // Try strategy root
+    if (!strategyVetoed && strategyRoot != bytes32(0)) {
+        if (MerkleProof.verify(strategyProof, strategyRoot, leaf)) return true;
+    }
+
+    return false;
+}
+```
+
+### Emergency Mechanisms
+
+#### Strategy Pausing
+
+Both primary and secondary managers can manually pause strategies in the event of an emergency.
+
+```solidity
+/// @notice Manually pauses a strategy
+/// @param strategy Address of the strategy to pause
+/// @dev Only the main or secondary manager of the strategy can pause it
+function pauseStrategy(address strategy) external validStrategy(strategy) {}
+
+/// @notice Manually unpauses a strategy
+/// @param strategy Address of the strategy to unpause
+/// @dev unpausing marks PPS stale until a fresh oracle update
+function unpauseStrategy(address strategy) external validStrategy(strategy) {}
+```
+
+SuperVaultAggregator implements sophisticated checks for PPS updates. Besides checks for active oracles, quorum requirements, and other validations, strategies can be automatically paused when:
+
+- PPS dispersion exceeds threshold
+- PPS deviation is too large
+- Validator participation is insufficient
+- Updates are too stale
+
+```solidity
+// C2.1 Dispersion Check: stddev/mean ratio
+if (dispersion > dispersionThreshold) {
+    checksFailed = true;
+    emit StrategyCheckFailed(strategy, "HIGH_PPS_DISPERSION");
+}
+
+// C2.2 Deviation Check: absolute change from current PPS
+if (relativeDeviation > deviationThreshold) {
+    checksFailed = true;
+    emit StrategyCheckFailed(strategy, "HIGH_PPS_DEVIATION");
+}
+
+// C2.3 M/N Check: validator participation rate
+if (participationRate < mnThreshold) {
+    checksFailed = true;
+    emit StrategyCheckFailed(strategy, "INSUFFICIENT_VALIDATOR_PARTICIPATION");
+}
+```
+
+#### Emergency Withdrawals
+
+Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and then running them through `executeHooks()`
+
+#### Guardian Veto Powers
+
+- Can veto global hooks root updates
+- Can veto strategy-specific hooks root updates
+- Provides rapid response to malicious activity
+
+### Cross-Contract Integrity
+
+#### SuperVault ↔ Strategy Integration
+
+**State Synchronization:**
+
+- **PPS Consistency**: Vault uses strategy's stored PPS for all calculations
+- **Pause Propagation**: Strategy pause state affects vault deposit limits
+- **Fee Configuration**: Strategy fee config used for vault preview functions
+
+#### Strategy ↔ Aggregator Integration
+
+**PPS Update Flow:**
+
+1. **Oracle Validation**: ECDSAPPSOracle validates signatures, quorum, and nonce binding
+2. **Aggregator Forwarding**: Validated PPS forwarded to SuperVaultAggregator.forwardPPS()
+3. **Multi-Layer Validation**:
+   - forwardPPS(): Future timestamp, pause state, staleness checks
+   - \_forwardPPS(): Monotonicity, post-unpause, rate limit, deviation, M/N, upkeep balance
+4. **Strategy Update**: Aggregator updates strategy's stored PPS (if all checks pass)
+5. **Nonce Increment**: Oracle increments nonce only after successful update
+6. **Event Emission**: PPS update events denoting update status emitted at each stage
+
+#### Escrow ↔ Vault Integration
+
+**Share Custody (Request → Fulfill/Cancel):**
+
+- **Approval Mechanism**: Vault approves escrow for share transfers
+- **Escrow Transfer**: `escrowShares()` moves shares from user to escrow during `requestRedeem()`
+- **Return Mechanism**: `returnShares()` returns shares to user during cancellation claim
+- **Burn Authorization**: Only strategy (via vault) can trigger `burnShares()` from escrow during fulfillment
+
+**Asset Custody (Fulfill → Claim):**
+
+- **Asset Storage**: Escrow holds assets after fulfillment until user claims
+- **Asset Transfer**: Strategy transfers fulfilled assets to escrow during `fulfillRedeemRequests()`
+- **Asset Return**: `returnAssets()` sends assets to receiver during `withdraw()`/`redeem()` claim
+
+## Access Controls
+
+| Role | Permission |
+| --- | --- |
+| SuperGovernor | Protocol governance that has strategy-level overrides (can take over strategist role), updates allowable global hook root for all strategies |
+| Primary Strategist | Full strategy control (whitelisting strategy-level hooks, fees, processing deposits and redemptions) |
+| Secondary Strategists | Day to day manager, everything the primary strategist can do minus whitelisting hooks and fees |
+| Guardians | Threat monitoring network, veto powers for whitelisted hooks for security |
+| Validators | $UP stakers that can update price-per-share with circuit breaker protections and slashing |
+
+### Timelock Protections
+
+- Strategist Changes: 7-day timelock for primary strategist updates
+- Hook Roots: 15-minute timelock for strategy hooks, 7-day for global
+- Fee Updates: 7-day timelock for fee configuration changes
+- Emergency Features: 7-day timelock for emergency withdrawal activation
+
+## Monitoring & Invariants
+
+All critical properties and invariants have been thoroughly tested through the [GetRecon](https://getrecon.xyz/) invariant suite using both Echidna and Medusa across >100 million runs. They are continuously monitored through both [Tenderly](https://tenderly.co/monitoring) and our own cron-based monitors to ensure continued resilience against any evolving threats.
+
+## Audits
+
+Superform's audit process is part of our larger commitment to maintaining a robust, secure, and transparent platform. We continuously work to identify and mitigate risks to safeguard user funds.
+
+### Octane Security
+
+**Date**: November 30th 2025
+
+[Link to report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.30-octane-security.pdf)
+
+### 0xMacro
+
+**Date**: November 27th 2025
+
+[Link to report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.27-0xMacro.pdf)
+
+### GetRecon
+
+**Date**: November 7th 2025
+
+[Link to report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.07-GetRecon.pdf)
+
+### Spearbit
+
+**Date**: June 30th 2025
+
+[Link to report](https://cantina.xyz/portfolio/1088c45d-1813-4ea4-9ce1-fadb26cb5060)

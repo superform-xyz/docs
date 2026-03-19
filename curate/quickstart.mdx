@@ -1,0 +1,128 @@
+---
+title: "Quickstart"
+description: "Create and configure a SuperVault end-to-end in approximately 15 minutes."
+---
+
+This guide covers the complete vault creation and configuration flow. By the end, you will have a live SuperVault with yield sources whitelisted, a merkle root synced on-chain, a ladder configured, and keeper services running.
+
+**Time required:** ~15 minutes
+**Prerequisites:** EVM wallet connected, ETH for gas, manager access granted by the Superform team
+
+---
+
+<Steps>
+
+<Step title="Connect Wallet">
+Navigate to [curators.superform.xyz](https://curators.superform.xyz) and click **Connect Wallet**. Dynamic.xyz requests a signature to issue your JWT session. After connecting, the top navigation shows three sections: **Home** (global vault overview), **Curate** (per-vault management), and **Manage** (admin operations).
+</Step>
+
+<Step title="Create a Vault">
+Click **Create Vault** (or navigate to `/vaults/create`). The creation flow:
+
+1. **Select Chain** — Ethereum (1) or Base (8453). Permanent.
+2. **Choose Underlying Asset** — Select from registered tokens, or register a custom token.
+3. **Set Name & Symbol** — e.g., `"USDC Yield Vault"` / `"svUSDC"`
+4. **Configure Managers** — Your wallet becomes primary manager. Add secondary managers now or later.
+5. **Configure Fees** — Performance fee (bps), management fee (bps), fee recipient address. Bounded by SuperGovernor constraints.
+6. **Redeem Timelock** (optional) — Delay in seconds before redemptions can be fulfilled. 0 = instant.
+7. **Review SuperGovernor Config** — Protocol-level constraints (min staleness, revenue share). Not curator-configurable.
+8. **Sign Transaction** — Approve the vault creation transaction.
+
+Erebor starts a background indexing job after the transaction confirms. The modal polls until completion (up to 3 minutes, exponential backoff: 3s → 6s → 12s → 24s → 30s cap).
+</Step>
+
+<Step title="Whitelist Yield Sources">
+Navigate to **Yield Sources** for your vault.
+
+1. Browse the Yield Source Registry (filtered by chain and active status)
+2. Select a yield source and its paired oracle
+3. Click **Add** — Erebor prepares calldata via `POST /api/v1/yield-sources/prepare-add`
+4. Sign the transaction
+
+Use **Bulk Add** to whitelist multiple yield sources in a single transaction. Two yield source types are supported: `erc4626` (Morpho, Aave wrappers) and `pendle_pt` (Pendle Principal Tokens).
+</Step>
+
+<Step title="Configure Hook Authorization">
+Navigate to **Merkle Trees** for your vault.
+
+1. Click **Create New Config** in the Hook Configs tab
+2. Add each hook you want keepers to execute: select hook from registry, assign parameter values (yield source address, token, oracle)
+3. Click **Activate** on the new config version
+
+Each hook + parameter combination becomes a merkle tree leaf. Only authorized combinations pass on-chain verification.
+</Step>
+
+<Step title="Generate and Sync Merkle Tree">
+Still in **Merkle Trees**:
+
+1. Click **Generate Merkle Tree** — async job, polls every 2–15s
+2. After generation completes, the tree root hash is displayed
+3. Click **Sync to Chain** — Erebor determines the required action:
+   - **Propose**: submits the new root to the contract (starts timelock)
+   - **Pending**: timelock in progress (shows time remaining)
+   - **Execute**: timelock expired, sign to activate the new root
+
+<Note>
+Keepers cannot execute against whitelisted yield sources until the merkle root is synced on-chain. This step gates all vault operations.
+</Note>
+</Step>
+
+<Step title="Configure Ladders">
+Navigate to **Ladder** for your vault.
+
+| Tab | Configuration |
+|-----|--------------|
+| **Deposit Priority** | Drag yield sources into fill order. Top = deployed first. |
+| **Redemption Priority** | Set unwind order. Configure `min_balance_to_keep` per source. |
+| **Reserve** | Percentage of TVL held liquid for instant redemptions (e.g., 5%). |
+| **Claim Rewards** | Floor thresholds per reward token. Workers claim when balance exceeds floor. |
+| **Swap** | Floor thresholds for non-underlying tokens. Workers swap above floor. |
+
+Toggle **Vault Enabled** to ON. This activates all keeper workers for the vault.
+</Step>
+
+<Step title="Verify Service Health">
+Navigate to **Services**. Confirm all 7 keeper workers show **Healthy** status with success rates above 95%.
+
+| Worker | Responsibility |
+|--------|---------------|
+| `fulfill_deposits` | Allocates free vault assets per deposit ladder |
+| `fulfill_redeems` | Fulfills pending ERC-7540 redemption requests |
+| `fulfill_claims` | Claims reward tokens from external protocols |
+| `fulfill_swaps` | Swaps non-underlying tokens to underlying asset |
+| `redemption_queue_engine` | Monitors subgraph for new redemption requests |
+| `cleanup_processed_redeems` | Reconciles on-chain vs DB redemption state |
+| `tx_manager` | Broadcasts transactions, monitors confirmations |
+
+Infrastructure health (API, Database, Redis, Celery, Subgraph, RPC) should all show **Operational**.
+</Step>
+
+<Step title="Monitor">
+Navigate to **Dashboard** and select your vault. Key metrics after launch:
+
+- **TVL** — tracks inflows as deposits arrive
+- **PPS** — should increase as yield accrues
+- **PPS staleness countdown** — verify oracle refresh is on schedule
+- **Service success rates** — any drop below 95% warrants investigation
+</Step>
+
+</Steps>
+
+---
+
+## Pre-Launch Checklist
+
+Before accepting external deposits:
+
+- [ ] All target yield sources whitelisted on-chain
+- [ ] Merkle root synced (not pending timelock)
+- [ ] Ladders configured with appropriate reserve percentage
+- [ ] At least one deposit executed successfully (verify in [History](/curate/ui/history))
+- [ ] All 7 keeper services healthy
+- [ ] Secondary manager added for operational redundancy
+- [ ] Fee recipient address confirmed
+- [ ] PPS oracle updating on schedule
+
+<Card title="Dashboard" icon="chart-line" href="/curate/ui/dashboard">
+  Vault analytics, allocation breakdown, and operational monitoring.
+</Card>

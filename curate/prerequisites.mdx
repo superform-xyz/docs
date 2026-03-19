@@ -1,0 +1,72 @@
+---
+title: "Prerequisites and Access"
+description: "What you need before you can manage a SuperVault: wallet, role, and API access."
+---
+
+## Wallet Requirements
+
+SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+
+- **EVM-compatible wallet** (MetaMask, Rabby, Frame, or any WalletConnect-compatible wallet)
+- **ETH for gas** on each chain where you operate vaults (Ethereum, Base)
+- **Manager role** assigned on at least one vault before curator features are accessible
+
+<Note>
+View-only users are added off-chain and do not require a wallet connection. All write operations require at minimum a secondary manager role.
+</Note>
+
+## Supported Chains
+
+| Chain | Chain ID | Status |
+|-------|----------|--------|
+| Ethereum Mainnet | 1 | ✅ Live |
+| Base | 8453 | ✅ Live |
+
+The SuperVault contract architecture supports additional chains. Contact the Superform team for expansion requests.
+
+## Curator App
+
+| Environment | URL |
+|-------------|-----|
+| Production | [curators.superform.xyz](https://curators.superform.xyz) |
+
+## API Base URLs
+
+Each backend service exposes its own base URL. Use these when building automation:
+
+| Service | Base URL | OpenAPI Spec |
+|---------|----------|-------------|
+| **Erebor** (management API) | `https://erebor.superform.xyz` | ✅ Available |
+| **Superman** (keeper operations) | `https://superman.superform.xyz` | ❌ Not yet generated |
+| **Strategy Engine** | `https://strategy.superform.xyz` | ✅ Available |
+| **OMS** (DeFiX intents) | `https://oms.superform.xyz` | ✅ Available |
+
+## Role Requirements by Page
+
+| Page | Minimum Role |
+|------|-------------|
+| Home | Public (no auth) |
+| Dashboard | Manager |
+| Strategy | Manager |
+| Ladder | Manager |
+| Merkle Trees | Manager |
+| Yield Sources | Manager |
+| User Management | Primary Manager |
+| Vault Settings | Primary Manager |
+| History | Manager |
+| Services | Manager |
+| Pause | Manager |
+| Registry | Registry Maintainer |
+| Admin | Registry Maintainer |
+| Create Vault | Manager (you become primary manager of the new vault) |
+| Alerts | Manager |
+
+## Getting Access
+
+**Joining an existing vault:** The primary manager adds you via [User Management](/curate/ui/user-management) as a secondary manager (on-chain transaction) or view-only user (off-chain).
+
+**Creating a new vault:** Any wallet with manager access can create a vault and automatically becomes its primary manager.
+
+<Card title="Authentication" icon="key" href="/curate/authentication">
+  JWT auth flow, token storage, and programmatic access.
+</Card>

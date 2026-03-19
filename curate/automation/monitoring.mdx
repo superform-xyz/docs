@@ -1,0 +1,236 @@
+---
+title: "Monitoring Vault State"
+description: "Poll endpoints to track PPS, service health, and alert conditions for your vault."
+---
+
+SuperVaults uses a polling-first monitoring model. No webhook system is implemented yet. Use these intervals as a baseline:
+
+| Data | Endpoint | Interval |
+|------|----------|----------|
+| Vault state (PPS, pause, supply) | `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
+| Analytics overview (APY, TVL) | `GET .../analytics/overview` | 60s |
+| Risk metrics | `GET .../analytics/risk` | 120s |
+| Service health | `GET /services/status` | 30s |
+| Infrastructure health | `GET /health` | 30s |
+
+## Key Metrics
+
+### PPS Staleness
+
+```python
+def check_pps_staleness(vault):
+    remaining = vault.get("remaining_staleness_time", 0)
+    if remaining < 3600:  # <1 hour
+        alert("WARNING: PPS staleness — less than 1 hour remaining")
+    if remaining < 600:   # <10 minutes
+        alert("CRITICAL: PPS about to expire")
+```
+
+### Service Success Rate
+
+```python
+def check_service_health(services):
+    for svc in services:
+        rate = svc["success_rate"]
+        if rate < 0.80:
+            alert(f"CRITICAL: {svc['name']} success rate {rate:.0%}")
+        elif rate < 0.95:
+            alert(f"WARNING: {svc['name']} success rate {rate:.0%}")
+```
+
+### Redemption Queue Depth
+
+```python
+def check_redemption_queue(executions):
+    pending = [e for e in executions if e["status"] == "pending"]
+    if len(pending) > 10:
+        alert(f"WARNING: {len(pending)} pending redemptions in queue")
+```
+
+## Full Monitoring Loop
+
+<CodeGroup>
+
+```python Python
+import requests
+import time
+import logging
+
+EREBOR_URL = "https://erebor.superform.xyz"
+SUPERMAN_URL = "https://superman.superform.xyz"
+JWT = "<your-jwt>"
+CHAIN_ID = 8453
+VAULT = "0xYourVault..."
+
+headers = {"Authorization": f"Bearer {JWT}"}
+log = logging.getLogger(__name__)
+
+def fetch_vault_state():
+    r = requests.get(
+        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}",
+        headers=headers, timeout=10
+    )
+    r.raise_for_status()
+    return r.json()
+
+def fetch_service_health():
+    r = requests.get(
+        f"{SUPERMAN_URL}/services/status",
+        headers=headers, timeout=10
+    )
+    r.raise_for_status()
+    return r.json().get("services", [])
+
+def fetch_infra_health():
+    r = requests.get(
+        f"{SUPERMAN_URL}/health",
+        headers=headers, timeout=10
+    )
+    r.raise_for_status()
+    return r.json().get("components", [])
+
+def alert(severity: str, message: str):
+    """Replace with Slack/PagerDuty integration."""
+    log.warning(f"[{severity}] {message}")
+
+def run_checks():
+    # Vault state
+    try:
+        vault = fetch_vault_state()
+
+        if vault.get("is_paused"):
+            alert("CRITICAL", f"Vault {VAULT} is paused on-chain")
+
+        remaining = vault.get("remaining_staleness_time", 9999)
+        if remaining < 600:
+            alert("CRITICAL", f"PPS expires in {remaining}s")
+        elif remaining < 3600:
+            alert("WARNING", f"PPS expires in {remaining // 60}min")
+
+        tvl = vault.get("tvl_usd", 0)
+        log.info(f"TVL: ${tvl:,.0f} | PPS: {vault.get('current_pps')} | Staleness: {remaining}s")
+
+    except Exception as e:
+        alert("ERROR", f"Failed to fetch vault state: {e}")
+
+    # Services
+    try:
+        services = fetch_service_health()
+        for svc in services:
+            rate = svc.get("success_rate", 1.0)
+            if rate < 0.80:
+                alert("CRITICAL", f"Service {svc['name']}: {rate:.0%} success rate")
+            elif rate < 0.95:
+                alert("WARNING", f"Service {svc['name']}: {rate:.0%} success rate")
+    except Exception as e:
+        alert("ERROR", f"Failed to fetch service health: {e}")
+
+    # Infrastructure
+    try:
+        components = fetch_infra_health()
+        for comp in components:
+            if comp["status"] == "down":
+                alert("CRITICAL", f"Infrastructure {comp['component']}: DOWN")
+            elif comp["status"] == "degraded":
+                alert("WARNING", f"Infrastructure {comp['component']}: degraded")
+    except Exception as e:
+        alert("ERROR", f"Failed to fetch infra health: {e}")
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    while True:
+        run_checks()
+        time.sleep(30)
+```
+
+```typescript TypeScript
+const EREBOR_URL = "https://erebor.superform.xyz";
+const SUPERMAN_URL = "https://superman.superform.xyz";
+const JWT = process.env.SUPERMAN_JWT!;
+const CHAIN_ID = 8453;
+const VAULT = "0xYourVault...";
+const headers = { Authorization: `Bearer ${JWT}` };
+
+async function fetchWithTimeout(url: string, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { headers, signal: controller.signal });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    return resp.json();
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+function alert(severity: string, message: string) {
+  console.warn(`[${severity}] ${message}`);
+}
+
+async function runChecks() {
+  try {
+    const vault = await fetchWithTimeout(
+      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}`
+    );
+    if (vault.is_paused) alert("CRITICAL", `Vault ${VAULT} is paused`);
+
+    const remaining = vault.remaining_staleness_time ?? 9999;
+    if (remaining < 600) alert("CRITICAL", `PPS expires in ${remaining}s`);
+    else if (remaining < 3600) alert("WARNING", `PPS expires in ${Math.floor(remaining / 60)}min`);
+
+    console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
+  } catch (e) {
+    alert("ERROR", `Vault state fetch failed: ${e}`);
+  }
+
+  try {
+    const { services } = await fetchWithTimeout(`${SUPERMAN_URL}/services/status`);
+    for (const svc of services) {
+      if (svc.success_rate < 0.80) alert("CRITICAL", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
+      else if (svc.success_rate < 0.95) alert("WARNING", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
+    }
+  } catch (e) {
+    alert("ERROR", `Service health fetch failed: ${e}`);
+  }
+}
+
+setInterval(runChecks, 30_000);
+```
+
+</CodeGroup>
+
+## Alert Integrations
+
+Replace the `alert()` stub with your notification system:
+
+### Slack
+
+```python
+import httpx
+
+def send_slack(message: str):
+    httpx.post(
+        os.environ["SLACK_WEBHOOK_URL"],
+        json={"text": message}
+    )
+```
+
+### PagerDuty
+
+```python
+import httpx
+
+def pagerduty_alert(summary: str, severity: str = "warning"):
+    httpx.post(
+        "https://events.pagerduty.com/v2/enqueue",
+        json={
+            "routing_key": os.environ["PAGERDUTY_ROUTING_KEY"],
+            "event_action": "trigger",
+            "payload": {
+                "summary": summary,
+                "severity": severity,
+                "source": "supervaults-monitor"
+            }
+        }
+    )
+```

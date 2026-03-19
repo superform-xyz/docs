@@ -1,0 +1,256 @@
+---
+title: "Write Hooks"
+description: "Step-by-step guide to building custom hooks on Superform — from repo setup through implementation and testing."
+---
+
+# Write Hooks
+
+## Quick Start
+
+**Requirements**
+
+- `Foundry ≥ v1.3.0`
+- `Solidity 0.8.30`
+- `pnpm`
+- `yarn`
+
+**Repo Setup**
+
+Clone the public repo and its submodules:
+
+```bash
+git clone --recursive https://github.com/superform-xyz/v2-core.git
+cd v2-core
+```
+
+Install dependencies:
+
+```bash
+forge install
+cd lib/modulekit
+pnpm install
+cd ../..
+cd lib/safe7579
+pnpm install
+cd ../..
+cd lib/nexus
+yarn
+cd ../..
+```
+
+Copy the environment file:
+
+```bash
+cp .env.example .env
+```
+
+**Build & Testing**
+
+Compile the contracts:
+
+```bash
+forge build
+```
+
+Run tests:
+
+```bash
+# Supply your node rpc directly in the makefile
+
+# Run all tests
+make ftest
+
+# Run a specific test
+# Replace the test in the `make test-vvv` command with the test to be run
+make test-vvv
+```
+
+### Anatomy of a Hook
+
+1. Every hook must inherit [BaseHook](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/BaseHook.sol) to obtain core hook functionality, along with any specific interfaces your hook may require from [ISuperHook](https://github.com/superform-xyz/v2-core/blob/dev/src/interfaces/ISuperHook.sol).
+2. Each hook contract begins with natspec detailing the layout of the hook data, this ensures that SuperBundler is able to encode the data required for hook execution.
+   1. The natspec of the data structure must be placed after the line saying `@dev data has the following structure` and the natspec must follow the format of `@notice DataType Name Offset`.
+   2. An example of a hook with a simple encoding structure can be found [here](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/loan/morpho/MorphoSupplyAndBorrowHook.sol#L19). [This](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/bridges/debridge/DeBridgeSendOrderAndExecuteOnDstHook.sol#L16) is a more complex example of encoding natspec.
+3. The constructor sets the `HookType` and `HookSubtype` as well as any immutable state variables such as the target contract address to call during execution. For a breakdown of different `HookType` options see [Hook Classifications](/superform-core/hooks#hook-classifications), and the `HookSubTypes` are found in [this library](https://github.com/superform-xyz/v2-core/blob/dev/src/libraries/HookSubTypes.sol). If your hook will perform an action type that is not yet in the library, add it there as `bytes32 public constant CATEGORY_NAME`.
+4. It is necessary to decode and validate the encoded hook data used by the hook. It is recommended to create some internal decoder and validation helpers. The decoding must align with the data locations denoted in the natspec as that is the order in which data will be encoded. There are two libraries you can use during the decoding process:
+   1. `BytesLib` — This necessary library can be found in the `src/vendor` directory, you need only import it to gain access to its functionality.
+   2. `HookDataDecoder` - This library lives in the `src/libraries` directory. It must be imported and the statement `using HookDataDecoder for bytes` must be placed at the top of the hook contract.
+5. The `_buildHookExecutions()` function takes decoded hook data and returns an array of Executions.
+   1. There are 3 parameters for this function:
+      1. `prevHook` — The address of the prior hook in a chain, `address(0)` if this hook is unchained or the first in a chain. Note: If you intend for this hook to be after another hook in a chain `bool usePrevHookAmount` must be added as a parameter to be encoded in the hook data structure natspec, and `ISuperHookResult` is required.
+      2. `account` — The smart account address if needed for the Execution payload.
+      3. `data` — The bytes hook data (encoded in the structure defined by the natspec)
+   2. The payload of an Execution is as follows:
+      1. `Target` — The address to call (contract or another module)
+      2. `Value` — Native ETH amount to forward as `msg.value`
+      3. `Calldata` — The encoded function selector to be called and any arguments
+
+### Hook Contract Outline
+
+```solidity
+/// @title MyHook
+/// @author SomeDev
+/// @dev data has the following structure
+/// @notice         DataType Name Offset
+contract MyHook is BaseHook {
+    // Constructor: set hook type + subtype
+    constructor()
+        BaseHook(HookType.INFLOW, HookSubTypes.ERC4626) {}
+
+    // 1️⃣ Build the array of Execution structs
+    function _buildHookExecutions(
+        address prevHook,
+        address account,
+        bytes calldata data
+    ) internal view override returns (Execution[] memory execs) { … }
+
+    // 2️⃣ Validate & prepare (state‑changing)
+    function _preExecute(
+        address prevHook,
+        address account,
+        bytes calldata data
+    ) internal override { … }
+
+    // 3️⃣ Finalise, set outAmount / usedShares
+    function _postExecute(
+        address prevHook,
+        address account,
+        bytes calldata data
+    ) internal override { … }
+}
+```
+
+Key fields inherited from `BaseHook`:
+
+| Variable | Purpose |
+| --- | --- |
+| `hookType` | Enum for accounting engine |
+| `subType` | 32‑byte tag for analytics / routing |
+| `usedShares`, `spToken`, `asset` | Transient storage outputs consumed by later hooks |
+| `setOutAmount(uint256,address)` | Records how many units this hook produced |
+
+See the full base contract for inline docs [here](https://github.com/superform-xyz/v2-core/raw/dev/src/hooks/BaseHook.sol).
+
+### Writing your First Hook: Approve‑and‑Deposit ERC‑4626
+
+We'll re‑create the example at
+`src/hooks/vaults/4626/ApproveAndDeposit4626VaultHook.sol` ([GitHub](https://github.com/superform-xyz/v2-core/raw/dev/src/hooks/vaults/4626/ApproveAndDeposit4626VaultHook.sol)).
+
+Approve the vault, deposit `amount` into it, and emit the number of shares received so that downstream hooks can compose on it.
+
+#### Hook Data layout
+
+| Offset | Bytes | Field |
+| --- | --- | --- |
+| 0 | 32 | `yieldSourceOracleId` *(optional)* |
+| 32 | 20 | `yieldSource` (`IERC4626` vault) |
+| 52 | 20 | `token` (underlying) |
+| 72 | 32 | `amount` (uint256) |
+| 104 | 1 | `usePrevHookAmount` (bool) |
+
+#### Implementation Highlights
+
+```solidity
+/// 1. Create the hook natspec
+/// @title ApproveAndDeposit4626VaultHook Tutorial
+/// @dev data has the following structure
+/// @notice         bytes32 yieldSourceOracleId = bytes32(BytesLib.slice(data, 0, 32), 0);
+/// @notice         address yieldSource = BytesLib.toAddress(data, 32);
+/// @notice         address token = BytesLib.toAddress(data, 52);
+/// @notice         uint256 amount = BytesLib.toUint256(data, 72);
+/// @notice         bool usePrevHookAmount = _decodeBool(data, 104);
+contract ApproveAndDeposit4626VaultHook is
+    BaseHook, // 2. Implement inheritance
+    ISuperHookInflowOutflow,
+    ISuperHookContextAware
+{
+    using HookDataDecoder for bytes; // 3. Import and setup decoder libraries
+
+    uint256 private constant AMOUNT_POS = 72;
+    uint256 private constant USE_PREV_POS = 104;
+
+    // 4. Set categories in constructor
+    constructor() BaseHook(HookType.INFLOW, HookSubTypes.ERC4626) { }
+
+    /* ---------- build() internals ---------- */
+    // 5. Create the build executions
+    function _buildHookExecutions(
+        address prev,
+        address account,
+        bytes calldata data
+    ) internal view override returns (Execution[] memory ex) {
+        // 5.1 Decode data
+        address yieldSource = data.extractYieldSource();
+        address token = BytesLib.toAddress(data, 52);
+        uint256 amount = _decodeAmount(data);
+        bool usePrevHookAmount = _decodeBool(data, USE_PREV_HOOK_AMOUNT_POSITION);
+
+        // 5.2 Hook chaining functionality
+        if (usePrevHookAmount) {
+            amount = ISuperHookResult(prevHook).getOutAmount(account);
+        } // Note: re-use prevHook's output when usePrevHookAmount = true
+
+        // 5.3 Data validation
+        if (amount == 0) revert AMOUNT_NOT_VALID();
+        if (yieldSource == address(0) || token == address(0)) revert ADDRESS_NOT_VALID();
+
+        // 5.4.1 Define Executions
+        // 4 calls = 4 executions: reset approval → approve → deposit → reset approval
+        executions = new Execution[](4);
+        // 5.4.2 Populate execution elements
+        executions[0] =
+            Execution({
+                target: token,
+                value: 0,
+                callData: abi.encodeCall(IERC20.approve, (yieldSource, 0))
+            });
+        executions[1] =
+            Execution({
+                target: token,
+                value: 0,
+                callData: abi.encodeCall(IERC20.approve, (yieldSource, amount))
+            });
+        executions[2] =
+            Execution({
+                target: yieldSource,
+                value: 0,
+                callData: abi.encodeCall(IERC4626.deposit, (amount, account))
+            });
+        executions[3] =
+            Execution({
+                target: token,
+                value: 0,
+                callData: abi.encodeCall(IERC20.approve, (yieldSource, 0))
+            }); // Security note: zero allowances before/after deposit to avoid "variable‑approval" exploit
+    }
+
+    /* ---------- pre / post ---------- */
+    // 6. Validate & prepare any state‑changing amounts required
+    function _preExecute(
+        address, address account, bytes calldata data
+    ) internal override {
+        _setOutAmount(_vaultBal(account, data), account); // snapshot
+        spToken = data.extractYieldSource();
+    }
+
+    // 7. Finalise, set outAmount/usedShares
+    function _postExecute(
+        address, address account, bytes calldata data
+    ) internal override {
+        uint256 afterBal = _vaultBal(account, data);
+        _setOutAmount(afterBal - getOutAmount(account), account);
+    }
+
+    /* ---------- helpers ---------- */
+    function _decodeAmount(bytes memory data) private pure returns (uint256) {
+        return BytesLib.toUint256(data, AMOUNT_POS);
+    }
+    function _vaultBal(address acct, bytes memory d)
+        private view returns (uint256)
+    {
+        return IERC4626(d.extractYieldSource()).balanceOf(acct);
+    }
+}
+```
+
+To test the newly created hook follow the steps outlined in the [Quick Start](#quick-start) section above.

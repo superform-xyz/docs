@@ -1,0 +1,111 @@
+---
+title: "Dashboard"
+description: "9-section vault monitoring dashboard covering TVL, PPS, fees, risk, users, operations, and the Zap Terminal."
+---
+
+![SuperVaults Vault Dashboard — monitoring panel with sidebar tabs for Overview, Allocation, PPS & Pricing, Fees & Upkeep, Managers, Performance, Risk, Users, Operations](/curate/images/screenshots/dashboard.jpg)
+
+The Dashboard is the primary monitoring view for a single vault. Nine sidebar sections cover every dimension of vault health: financial state, allocation composition, pricing, fee accrual, access control, performance history, risk metrics, depositor analytics, and operational throughput.
+
+Select your chain and vault from the top dropdowns. Financial data refreshes every 15 seconds from `GET /api/v1/vaults/{chain_id}/{vault_address}` plus Erebor analytics sub-endpoints.
+
+## 1. Overview
+
+Top-level vault health metrics:
+
+| Metric | Description |
+|--------|-------------|
+| TVL (USD) | Current total value locked |
+| Current PPS | Last on-chain recorded price-per-share |
+| Calculated PPS | Off-chain computed PPS (may differ during update intervals) |
+| HWM PPS | All-time high-water mark. Performance fees accrue only above this level. |
+| Total Supply | Outstanding vault shares |
+| Free Assets | Assets in vault not deployed to yield sources |
+| Escrowed Assets | Assets pending cross-chain redemptions |
+| Pause Status | Whether vault strategy execution is paused |
+| $UP Upkeep | Upkeep token balance and payment status |
+| Staleness Countdown | Time until PPS expires. Client-calculated from `last_pps_update_timestamp`. |
+
+## 2. Allocation
+
+Pie chart showing current distribution of vault assets across yield sources. Each slice represents one whitelisted yield source with its allocation amount and percentage of total.
+
+## 3. PPS & Pricing
+
+PPS history chart (time series from `analytics/pps`). Current, calculated, and HWM values displayed alongside staleness countdown with visual indicator. Min/max update intervals from SuperGovernor config.
+
+## 4. Fees & Upkeep
+
+| Field | Description |
+|-------|-------------|
+| Management Fee | Annualized bps on TVL |
+| Performance Fee | Bps on yield above HWM |
+| Pending Performance Fee | Total accrued, Superform share, recipient share, profit since HWM |
+| Can Skim | Whether pending fees are claimable now |
+
+Fee configuration data comes from the vault detail endpoint (`GET /api/v1/vaults/{chain_id}/{address}`) in the `fee_config` field. Fee history is derived from vault analytics and audit log data.
+
+## 5. Managers
+
+Lists all wallet addresses with roles on this vault: primary manager, secondary managers, view-only users.
+
+## 6. Performance
+
+- APY overview: current, 7-day, 30-day from `analytics/overview`
+- APY time series chart with selectable periods
+- TVL time series chart with selectable periods
+- 24h and 7d TVL change
+
+## 7. Risk
+
+| Metric | Description |
+|--------|-------------|
+| Risk Score | Composite 0-100 score |
+| Risk Level | Low / Medium / High classification |
+| Concentration Score | Exposure to any single yield source |
+| Max Drawdown (30d) | Worst peak-to-trough PPS decline |
+| Sharpe Ratio | Risk-adjusted return |
+| Volatility (Daily) | Daily PPS standard deviation |
+| Top Holder % | Share of TVL held by the largest depositor |
+
+Risk data has a 2-minute stale time.
+
+## 8. Users
+
+From `analytics/users`: total users, active users (24h/7d/30d), new users (24h/7d/30d), churned users, retention rate (7d/30d), average deposit size. Includes retention cohort table and top holders table.
+
+## 9. Operations
+
+From `analytics/operations`: transaction count, deposit and withdrawal counts, gas costs (average and total), slippage (average and max), net flow. Deposit/withdraw volume chart and transaction history table.
+
+## Zap Terminal
+
+The Zap Terminal opens as a modal overlay providing AI-powered vault analysis: a narrative covering performance, risk, yield sources, fees, and liquidity. Also includes a curated social feed and WebSocket-based AI chat for vault Q&A.
+
+<Note>
+The Zap Terminal analysis endpoint (`GET /api/v1/vaults/{vaultAddress}/ai/analysis?chain_id={}`) is operational but not yet included in the Erebor OpenAPI spec.
+</Note>
+
+## API Endpoints
+
+| Endpoint | Stale Time |
+|----------|-----------|
+| `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
+| `GET .../analytics/overview` | 15s |
+| `GET .../analytics/pps` | 15s |
+| `GET .../analytics/performance` | 15s |
+| `GET .../analytics/performance/apy?period={p}` | 15s |
+| `GET .../analytics/performance/tvl?period={p}` | 15s |
+| `GET .../analytics/risk` | 2min |
+| `GET .../analytics/risk/concentration` | 2min |
+| `GET .../analytics/risk/drawdown` | 2min |
+| `GET .../analytics/risk/volatility` | 2min |
+| `GET .../analytics/users` | 30s |
+| `GET .../analytics/users/retention` | 30s |
+| `GET .../analytics/users/top` | 30s |
+| `GET .../analytics/users/cohorts` | 30s |
+| `GET .../analytics/operations` | 30s |
+| `GET .../analytics/operations/transactions` | 30s |
+| `GET .../analytics/operations/volume` | 30s |
+| `GET .../analytics/social` | 60s |
+| `GET .../analytics/export` | on-demand |

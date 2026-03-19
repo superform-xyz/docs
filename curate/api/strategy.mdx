@@ -1,0 +1,223 @@
+---
+title: "Strategy Engine API Reference"
+description: "14 endpoints for creating and managing rule-based strategies, vault kill switches, and live shard state."
+---
+
+The Strategy Engine evaluates curator-defined rules and dispatches DeFiX intents to the OMS. It maintains in-memory **shards** for each active vault, running strategy tick loops.
+
+**Base URL:** `https://strategy.superform.xyz`
+**Auth:** `Authorization: Bearer <jwt>`
+**OpenAPI spec:** `strategy-openapi.json` ✅
+
+<Note>
+`vault_id` in the Strategy Engine uses `{chainId}:{vaultAddress}` format (e.g., `8453:0xdef...`). Erebor uses separate `chain_id` and `vault_address` parameters.
+</Note>
+
+---
+
+## Strategies
+
+### List Strategies
+
+```
+GET /api/v1/strategies?vault_id={vault_id}&limit=50
+```
+
+Returns all strategies for a vault, sorted by priority.
+
+### Get Strategy
+
+```
+GET /api/v1/strategies/{strategy_id}
+```
+
+### Create Strategy
+
+```
+POST /api/v1/strategies
+```
+
+```json
+{
+  "vault_id": "8453:0xdef...",
+  "name": "USDC Deposit Strategy",
+  "action": "DEPOSIT",
+  "tick_interval_ms": 60000,
+  "cooldown_ms": 300000,
+  "priority": 1,
+  "indicators": [
+    { "name": "morpho_apy", "expression": "..." }
+  ],
+  "rules": {
+    "type": "EXPR",
+    "indicator": "morpho_apy",
+    "op": ">",
+    "value": 0.05
+  },
+  "action_config": {
+    "action": "DEPOSIT",
+    "size_expr": "free_assets * 0.9",
+    "execution_name": "MorphoDepositHook",
+    "target_address": "0xMorphoVault...",
+    "max_slippage_bps": 50
+  },
+  "conviction_config": {
+    "required_ticks": 2,
+    "window_ms": 120000
+  }
+}
+```
+
+### Update Strategy
+
+```
+PUT /api/v1/strategies/{strategy_id}
+```
+
+```json
+{
+  "version": 3,
+  "name": "Updated USDC Deposit Strategy",
+  "..."
+}
+```
+
+**Version is required.** Returns `409 Conflict` if the version does not match current state (optimistic concurrency).
+
+### Delete Strategy
+
+```
+DELETE /api/v1/strategies/{strategy_id}
+```
+
+### Transition State
+
+```
+PATCH /api/v1/strategies/{strategy_id}/state
+{ "state": "RUNNING" }
+```
+
+Valid transitions: `IDLE → RUNNING`, `RUNNING → IDLE`. `PAUSED` is set by the vault kill switch, not by this endpoint.
+
+### Hot-Reload
+
+```
+POST /api/v1/strategies/{strategy_id}/reload
+```
+
+Reloads strategy config in the running shard without stopping the tick loop. Use after updating a strategy to apply changes immediately.
+
+### Strategy Intents
+
+```
+GET /api/v1/strategies/{strategy_id}/intents?limit=50
+```
+
+DeFiX intent history for this strategy.
+
+---
+
+## Vault (Strategy Engine)
+
+### Get Vault Config
+
+```
+GET /api/v1/vaults/{vault_id}
+```
+
+```json
+{
+  "id": "8453:0xdef...",
+  "kill_switch": false,
+  "max_intents_per_minute": 10,
+  "max_active_intents": 3
+}
+```
+
+### Update Vault Config (Kill Switch)
+
+```
+PATCH /api/v1/vaults/{vault_id}
+{ "kill_switch": true }
+```
+
+Engaging the kill switch transitions all `RUNNING` strategies to `PAUSED`.
+
+### Vault Intents
+
+```
+GET /api/v1/vaults/{vault_id}/intents?limit=50
+```
+
+All intents across all strategies for the vault.
+
+---
+
+## Engine
+
+### Engine Status
+
+```
+GET /api/v1/engine/status
+```
+
+```json
+{
+  "active_shards": 4,
+  "total_strategies_running": 11
+}
+```
+
+### Shard State
+
+```
+GET /api/v1/engine/shards/{vault_id}/state
+```
+
+Live in-memory state for the vault's shard:
+
+```json
+{
+  "vault_id": "8453:0xdef...",
+  "strategy_count": 3,
+  "active_intent_count": 1,
+  "tick_interval": 60000,
+  "fields": {
+    "morpho_apy": 0.0823,
+    "free_assets": 150000000000000000000,
+    "tvl": 1250000000000000000000
+  },
+  "strategies": ["..."]
+}
+```
+
+Returns `404` when no shard exists (no running strategies). This is not an error.
+
+---
+
+## Data Types
+
+### StrategyState
+
+| Value | Description |
+|-------|-------------|
+| `CREATED` | Defined, never activated |
+| `IDLE` | Ready, not ticking |
+| `RUNNING` | Actively evaluating rules |
+| `PAUSED` | Halted by kill switch |
+| `ERROR` | Runtime error |
+| `ARCHIVED` | Soft-deleted |
+
+### IntentAction
+
+`DEPOSIT` | `WITHDRAWAL` | `REBALANCE`
+
+### Rule Node Types
+
+| Type | Fields |
+|------|--------|
+| `EXPR` | `indicator`, `op`, `value` |
+| `AND` | `children: Rule[]` |
+| `OR` | `children: Rule[]` |
+| `NOT` | `child: Rule` |
+| `VOTE` | `children: Rule[]`, `required: number` |

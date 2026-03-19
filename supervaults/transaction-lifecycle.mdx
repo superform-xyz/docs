@@ -1,0 +1,52 @@
+---
+title: "Transaction Lifecycle"
+description: "End-to-end transaction flows for SuperVault deposits, PPS updates, strategy management, and redemptions."
+---
+
+# Transaction Lifecycle
+
+#### Deposits
+
+1. User Deposit: User calls `deposit()` with assets
+2. Immediate Minting: Shares minted synchronously at current PPS
+3. Asset Custody: Assets transferred to strategy for allocation
+4. Hook Execution: Strategist executes hooks to deploy capital
+5. PPS Updates: Validators provide updated PPS reflecting new positions
+
+#### PPS Updates
+
+1. Off-Chain Calculation: Validators calculate PPS independently
+2. Signature Generation: Validators sign PPS with private keys
+3. Aggregation: Signatures collected and submitted to oracle
+4. Validation: Oracle verifies signatures and quorum
+5. Forwarding: Validated PPS forwarded to aggregator
+6. Strategy Checks: Aggregator runs dispersion/deviation checks
+7. Storage: PPS stored and made available for vault operations
+
+#### Strategy Management
+
+1. Hook Approval: Strategist proposes new hook root
+2. Timelock Period: 15-minute delay configurable by governance for strategy hooks
+3. Execution: Hook root updated and new strategies enabled
+4. Guardian Oversight: Guardians can veto malicious updates
+
+#### Redemptions
+
+1. Redeem Request: User calls `requestRedeem()` with shares
+2. Redeem Slippage: User optionally calls `setRedeemSlippage()` (default 0.5%)
+3. Share Escrow: Shares transferred to escrow contract
+4. Fulfillment: Strategist executes hooks to free up assets
+5. PPS Validation: Slippage protection against recorded request PPS
+6. Asset Claim: User calls `withdraw()` to receive assets
+
+## PPS Validation
+
+Flexibility and security is economically enforced by validators submitting PPS, supported by oracle infrastructure in Superform core. If interested in becoming a SuperVault validator, we recommend reading [Become a Validator](/become-a-validator).
+
+Validators currently use a ECDSAPPSOracle which validates price updates using cryptographic signatures from the decentralized validator network.
+
+1. Message Construction: `keccak256(abi.encodePacked(strategy, pps, ppsStdev, validatorSet, totalValidators, timestamp))`
+2. Signature Recovery: Uses ECDSA to recover signer addresses
+3. Validator Verification: Checks signers against registered validator set
+4. Quorum Enforcement: Requires minimum number of signatures
+5. Duplicate Prevention: Prevents the same validator from signing twice

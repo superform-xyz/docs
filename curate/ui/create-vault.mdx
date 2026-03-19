@@ -1,0 +1,121 @@
+---
+title: "Create Vault"
+description: "Multi-step vault creation flow: choose chain, asset, configure fees, sign on-chain, and poll for indexing."
+---
+
+The Create Vault flow (`/vaults/create`) deploys a new SuperVault on-chain. You configure chain, underlying asset, fees, and managers, then sign a single creation transaction. Erebor handles contract deployment and indexes the new vault.
+
+<Note>
+The vault creation form and step ordering may change as the product evolves. Screenshots are deferred.
+</Note>
+
+## Creation Steps
+
+### Step 1: Select Chain
+
+Choose the deployment chain: Ethereum Mainnet (chain ID: 1) or Base (chain ID: 8453). This is permanent. Vaults cannot be migrated between chains.
+
+### Step 2: Choose Underlying Asset
+
+Select the token depositors will supply (USDC, WETH, DAI, etc.).
+
+- Browse registered tokens from `GET /api/v1/registry/token-assets?chain_id={}&limit=500`
+- If your token is not listed, click **Register Custom Token** via `PUT /api/v1/registry/token-assets` (idempotent)
+
+### Step 3: Set Name & Symbol
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| Vault Name | Descriptive name | `"USDC Yield Vault"` |
+| Symbol | Vault share ticker | `"svUSDC"` |
+
+### Step 4: Configure Managers
+
+Your connected wallet becomes primary manager. Optionally add secondary managers now (or later via [User Management](/curate/ui/user-management)).
+
+### Step 5: Configure Fees
+
+| Field | Description |
+|-------|-------------|
+| Performance Fee (bps) | Charged on yield above the high-water mark |
+| Management Fee (bps) | Annualized charge on TVL |
+| Fee Recipient | Address receiving the curator's fee share |
+
+Protocol constraints for vault creation (fee bounds, revenue share parameters) are fetched from on-chain SuperGovernor contract data, not a REST API.
+
+### Step 6: Redeem Timelock (Optional)
+
+Delay in seconds before redemption requests can be fulfilled. 0 = instant. Changeable later via [Vault Settings](/curate/ui/vault-settings) (primary manager only).
+
+### Step 7: Review SuperGovernor Config
+
+Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not curator-configurable.
+
+### Step 8: Sign Transaction
+
+Click **Create Vault**:
+
+1. `POST /api/v1/vaults/create/prepare` → calldata `{ to, data, value }`
+2. Wallet presents transaction for signature
+3. On broadcast, `POST /api/v1/vaults/create/confirm` with the `tx_hash`
+
+<Warning>
+`409 Conflict` on the confirm step means a creation job already exists for this transaction hash. The vault may already be indexing. Check the job status.
+</Warning>
+
+### Step 9: Poll Job Status
+
+Erebor creates a background indexing job. The modal polls with exponential backoff: 3s → 6s → 12s → 24s → 30s cap. Timeout: 3 minutes.
+
+```bash
+GET /api/v1/vaults/create/jobs/{job_id}
+```
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Job queued |
+| `running` | Indexing in progress |
+| `completed` | Vault indexed; redirects to Dashboard |
+| `failed` | Check `error_message` |
+
+## API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `GET /api/v1/registry/token-assets` | GET | Token list |
+| `PUT /api/v1/registry/token-assets` | PUT | Register custom token |
+| `POST /api/v1/vaults/create/prepare` | POST | Creation calldata |
+| `POST /api/v1/vaults/create/confirm` | POST | Submit tx hash |
+| `GET /api/v1/vaults/create/jobs/{id}` | GET | Poll job status |
+
+### PrepareCreateVaultRequest
+
+```json
+{
+  "chain_id": 8453,
+  "asset": "0xUSDC...",
+  "name": "USDC Yield Vault",
+  "symbol": "svUSDC",
+  "main_manager": "0xYourWallet...",
+  "secondary_managers": [],
+  "min_update_interval": 3600,
+  "max_staleness": 86400,
+  "fee_config": {
+    "performance_fee_bps": 1000,
+    "management_fee_bps": 200,
+    "recipient": "0xFeeRecipient..."
+  }
+}
+```
+
+### ConfirmCreateVaultRequest
+
+```json
+{
+  "tx_hash": "0xabc...",
+  "chain_id": 8453,
+  "vault_config": {
+    "redeem_timelock_seconds": 0
+  }
+}
+```

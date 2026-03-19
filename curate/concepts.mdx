@@ -1,0 +1,161 @@
+---
+title: "Core Concepts"
+description: "ERC-7540 vault mechanics, the hook system, merkle authorization, keeper workers, and the DeFiX intent protocol."
+---
+
+SuperVaults combine on-chain vault contracts with off-chain automation services. Understanding how these layers interact is essential for effective curator operations.
+
+## ERC-7540 Vault Standard
+
+<Note>
+SuperVault contracts are live on-chain and fully non-custodial. The curator UI at [curators.superform.xyz](https://curators.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct on-chain transactions signed by your wallet.
+</Note>
+
+SuperVaults implement ERC-7540, the asynchronous tokenized vault standard. ERC-7540 extends ERC-4626 compatibility (standard deposit/withdraw interface) with asynchronous request-fulfillment flows for deposits and redemptions.
+
+**Why async matters:** Cross-chain yield sources, illiquid positions, and redemption timelocks all require time between a user's request and its fulfillment. ERC-7540 formalizes this into a two-phase flow:
+
+1. **Request** — Depositor submits a deposit or redemption request on-chain
+2. **Fulfillment** — Keeper workers process the request when conditions are met (liquidity available, timelock expired, strategy rules satisfied)
+
+Vault shares are ERC-20 tokens representing a depositor's pro-rata claim on vault assets. Price-per-share (PPS) tracks the value of each share in terms of the underlying asset.
+
+## Price-Per-Share (PPS)
+
+PPS is the core accounting primitive. It determines:
+
+- How many shares a depositor receives for a given deposit
+- How many underlying assets a depositor receives for redeeming shares
+- When performance fees accrue (PPS exceeds high-water mark)
+- Whether the vault is operational (PPS must be updated within the staleness window)
+
+| PPS Metric | Description |
+|-----------|-------------|
+| **Current PPS** | Last on-chain recorded value |
+| **Calculated PPS** | Off-chain computed value (may differ during update intervals) |
+| **HWM PPS** | All-time high-water mark. Performance fees accrue only above this level. |
+| **Staleness countdown** | Time remaining before PPS expires. If PPS goes stale, vault operations are blocked until an update is pushed. The staleness window is configurable per vault and defaults to 24 hours. |
+
+Validators compute PPS off-chain, sign the result as EIP-712 typed data, and any party can submit the update on-chain via `ECDSAPPSOracle.updatePPS()`. A PPS update is accepted only after at least two-thirds of weighted validator stake has signed off. Misreporting is deterred through validator slashing and an insurance fund backstop.
+
+## The Hook System
+
+Hooks are on-chain modules that keepers invoke to interact with external protocols. Each hook type corresponds to an operation:
+
+| Hook Type | Operation |
+|----------|-----------|
+| `DEPOSIT` | Deploy vault assets into a yield source |
+| `WITHDRAWAL` | Unwind a position from a yield source |
+| `REBALANCE` | Move capital between yield sources |
+
+Hooks are registered in the global Hook Registry with typed parameters (`inspectParams`) that define what arguments each invocation requires: yield source addresses, token addresses, oracle addresses, or freeform values.
+
+A keeper can only call a hook if the exact combination of hook address + parameters matches a leaf in the vault's on-chain merkle tree.
+
+## Merkle Authorization
+
+Merkle authorization is the access control layer for keeper operations. The flow:
+
+<Steps>
+  <Step title="Configure">
+    Create a hook configuration specifying which hooks are authorized with which parameters. Each (hook, params) combination becomes one leaf.
+  </Step>
+  <Step title="Generate">
+    Erebor computes a merkle tree from the active configuration. The tree root is a single 32-byte hash that encodes all authorized operations.
+  </Step>
+  <Step title="Propose">
+    Submit the new root to the SuperVaultStrategy contract. A timelock period begins.
+  </Step>
+  <Step title="Execute">
+    After the timelock expires, execute the root update on-chain. Keepers can now use proofs from the new tree.
+  </Step>
+</Steps>
+
+**Why timelocks:** The timelock between proposal and execution gives depositors time to exit if they disagree with a curator's authorization changes. This is a standard DeFi governance safety pattern.
+
+When a keeper executes a hook, the on-chain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
+
+SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments; updates to this root are subject to a 15-minute timelock. The **strategy hooks root** is curator-controlled and contains the full strategy-specific authorization set, including beneficiary-specific hooks; updates to this root are subject to a 7-day timelock. A hook must be present in either tree to execute.
+
+## Yield Sources and Oracles
+
+A yield source is an external protocol contract where the vault deploys capital to generate returns. SuperVaults support two yield source types:
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `erc4626` | Standard ERC-4626 vault | Morpho vaults, Aave wrappers |
+| `pendle_pt` | Pendle Principal Token | Fixed-rate yield via PT purchase |
+
+ERC-7540 yield sources are also on the roadmap as an upcoming yield source type.
+
+Each yield source must be paired with an oracle that prices the position back into the vault's underlying asset:
+
+| Oracle Type | Pricing Method |
+|-------------|---------------|
+| `erc4626` | Share price of the underlying ERC-4626 vault |
+| `pendle_pt` | Spot market price of the PT |
+| `pendle_pt_amortized` | Linear decay to par value as PT approaches maturity |
+
+Adding or removing yield sources and updating oracle assignments are on-chain operations that follow the prepare pattern (Erebor constructs calldata, curator signs).
+
+## Keeper Workers
+
+Seven Celery-based keeper workers run continuously against each vault's configuration:
+
+| Worker | Responsibility |
+|--------|---------------|
+| `fulfill_deposits` | Allocates free vault assets to yield sources per the deposit ladder |
+| `fulfill_redeems` | Processes pending ERC-7540 redemption requests |
+| `fulfill_claims` | Claims accumulated reward tokens from external protocols |
+| `fulfill_swaps` | Swaps non-underlying tokens back to the vault's base asset |
+| `redemption_queue_engine` | Monitors the subgraph for new redemption requests |
+| `cleanup_processed_redeems` | Reconciles pending redemptions with on-chain state |
+| `tx_manager` | Broadcasts transactions, monitors confirmations, handles reorgs |
+
+Workers execute on configurable intervals. Curators control:
+- **Global enable/disable** per vault (stops all workers)
+- **Per-service pause/resume** (targeted worker control)
+- **Schedule adjustment** (change execution frequency)
+- **Ladder configuration** (directs deposit and redemption behavior)
+
+## The Strategy Engine
+
+The Strategy Engine adds rule-based automation on top of the keeper system. Instead of static ladder ordering, curators define strategies with:
+
+- **Indicators** — named variables evaluated each tick (e.g., `morpho_apy`, `free_assets`)
+- **Rules** — boolean logic trees (`EXPR`, `AND`, `OR`, `NOT`, `VOTE`) that determine when to act
+- **Action config** — what to do when rules trigger (deposit size, target hook, slippage limits)
+- **Conviction config** — how many consecutive ticks must pass before dispatching an intent
+
+Strategies evaluate on configurable tick intervals and dispatch **DeFiX intents** to the OMS when conditions are met.
+
+## DeFiX v0.1 Intent Protocol
+
+DeFiX is the standardized intent interface between the Strategy Engine and the OMS (Order Management System). An intent represents a desired vault operation:
+
+```
+Strategy triggers → Intent submitted to OMS → OMS validates merkle proof → OMS executes on-chain
+```
+
+Intent lifecycle:
+
+| Status | Description |
+|--------|-------------|
+| `Processing` | Queued or being executed |
+| `Completed` | Successfully executed on-chain |
+| `Failed` | Execution failed (error details attached) |
+| `Cancelled` | Cancelled before execution |
+
+The OMS handles nonce management, gas estimation, transaction broadcasting, and merkle proof validation. Failed intents include error messages and may be retried by the Strategy Engine depending on the failure type.
+
+## The Prepare Pattern
+
+All on-chain operations in SuperVaults follow a consistent two-phase flow:
+
+1. **Prepare** — Call a `prepare-*` endpoint on Erebor. It returns raw EVM calldata (`{ to, data, value }`).
+2. **Sign** — Pass the calldata to your wallet for signature and broadcast.
+3. **Confirm** (where applicable) — Notify Erebor of the transaction hash for indexing.
+
+This pattern keeps private keys off the server. Erebor constructs the correct calldata; your wallet controls signing authority.
+
+Used for: vault creation, yield source management, user management, merkle root proposals, emergency pause/unpause.

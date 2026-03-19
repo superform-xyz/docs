@@ -1,0 +1,99 @@
+---
+title: "Permissions Model"
+description: "Four access levels for SuperVaults: Primary Manager, Secondary Manager, View Only, and Registry Maintainer."
+---
+
+## Role Tiers
+
+SuperVaults enforces four permission tiers with distinct on-chain and off-chain boundaries:
+
+| Role | On-Chain? | Scope | Mutable? |
+|------|-----------|-------|---------|
+| **Primary Manager** | Yes | Full vault control | Immutable (set at creation) |
+| **Secondary Manager** | Yes | All operations except vault settings | Removable via on-chain tx |
+| **View Only** | No | Dashboard read access | Added/removed off-chain |
+| **Registry Maintainer** | No | Global registry CRUD | DB-level grant |
+
+## Primary Manager
+
+The primary manager is the on-chain vault owner. One per vault.
+
+- Set at vault creation: the wallet that signs `POST /api/v1/vaults/create/prepare`
+- Cannot be changed without governance-level contract interaction
+- Exclusive access to vault settings (redeem timelock) and user management
+- Can add and remove secondary managers
+
+<Warning>
+The primary manager key cannot be rotated. Use a hardware wallet or multi-sig for production vaults. If this key is compromised, the attacker gains full vault control.
+</Warning>
+
+## Secondary Manager
+
+On-chain delegates with operational authority. A vault supports multiple secondary managers.
+
+- Added via `POST /api/v1/users/secondary-manager/prepare` (prepare pattern, requires wallet signature)
+- Removed via `POST /api/v1/users/secondary-manager/remove/prepare`
+- Full operational access: ladders, yield sources, merkle trees, strategies, pause/unpause, view-only user management
+- Cannot modify vault settings or add/remove other secondary managers
+
+## View Only
+
+Off-chain read access. No on-chain transaction required.
+
+- Added via `POST /api/v1/users/view-only`
+- Removed via `DELETE /api/v1/users/view-only/{wallet}`
+- Read-only dashboard and analytics visibility
+- No write capabilities
+
+## Registry Maintainer
+
+Global permission for managing Erebor registries. Not vault-scoped.
+
+- Grants access to the Registry and Admin pages
+- Required for: creating/updating/deleting yield sources, oracles, hooks in the global registry; running data backfills
+- Separate from vault manager roles
+
+## Permission Matrix
+
+| Action | Primary | Secondary | View Only | Registry Maintainer |
+|--------|---------|-----------|-----------|---------------------|
+| View dashboard | ✅ | ✅ | ✅ | — |
+| Configure ladders | ✅ | ✅ | ❌ | — |
+| Manage yield sources | ✅ | ✅ | ❌ | — |
+| Merkle tree operations | ✅ | ✅ | ❌ | — |
+| Create/edit strategies | ✅ | ✅ | ❌ | — |
+| Pause vault (on-chain) | ✅ | ✅ | ❌ | — |
+| Pause keeper services | ✅ | ✅ | ❌ | — |
+| Add/remove secondary managers | ✅ | ❌ | ❌ | — |
+| Add/remove view-only users | ✅ | ✅ | ❌ | — |
+| Vault settings (redeem timelock) | ✅ | ❌ | ❌ | — |
+| Registry CRUD | — | — | — | ✅ |
+| Admin backfill | — | — | — | ✅ |
+
+## AuthGuard Enforcement
+
+The Curator App enforces permissions at both the page level and the API level:
+
+**Client-side:** `AuthGuard` checks `superman_is_manager` in localStorage and redirects unauthorized users.
+
+**Server-side:** All Erebor endpoints validate JWT claims. A `403 Forbidden` response means the connected wallet lacks the required role.
+
+## Managing Users via API
+
+```bash
+# List all users for a vault
+GET /api/v1/users?vault_address={address}&chain_id={chainId}
+Authorization: Bearer <jwt>
+
+# Prepare add secondary manager (returns calldata to sign)
+POST /api/v1/users/secondary-manager/prepare
+Authorization: Bearer <jwt>
+{ "vault_address": "0x...", "chain_id": 8453, "manager_address": "0xnew..." }
+
+# Add view-only user (off-chain, no gas)
+POST /api/v1/users/view-only
+Authorization: Bearer <jwt>
+{ "vault_address": "0x...", "chain_id": 8453, "wallet_address": "0x...", "display_name": "Risk Monitor" }
+```
+
+See [User Management](/curate/ui/user-management) for the full UI walkthrough.

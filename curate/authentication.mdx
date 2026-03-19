@@ -1,0 +1,129 @@
+---
+title: "Authentication"
+description: "How JWT auth works in SuperVaults: wallet connection, token storage, and programmatic access."
+---
+
+## Auth Flow
+
+SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+
+<Steps>
+  <Step title="Connect Wallet">
+    Open [curators.superform.xyz](https://curators.superform.xyz) and click **Connect Wallet**. Dynamic.xyz presents a wallet selection modal supporting MetaMask, Rabby, WalletConnect, and others.
+  </Step>
+  <Step title="Sign Auth Message">
+    Your wallet signs a non-transactional message. Dynamic.xyz verifies the signature and issues a JWT tied to your wallet address.
+  </Step>
+  <Step title="JWT Stored in Browser">
+    The Curator App stores auth state in `localStorage`:
+    - `superman_jwt` — the Bearer token used on all API requests
+    - `superman_address` — connected wallet address
+    - `superman_is_manager` — boolean flag
+    - `superman_vaults` — array of vault addresses you manage
+  </Step>
+  <Step title="Auth Verified">
+    The app calls `GET /api/v1/auth/me` on load to fetch your vault roles and confirm the JWT is valid.
+  </Step>
+</Steps>
+
+## Primary Auth Endpoint
+
+```bash
+GET /api/v1/auth/me
+Authorization: Bearer <jwt>
+```
+
+Response:
+```json
+{
+  "wallet_address": "0xabc...",
+  "is_manager": true,
+  "vaults": [
+    {
+      "vault_address": "0xdef...",
+      "chain_id": 8453,
+      "role": "primary_manager"
+    }
+  ]
+}
+```
+
+<Note>
+`GET /api/v1/auth/me` is the primary authentication path. It returns the current user with all assigned vault roles. Use this endpoint when building integrations.
+</Note>
+
+## JWT Verification Endpoint
+
+```bash
+GET /api/v1/auth/verify
+Authorization: Bearer <jwt>
+```
+
+Returns:
+```json
+{
+  "verified": true,
+  "walletAddress": "0xabc...",
+  "isManager": true,
+  "vaults": ["0xdef..."]
+}
+```
+
+## Token Lifecycle
+
+- JWTs expire after a session period defined by Dynamic.xyz
+- Any `401 Unauthorized` from Erebor triggers automatic logout via `authService.handleAutoLogout()`
+- Reconnecting your wallet re-issues a fresh JWT
+
+## Public Endpoints (No Auth)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/v1/public/vaults` | All SuperVault deployments with TVL and APY |
+| `GET /api/v1/registry/token-assets` | Token asset metadata |
+
+## Programmatic Authentication
+
+For automation scripts, generate a JWT without the browser:
+
+1. Sign an EIP-712 auth message with your wallet's private key
+2. Submit the signature to Dynamic.xyz to receive a JWT
+3. Pass the JWT as `Authorization: Bearer <jwt>` on all requests
+
+<CodeGroup>
+
+```python Python
+import requests
+
+EREBOR_URL = "https://erebor.superform.xyz"
+JWT = "<your-jwt>"
+
+headers = {"Authorization": f"Bearer {JWT}"}
+
+resp = requests.get(f"{EREBOR_URL}/api/v1/auth/me", headers=headers)
+resp.raise_for_status()
+user = resp.json()
+
+print(f"Connected as: {user['wallet_address']}")
+print(f"Manages {len(user['vaults'])} vault(s)")
+```
+
+```typescript TypeScript
+const EREBOR_URL = "https://erebor.superform.xyz";
+const JWT = "<your-jwt>";
+
+const headers = { Authorization: `Bearer ${JWT}` };
+
+const resp = await fetch(`${EREBOR_URL}/api/v1/auth/me`, { headers });
+if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
+
+const user = await resp.json();
+console.log(`Connected as: ${user.wallet_address}`);
+console.log(`Manages ${user.vaults.length} vault(s)`);
+```
+
+</CodeGroup>
+
+<Warning>
+Never hardcode JWTs in source code. Use environment variables (`SUPERMAN_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
+</Warning>

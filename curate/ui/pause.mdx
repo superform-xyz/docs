@@ -1,0 +1,99 @@
+---
+title: "Pause Operations"
+description: "Emergency on-chain vault pause and per-vault keeper service controls."
+---
+
+![SuperVaults Pause Operations — Pause Vault and Pause Keepers controls with Vault Pause Control card](/curate/images/screenshots/pause.jpg)
+
+The Pause page provides two control mechanisms: on-chain vault pause (halts contract-level execution, requires gas) and per-vault keeper service controls (halts individual workers, no gas). Both are fully operational and wired to Erebor.
+
+<Warning>
+The Pause page (`/pause`) is distinct from the Emergency page (`/emergency`). Pause is **fully operational**. The Emergency page is a mock Fireblocks multi-sig flow not yet implemented.
+</Warning>
+
+## Section 1: On-Chain Vault Pause
+
+### Batch Pause Status
+
+Shows pause status for all vaults you manage. Each vault displays name, chain, pause state, timestamp, and actor.
+
+API: `GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr},{chainId}:{vaultAddr},...` (polls every 10s)
+
+### Pausing
+
+1. Click **Pause Vault**
+2. Optionally enter a reason (stored in audit log)
+3. Erebor calls `POST /api/v1/vaults/emergency-pause/prepare` → calldata
+4. Sign the transaction
+
+When paused: Strategy Engine stops dispatching intents, all on-chain vault operations halt, PPS oracle updates may be blocked.
+
+### Unpausing
+
+1. Click **Unpause Vault**
+2. Erebor calls `POST /api/v1/vaults/emergency-unpause/prepare` → calldata
+3. Sign the transaction
+
+## Section 2: Keeper Service Controls
+
+Independent of the on-chain pause. Control individual workers for a specific vault without gas.
+
+### Viewing Services
+
+`GET /api/v1/vaults/{chain_id}/{vault_address}/services` returns per-service status:
+
+| Field | Description |
+|-------|-------------|
+| `service_name` | e.g., `fulfill_deposits` |
+| `is_paused` | Current state |
+| `paused_at` | Timestamp |
+| `paused_by` | Actor wallet |
+| `paused_reason` | Optional reason |
+| `resumed_at` | Resume timestamp |
+
+### Pausing a Service
+
+```bash
+PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/pause
+{ "reason": "Reconfiguring deposit ladder" }
+```
+
+### Resuming a Service
+
+```bash
+PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/resume
+```
+
+### Bulk Enable/Disable
+
+Stop or start all services for a vault at once (no gas):
+
+```bash
+PUT /api/v1/vaults/{chain_id}/{vault}/services/enabled
+{ "enabled": false }
+```
+
+## Pause Controls Comparison
+
+| Control | Scope | Gas Required |
+|---------|-------|-------------|
+| On-chain pause | Contract-level, all operations | Yes |
+| Services enabled (bulk) | All keeper workers | No |
+| Vault Enabled toggle ([Ladder](/curate/ui/ladder)) | All keeper workers | No |
+| Individual service pause | Single keeper worker | No |
+
+## Audit Trail
+
+All pause/resume events are logged. Query via `GET /api/v1/audit/logs?vault_address={}&chain_id={}`.
+
+## API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/vaults/pause-status` | GET | Batch pause status |
+| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare pause tx |
+| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare unpause tx |
+| `/api/v1/vaults/{chain_id}/{vault}/services` | GET | Per-vault service list |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
+| `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable |

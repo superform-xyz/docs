@@ -1,6 +1,30 @@
 ---
 title: "Core Concepts"
-description: "ERC-7540 vault mechanics, the hook system, merkle authorization, keeper workers, and the DeFiX intent protocol."
+description: "The curator role, ERC-7540 vault mechanics, the hook system, merkle authorization, keeper workers, and the DeFiX intent protocol."
+---
+
+## The Curator Role
+
+A curator manages a SuperVault's yield strategy: which protocols receive capital, in what order, under what conditions, and with what risk parameters. The curator does not hold depositor funds — the vault contract does.
+
+**What curators control:** yield source selection, oracle assignment, allocation priority, reserve ratio, strategy rules, merkle authorization, fee configuration (at creation), redeem timelock, service controls, emergency pause, and access management.
+
+**What the protocol enforces:** merkle-verified execution, timelocked root updates, fee bounds (SuperGovernor), PPS staleness enforcement, $UP upkeep requirements, high-water mark fee accrual, and protocol revenue share.
+
+**Trust model:** Depositors trust the curator to select sound yield sources and maintain vault health. Depositors do NOT need to trust the curator for fund custody (held by contract), honest execution (merkle-verified), accurate PPS (oracle-enforced), or fee limits (SuperGovernor-enforced).
+
+### Curator Tiers
+
+| Role | On-chain? | Capabilities |
+|------|-----------|-------------|
+| **Primary Manager** | Yes | Full vault control. Set at creation, immutable. |
+| **Secondary Manager** | Yes | All operations except vault settings and user management. |
+| **View Only** | No | Read-only dashboard access. |
+
+<Warning>
+The primary manager key is the root of trust for the vault. If compromised, an attacker could modify yield sources, update merkle authorization, and pause operations. Use hardware wallets and consider multi-sig for production vaults.
+</Warning>
+
 ---
 
 SuperVaults combine on-chain vault contracts with off-chain automation services. Understanding how these layers interact is essential for effective curator operations.

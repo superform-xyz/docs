@@ -1,0 +1,48 @@
+---
+title: "Manage a SuperVault"
+description: "On-chain vault creation via the SuperVaultAggregator contract and the curator management app."
+---
+
+# Manage a SuperVault
+
+SuperVaults can be created by calling `createVault` on the `SuperVaultAggregator` contract. The caller becomes the vault's primary manager with full operational authority.
+
+## On-Chain Creation
+
+```solidity
+interface ISuperVaultAggregator {
+    function createVault(
+        address asset,
+        string memory name,
+        string memory symbol,
+        address mainManager,
+        address[] memory secondaryManagers
+    ) external returns (address vault, address strategy, address escrow);
+}
+```
+
+The function deploys a vault triad (SuperVault, SuperVaultStrategy, Escrow) and registers it with the aggregator. The `mainManager` address receives the primary manager role.
+
+## Curator App
+
+For a guided creation experience, use the curator management application at [curators.superform.xyz](https://curators.superform.xyz). The app constructs the creation calldata, walks you through fee configuration, and handles vault indexing after deployment.
+
+See the full [Curator Documentation](/curate) for the complete operational guide: yield source whitelisting, Merkle tree authorization, ladder configuration, strategy automation, and vault monitoring.
+
+## What a Curator Controls
+
+| Domain | Capability |
+|--------|-----------|
+| Yield source selection | Whitelist ERC-4626 vaults and Pendle PT positions |
+| Allocation priority | Order deposit and redemption ladders |
+| Reserve ratio | Percentage of assets held liquid |
+| Strategy rules | Automated rebalancing via the Strategy Engine |
+| Merkle authorization | Specify authorized hook + parameter combinations |
+| Fee configuration | Performance and management fees (bounded by SuperGovernor) |
+| Emergency pause | Halt all vault operations on-chain |
+
+## Validator-Secured PPS
+
+Price-per-share is not updated by the curator. Validators compute PPS off-chain, sign EIP-712 attestations, and submit updates on-chain through `ECDSAPPSOracle.updatePPS()`. The oracle requires two-thirds weighted validator consensus before accepting an update.
+
+This separation ensures depositors do not need to trust the curator for accurate pricing.

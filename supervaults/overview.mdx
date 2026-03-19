@@ -1,42 +1,75 @@
 ---
-title: "SuperVaults"
-description: "Flexible, secure vault primitives built on Superform Core — permissionless creation, infinitely flexible execution, and dual Merkle validation."
+title: "SuperVaults Overview"
+description: "ERC-7540 tokenized vaults with curator-managed yield strategies, Merkle-verified execution, and automated keeper workers."
 ---
 
 # SuperVaults
 
-## Introduction
+SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Depositors supply assets; curators decide where that capital goes — which protocols, in what order, under what conditions.
 
-SuperVaults are flexible and secure vault primitives built to scale by leveraging the infrastructure provided in Superform core.
+## Key Properties
 
-On top of the foundational features expected of modern vault products such as simplified access through a singular product, non-custodial management, and the composability and transparency of onchain architecture, SuperVaults enable:
+- **Non-custodial** — Depositor funds live in the vault contract, never in curator wallets
+- **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
+- **Merkle-verified execution** — Keepers can only call hooks that match leaves in the on-chain Merkle tree
+- **Automated operations** — Seven Celery-based keeper workers handle deposits, redemptions, reward claims, swaps, and transaction management
+- **Oracle-secured PPS** — Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted on-chain only after two-thirds weighted consensus
 
-- **Permissionless Vault Creation:** Anyone can create a new vault with Hooks, charge fees, and have validator support by paying upkeep
-- **Infinitely Flexible Execution:** Validates and executes arbitrary [Hooks](/superform-core/hooks) created in Superform Core via Merkle proofs. These can be used to deposit, stake, bridge, loop, and arbitrary set of actions that have been validated in the root
-- **Security through Dual Merkle Validation:** The system uses two Merkle trees for hook validation. A global root is managed by governance for protocol-wide hook approval and a strategy root is managed by strategists for vault-specific operations
-- **Automated Emergency Controls:** Provides emergency withdrawal mechanisms with built-in pause functionality on circuit breakers
+## How SuperVaults Work
 
-## Institutional-Grade Security
+<Steps>
+  <Step title="Depositor Requests">
+    A depositor submits a deposit or redemption request on-chain via the ERC-7540 interface.
+  </Step>
+  <Step title="Keeper Workers Execute">
+    Seven automated workers process requests: allocating deposits to yield sources per the curator's ladder configuration, fulfilling redemptions, claiming rewards, and managing swaps.
+  </Step>
+  <Step title="Curator Manages Strategy">
+    The curator sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
+  </Step>
+  <Step title="Validators Secure PPS">
+    Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update on-chain. The oracle accepts updates only with supermajority validator consensus.
+  </Step>
+</Steps>
 
-SuperVaults enforce safety at every layer:
+## Vault Architecture
 
-- Double-Merkle hook allowlisting & blacklisting at both global and strategy levels ensures vaults can only perform pre-approved actions like depositing, redeeming, swapping, and bridging. Everything timelocked, no arbitrary execution, no "manager key" risk, no discretionary movement of funds.
-- Clear role separation across Managers, Validators, and Guardians. Managers set high-level parameters under timelock with the ability to execute the strategy only through pre-approved hooks, Validators attest price-per-share with bonded accountability, and Guardians oversee risk and can veto or pause unsafe changes.
-- Validator-signed price-per-share (PPS) with economic slashing and insurance backstops.
-- 7-day timelocks and Guardian veto rights ensure no configuration change or parameter update can happen instantly or out of view.
+Each SuperVault deployment consists of three on-chain contracts:
 
-## Efficient and Flexible
+| Contract | Purpose |
+|----------|---------|
+| **SuperVault** | ERC-7540 vault — holds depositor assets, issues share tokens |
+| **SuperVaultStrategy** | Execution engine — manages hook authorization via dual Merkle roots, controls yield source interactions |
+| **Escrow** | Holds shares during pending redemptions and assets during fulfillment claims |
 
-SuperVaults are engineered for scale:
+These contracts are managed through the **SuperVaultAggregator**, which handles vault creation, PPS oracle forwarding, upkeep accounting, and governor-level constraints.
 
-- Native [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) compliance enable efficient flows for low-cost deposits & async withdrawals as well as onchain composability.
-- The SuperBundler supports cross-chain deposits across 8+ networks with a single signature.
-- SuperVaults can access any yield source using the modular hook engine. Strategies can evolve as markets do, without redeployments or protocol upgrades.
+## Supported Yield Sources
 
-## Full Transparency
+| Type | Description | Example |
+|------|-------------|---------|
+| `erc4626` | Standard ERC-4626 vaults | Morpho, Aave wrappers, Euler |
+| `pendle_pt` | Pendle Principal Tokens | Fixed-rate yield via PT purchase |
 
-Depositors don't have to trust, they can verify through:
+ERC-7540 yield sources (async vaults) are on the roadmap.
 
-- A live transparency dashboard surfaces allocations, caps, validator signatures, and performance in real time.
-- PPS can be recomputed by anyone, onchain or offchain with circuit breakers that pause abnormal behavior automatically.
-- All underlying protocols can continuously be monitored for exploit vectors and governance risk and quickly allocated out of if needed.
+## Live Deployments
+
+SuperVaults are live on **Ethereum** and **Base** with flagship vaults for USDC, WETH, and WBTC. See [Deployment Addresses](/deployment-addresses) for the full contract list.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="diagram-project" href="/supervaults/architecture">
+    Dual Merkle trees, PPS oracle model, and contract interactions.
+  </Card>
+  <Card title="Transaction Lifecycle" icon="arrows-spin" href="/supervaults/transaction-lifecycle">
+    End-to-end flow from deposit request to yield accrual.
+  </Card>
+  <Card title="Economics" icon="chart-pie" href="/supervaults/economics">
+    Fee structure, $UP upkeep, and protocol revenue.
+  </Card>
+  <Card title="Become a Curator" icon="gauge-high" href="/curate">
+    Full technical guide for vault operators.
+  </Card>
+</CardGroup>

@@ -4,8 +4,8 @@
   "name": "Superform",
   "colors": {
     "primary": "#00C571",
-    "light": "#33D48D",
-    "dark": "#00A35D"
+    "light": "#00E882",
+    "dark": "#00A85F"
   },
   "favicon": "/favicon.svg",
   "logo": {
@@ -15,7 +15,7 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Protocol",
+        "tab": "Learn",
         "groups": [
           {
             "group": "Overview",
@@ -25,24 +25,12 @@
             ]
           },
           {
-            "group": "Superform Core",
-            "pages": [
-              "superform-core/overview",
-              "superform-core/smart-accounts",
-              "superform-core/hooks",
-              "superform-core/security",
-              "superform-core/deployment-addresses"
-            ]
-          },
-          {
             "group": "SuperVaults",
             "pages": [
               "supervaults/overview",
               "supervaults/architecture",
               "supervaults/transaction-lifecycle",
-              "supervaults/economics",
-              "supervaults/security",
-              "supervaults/deployment-addresses"
+              "supervaults/economics"
             ]
           },
           {
@@ -52,26 +40,41 @@
             ]
           },
           {
-            "group": "Build on Superform",
+            "group": "Reference",
             "pages": [
-              "build-on-superform/write-hooks",
-              "manage-a-supervault",
-              "become-a-validator"
+              "glossary"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Build",
+        "groups": [
+          {
+            "group": "Superform Core",
+            "pages": [
+              "build/overview",
+              "build/smart-accounts"
             ]
           },
           {
-            "group": "Integrate Superform",
+            "group": "Hooks",
             "pages": [
-              "integrate-superform/deployment-addresses"
+              "build/hooks/overview",
+              "build/hooks/write-a-hook"
+            ]
+          },
+          {
+            "group": "SuperVaults",
+            "pages": [
+              "build/manage-a-supervault",
+              "build/become-a-validator"
             ]
           },
           {
             "group": "Resources",
             "pages": [
-              "technical-resources",
-              "glossary",
-              "resources/security-and-audits",
-              "resources/links"
+              "build/technical-resources"
             ]
           }
         ]
@@ -83,7 +86,6 @@
             "group": "Introduction",
             "pages": [
               "curate/index",
-              "curate/curator-role",
               "curate/concepts"
             ]
           },
@@ -107,8 +109,8 @@
             "group": "Vault Operations",
             "pages": [
               "curate/ui/dashboard",
-              "curate/ui/ladder",
               "curate/ui/strategy",
+              "curate/ui/ladder",
               "curate/ui/history",
               "curate/ui/services"
             ]
@@ -136,12 +138,7 @@
               "curate/ui/pause",
               "curate/ui/alerts"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
+          },
           {
             "group": "API Reference",
             "pages": [
@@ -151,20 +148,37 @@
               "curate/api/strategy",
               "curate/api/oms"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Automation",
-        "groups": [
+          },
           {
-            "group": "Automation Guide",
+            "group": "Automation",
             "pages": [
               "curate/automation/overview",
               "curate/automation/monitoring",
               "curate/automation/ladders",
               "curate/automation/services",
               "curate/automation/webhooks"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Security",
+        "groups": [
+          {
+            "group": "Security",
+            "pages": [
+              "security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment Addresses",
+        "groups": [
+          {
+            "group": "Deployment Addresses",
+            "pages": [
+              "deployment-addresses"
             ]
           }
         ]

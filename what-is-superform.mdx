@@ -1,20 +1,57 @@
 ---
-title: "Superform Protocol"
-description: "Overview of Superform Core and Superform Periphery — the protocol architecture powering single-signature, Merkle-verified execution across chains."
+title: "What is Superform?"
+description: "Conceptual overview of the Superform protocol — smart account execution, Merkle-verified hooks, and multi-chain composition."
 ---
 
-# Superform Protocol
+# What is Superform?
 
-## Introduction
+Superform is a suite of persistent, non-upgradeable smart contracts that compress arbitrary on-chain actions into a single, Merkle-verified signature. Users interact through ERC-7579 Smart Accounts, and composition comes from plug-and-play Hooks that anyone can deploy.
 
-The Superform Protocol consists of [Superform Core](https://github.com/superform-xyz/v2-core) and [Superform Periphery](https://github.com/superform-xyz/v2-periphery).
+## How It Works
 
-Superform Core is a suite of persistent, non‑upgradeable contracts that compresses arbitrary actions into a single, Merkle‑verified signature. Execution lives inside ERC‑7579 Smart Accounts and composition comes from plug‑and‑play Hooks. Anyone can deploy Superform core and add new hooks to the protocol.
+1. **User signs one transaction** — the frontend builds a bundle of hooks (swap USDC → deposit into Morpho → bridge to Base) and presents it as a single signature request.
+2. **SuperBundler packages the bundle** — splits hooks per chain, wraps each into an ERC-4337 UserOperation, and stores a Merkle tree of all authorized operations.
+3. **Smart Account validates** — the on-chain SuperValidator checks the Merkle proof. If valid, the SuperExecutor iterates through hooks atomically.
+4. **Accounting updates** — SuperLedger records cost basis and position changes for trustless performance fee calculation.
 
-On top of Superform Core, various structured products have been created to optimize and simplify the yield generation process, collectively referred to as Superform Periphery. SuperVaults are permissionlessly createable, validator‑secured vaults that can run arbitrary hooks while exposing deterministic price‑per‑share (PPS) and fee rules. SuperAssets are user-facing omnichain savings tokens (e.g., SuperUSD, SuperETH) that support decentralized allocation and incentivized rebalancing across many SuperVault positions.
+If any hook in a chain fails, the entire transaction reverts. Atomicity is guaranteed.
 
-### Why Superform v2?
+## Core Components
 
-- One‑signature UX verifiable onchain: Hook bundles turn bridge → swap → lend → deposit into one click regardless of the number of chains without usage of offchain API's.
-- Validator-secured vaults: Economically bonded signers attest to SuperVault price‑per‑share, slashing on misconduct, minimizing the risk surface around centralized strategists.
-- Omnichain liquidity: SuperAssets stream yield from any chain back to Ethereum L1.
+### Execution Layer
+
+ERC-7579 executors (SuperExecutor, SuperDestinationExecutor) process hook bundles with transient storage for gas-efficient inter-hook communication. Same-chain bundles are atomic; cross-chain bundles use bridge adapters with destination validators.
+
+### Validation Layer
+
+Merkle-proof validators (SuperValidator, SuperDestinationValidator) enable single-signature authorization for batched multi-chain operations. One Merkle root encodes every permitted action — no per-transaction approval needed.
+
+### Accounting Layer
+
+SuperLedger and YieldSourceOracles provide trustless cost basis tracking and performance fee calculation across vault standards (ERC-4626, ERC-5115, ERC-7540, Pendle).
+
+### Infrastructure
+
+- **Bridge adapters** for cross-chain messaging (LayerZero, Hyperlane, CCIP)
+- **SuperNativePaymaster** for ERC-20 gas sponsorship (pay gas in USDC)
+- **SuperBundler** for batched UserOperation processing
+
+## Who Uses Superform
+
+| User | What They Do |
+|------|-------------|
+| **Depositors** | Earn yield through optimized vaults with a single deposit |
+| **Curators** | Manage vault strategies — select yield sources, set allocation priorities, automate rebalancing |
+| **Hook developers** | Build new on-chain modules for any DeFi protocol |
+| **Validators** | Stake $UP to secure price-per-share oracle updates |
+| **Integrators** | Embed Superform vaults and execution in their own products |
+
+## Open and Permissionless
+
+Anyone can:
+- Deploy Superform Core contracts
+- Write and register new hooks
+- Create a SuperVault
+- Build on top of the protocol
+
+The contracts are non-upgradeable and fully open-source. No admin keys, no proxy upgrades, no trusted setup.

@@ -1,25 +1,49 @@
 ---
 title: "Welcome to Superform"
-description: "Superform is the user-owned neobank, enabling single-signature execution of arbitrary actions across chains and optimized vaults."
+description: "Superform is the user-owned neobank — single-signature execution of arbitrary actions across chains and optimized vaults."
 ---
-
-# Welcome to Superform
 
 ## Do less. Earn more.
 
-Learn, integrate, and build on smart account earn infrastructure & vaults.
+Superform is smart account earn infrastructure for the onchain economy. Deposit into optimized vaults, execute multi-chain strategies with a single signature, and let curators compete to deliver the best risk-adjusted yields.
 
 <CardGroup cols={2}>
-  <Card title="What is Superform?" href="/what-is-superform">
-    Conceptual overview & protocol architecture.
+  <Card title="What is Superform?" icon="circle-info" href="/what-is-superform">
+    Protocol architecture, smart accounts, hooks, and the execution model.
   </Card>
-  <Card title="Build on Superform" href="/build-on-superform/write-hooks">
-    Write hooks, manage a SuperVault, or become a Validator.
+  <Card title="SuperVaults" icon="vault" href="/supervaults/overview">
+    ERC-7540 tokenized vaults with curator-managed yield strategies.
   </Card>
-  <Card title="Integrate Superform" href="/integrate-superform/deployment-addresses">
-    Contract addresses.
+  <Card title="Build on Superform" icon="code" href="/build/overview">
+    Write hooks, manage a vault, or become a validator.
   </Card>
-  <Card title="Resources" href="/resources/links">
-    Other useful links.
+  <Card title="Curate a Vault" icon="gauge-high" href="/curate">
+    Full technical reference for SuperVault curators.
   </Card>
 </CardGroup>
+
+## Key Numbers
+
+| Metric | Value |
+|--------|-------|
+| Total Deposits | $130M+ |
+| Users | 140K+ |
+| Supported Chains | 9 |
+| Audits | 8+ engagements across Spearbit, Cantina, 0xMacro, GetRecon, Octane Security |
+
+## Architecture at a Glance
+
+Superform compresses arbitrary multi-chain actions into a single Merkle-verified signature. The stack:
+
+- **Smart Accounts** — ERC-7579 accounts with gas abstraction, passkey login, and session keys
+- **Hooks** — Permissionless on-chain modules (bridge, swap, lend) that chain together into strategies
+- **SuperBundler** — Batches hook chains into UserOperations with Merkle proofs
+- **SuperVaults** — ERC-7540 tokenized vaults where curators manage yield allocation
+- **$UP** — Protocol token for upkeep, validator bonding, staking, and governance
+
+## Resources
+
+- [Whitepaper](https://github.com/superform-xyz/whitepapers/blob/main/superform_v2_whitepaper.pdf) — Superform v2 published June 2025
+- [v2-core GitHub](https://github.com/superform-xyz/v2-core) — Core smart contracts
+- [v2-periphery GitHub](https://github.com/superform-xyz/v2-periphery) — Periphery contracts (SuperVaults, $UP)
+- [Brand Assets](https://github.com/superform-xyz/brand-kit) — Logo pack and color palette

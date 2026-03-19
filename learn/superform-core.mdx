@@ -16,6 +16,12 @@ Core consists of the following components:
 - **Accounting Layer**: SuperLedger and YieldSourceOracles for trustless cost basis tracking and performance fee calculation across vault standards (ERC-4626, ERC-5115, ERC-7540, Pendle).
 - **Infrastructure**: Bridge adapters for cross-chain messaging, SuperNativePaymaster for ERC-20 gas sponsorship, and SuperBundler for batched UserOperation processing.
 
+## Hooks
+
+Hooks are lightweight, permissionless contracts which perform a specific action: bridge, swap, lend, and more. They are designed to be composable and can be chained together to create complex transaction flows which can achieve any multichain strategy.
+
+See [Hooks](/learn/hooks) for a full overview of Hook types, lifecycle, and classifications.
+
 ## Technical Resources
 
 - [Whitepaper](https://github.com/superform-xyz/whitepapers/blob/main/superform_v2_whitepaper.pdf) - Superform v2 published June 2025

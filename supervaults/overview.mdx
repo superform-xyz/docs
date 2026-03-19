@@ -32,6 +32,32 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
   </Step>
 </Steps>
 
+## Security Model
+
+SuperVaults enforce safety at every layer:
+
+- **Double-Merkle hook allowlisting and blacklisting** at both global and strategy levels ensures vaults can only perform pre-approved actions like depositing, redeeming, swapping, and bridging. Everything is timelocked with no arbitrary execution, no "manager key" risk, and no discretionary movement of funds.
+- **Clear role separation** across Managers, Validators, and Guardians. Managers set high-level parameters under timelock with the ability to execute the strategy only through pre-approved hooks. Validators attest price-per-share with bonded accountability. Guardians oversee risk and can veto or pause unsafe changes.
+- **Validator-signed price-per-share (PPS)** with economic slashing and insurance backstops.
+- **7-day timelocks and Guardian veto rights** ensure no configuration change or parameter update can happen instantly or out of view.
+- **Automated emergency controls** provide emergency withdrawal mechanisms with built-in pause functionality on circuit breakers.
+
+## Efficiency
+
+SuperVaults are engineered for scale:
+
+- **Native ERC-7540 compliance** enables efficient flows for low-cost deposits and async withdrawals as well as onchain composability.
+- **Cross-chain deposits** via the SuperBundler support 8+ networks with a single signature.
+- **Modular hook engine** allows SuperVaults to access any yield source. Strategies can evolve as markets do, without redeployments or protocol upgrades.
+
+## Transparency
+
+Depositors do not have to trust; they can verify:
+
+- A **live transparency dashboard** surfaces allocations, caps, validator signatures, and performance in real time.
+- **PPS can be recomputed by anyone**, onchain or offchain, with circuit breakers that pause abnormal behavior automatically.
+- All **underlying protocols can continuously be monitored** for exploit vectors and governance risk, and quickly allocated out of if needed.
+
 ## Architecture
 
 <Frame>

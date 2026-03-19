@@ -1,0 +1,37 @@
+---
+title: "Hooks"
+description: "Permissionless composable contracts that can be chained to execute any multi-chain DeFi strategy."
+---
+
+# Hooks
+
+## Introduction
+
+Hooks are lightweight, permissionless contracts which perform a specific action: bridge, swap, lend, and more. They are designed to be composable and can be chained together to create complex transaction flows which can achieve any multichain strategy. Hook chains can be fulfilled by any ERC-7579 smart account with the SuperValidator and SuperExecutor modules installed.
+
+If you are interested in building hooks, jump straight to [Write a Hook](/build/hooks/write-a-hook).
+
+## Key Concepts
+
+Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This allows for efficient inter-hook communication that avoids the high gas costs associated with permanent storage writes. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
+
+### Hook Lifecycle
+
+The execution of hooks is a four-step sequence:
+
+1. **Build** - Frontend selects the addresses and calldata of the hook(s) in a chain.
+2. **Bundle** - SuperBundler splits hooks per chain and wraps each into an ERC-4337 UserOp, storing a Merkle tree.
+3. **Validate** - Smart Account delegates to SuperValidator on-chain to perform Merkle proof verification.
+4. **Execute** - SuperExecutor iterates through hooks, performs each action and updates SuperLedger.
+
+### Hook Classifications
+
+Hooks are classified based on `HookType` and `HookSubType`.
+
+`HookType` must be defined as `NONACCOUNTING`, `INFLOW`, or `OUTFLOW` depending on the hook's expected interaction with the accounting system.
+
+`HookSubTypes` designate which action category the hook implements.
+
+- **NONACCOUNTING** - Utility hooks that do not update the accounting system. These hooks include `HookSubTypes` like `SWAP`, `STAKE`, `BRIDGE`.
+- **INFLOW** - Hooks that process additions to positions and typically encode some sort of `deposit` action. They include a `HookSubType` corresponding to the underlying vault being deposited into like `ERC4626`, `ERC7540`, etc.
+- **OUTFLOW** - Hooks that process reductions to positions and typically encode some sort of `redeem` action. They include similar `HookSubType` to `INFLOW` hooks.

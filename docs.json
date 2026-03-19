@@ -19,18 +19,35 @@
         "groups": [
           {
             "group": "Overview",
+            "pages": ["introduction"]
+          },
+          {
+            "group": "What is Superform?",
+            "pages": ["learn/superform-protocol"]
+          },
+          {
+            "group": "Superform Core",
             "pages": [
-              "introduction",
-              "supervaults/overview",
-              "usdup"
+              "learn/superform-core",
+              "learn/smart-accounts",
+              "learn/hooks"
             ]
           },
           {
-            "group": "Protocol",
+            "group": "SuperVaults",
             "pages": [
-              "learn/superform-core",
-              "learn/smart-accounts"
+              "supervaults/overview",
+              "supervaults/transaction-lifecycle",
+              "supervaults/economics"
             ]
+          },
+          {
+            "group": "$UP",
+            "pages": ["usdup"]
+          },
+          {
+            "group": "Reference",
+            "pages": ["glossary"]
           }
         ]
       },
@@ -47,8 +64,6 @@
           {
             "group": "SuperVaults",
             "pages": [
-              "supervaults/transaction-lifecycle",
-              "supervaults/economics",
               "build/manage-a-supervault",
               "build/become-a-validator"
             ]

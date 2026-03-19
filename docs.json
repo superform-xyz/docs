@@ -20,18 +20,20 @@
           "introduction",
           "supervaults/overview",
           "usdup"
+        ],
+        "groups": [
+          {
+            "group": "Protocol",
+            "pages": [
+              "learn/superform-core",
+              "learn/smart-accounts"
+            ]
+          }
         ]
       },
       {
         "tab": "Build",
         "groups": [
-          {
-            "group": "Core Protocol",
-            "pages": [
-              "learn/superform-core",
-              "learn/smart-accounts"
-            ]
-          },
           {
             "group": "Hooks",
             "pages": [

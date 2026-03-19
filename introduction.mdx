@@ -1,11 +1,28 @@
 ---
 title: "What is Superform?"
-description: "Superform is smart account earn infrastructure for the onchain economy — single-signature, multi-chain yield execution."
+description: "Superform is the user-owned neobank enabling single-signature execution of arbitrary actions across chains and optimized vaults."
 ---
 
 ## Do less. Earn more.
 
-Superform is smart account earn infrastructure for the onchain economy. Deposit into optimized vaults, execute multi-chain strategies with a single signature, and let curators compete to deliver the best risk-adjusted yields.
+Superform is the user-owned neobank enabling single-signature execution of arbitrary actions across chains and optimized vaults.
+
+<CardGroup cols={2}>
+  <Card title="What is Superform?" icon="circle-info" href="/introduction">
+    Protocol architecture, smart accounts, hooks, and the execution model.
+  </Card>
+  <Card title="Build on Superform" icon="code" href="/build/hooks/overview">
+    Write hooks, manage a SuperVault, or become a validator.
+  </Card>
+  <Card title="Curate a Vault" icon="gauge-high" href="/curate">
+    Full technical reference for SuperVault curators.
+  </Card>
+  <Card title="Deployments" icon="map-pin" href="/deployment-addresses">
+    Contract addresses across all supported chains.
+  </Card>
+</CardGroup>
+
+Deposit into optimized vaults, execute multi-chain strategies with a single signature, and let curators compete to deliver the best risk-adjusted yields.
 
 The protocol is a suite of persistent, non-upgradeable smart contracts that compress arbitrary on-chain actions into a single, Merkle-verified signature. Users interact through ERC-7579 Smart Accounts, and composition comes from plug-and-play Hooks that anyone can deploy.
 
@@ -76,18 +93,6 @@ Superform compresses arbitrary multi-chain actions into a single Merkle-verified
 - **SuperBundler** — Batches hook chains into UserOperations with Merkle proofs
 - **SuperVaults** — ERC-7540 tokenized vaults where curators manage yield allocation
 - **$UP** — Protocol token for upkeep, validator bonding, staking, and governance
-
-<CardGroup cols={2}>
-  <Card title="SuperVaults" icon="vault" href="/supervaults/overview">
-    ERC-7540 tokenized vaults with curator-managed yield strategies.
-  </Card>
-  <Card title="Build on Superform" icon="code" href="/build/hooks/overview">
-    Write hooks, manage a vault, or become a validator.
-  </Card>
-  <Card title="Curate a Vault" icon="gauge-high" href="/curate">
-    Full technical reference for SuperVault curators.
-  </Card>
-</CardGroup>
 
 ## Resources
 

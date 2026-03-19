@@ -1,6 +1,6 @@
 ---
 title: "Security"
-description: "Superform's multi-layered security model — dual Merkle validation, emergency controls, timelocks, access roles, audits, and bug bounty."
+description: "Superform's multi-layered security model: dual Merkle validation, emergency controls, timelocks, access roles, audits, and bug bounty."
 ---
 
 # Security
@@ -18,7 +18,7 @@ All keeper operations are gated by a dual Merkle tree system. A hook can only ex
 | **Global hooks root** | SuperGovernor (governance) | 15 minutes | Protocol-wide hooks without beneficiary-specific arguments |
 | **Strategy hooks root** | Curator (primary strategist) | 7 days | Vault-specific hooks including beneficiary-specific arguments |
 
-Both roots support guardian veto — guardians can block malicious root updates before they take effect.
+Both roots support guardian veto; guardians can block malicious root updates before they take effect.
 
 ```solidity
 // Simplified validation logic
@@ -59,7 +59,7 @@ Strategies are automatically paused when:
 | Role | Permission |
 |------|-----------|
 | **SuperGovernor** | Protocol governance with strategy-level overrides; updates global hook root |
-| **Primary Strategist** | Full vault control — hook whitelisting, fees, deposit/redemption processing |
+| **Primary Strategist** | Full vault control: hook whitelisting, fees, deposit/redemption processing |
 | **Secondary Strategists** | Day-to-day operations, everything except hook whitelisting and fees |
 | **Guardians** | Threat monitoring network; veto powers for hook root updates |
 | **Validators** | $UP stakers that attest to PPS updates; subject to slashing for misreporting |
@@ -77,22 +77,22 @@ Strategies are automatically paused when:
 
 ### Emergency Controls
 
-**Strategy Pausing** — Both primary and secondary managers can pause strategies immediately. Unpausing marks PPS as stale until a fresh oracle update is posted.
+**Strategy Pausing** - Both primary and secondary managers can pause strategies immediately. Unpausing marks PPS as stale until a fresh oracle update is posted.
 
-**Banned Hook Leaves** — Individual Merkle leaves can be banned without regenerating the entire tree. This provides an immediate block on specific hook + parameter combinations.
+**Banned Hook Leaves** - Individual Merkle leaves can be banned without regenerating the entire tree. This provides an immediate block on specific hook + parameter combinations.
 
-**Guardian Veto** — Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
+**Guardian Veto** - Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
 
-**Emergency Withdrawals** — Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
+**Emergency Withdrawals** - Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
 
 ## Cross-Contract Integrity
 
 The SuperVault architecture enforces state consistency across contracts:
 
-- **PPS Consistency** — Vault uses strategy's stored PPS for all share calculations
-- **Pause Propagation** — Strategy pause state affects vault deposit limits
-- **Share Custody** — Escrow holds shares during pending redemptions; only strategy (via vault) can burn escrowed shares
-- **Asset Custody** — Escrow holds fulfilled assets until the user claims them
+- **PPS Consistency** - Vault uses strategy's stored PPS for all share calculations
+- **Pause Propagation** - Strategy pause state affects vault deposit limits
+- **Share Custody** - Escrow holds shares during pending redemptions; only strategy (via vault) can burn escrowed shares
+- **Asset Custody** - Escrow holds fulfilled assets until the user claims them
 
 ## Monitoring & Invariants
 

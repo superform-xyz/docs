@@ -1,6 +1,6 @@
 ---
 title: "What is Superform?"
-description: "Conceptual overview of the Superform protocol — smart account execution, Merkle-verified hooks, and multi-chain composition."
+description: "Conceptual overview of the Superform protocol, smart account execution, Merkle-verified hooks, and multi-chain composition."
 ---
 
 # What is Superform?
@@ -9,10 +9,10 @@ Superform is a suite of persistent, non-upgradeable smart contracts that compres
 
 ## How It Works
 
-1. **User signs one transaction** — the frontend builds a bundle of hooks (swap USDC → deposit into Morpho → bridge to Base) and presents it as a single signature request.
-2. **SuperBundler packages the bundle** — splits hooks per chain, wraps each into an ERC-4337 UserOperation, and stores a Merkle tree of all authorized operations.
-3. **Smart Account validates** — the on-chain SuperValidator checks the Merkle proof. If valid, the SuperExecutor iterates through hooks atomically.
-4. **Accounting updates** — SuperLedger records cost basis and position changes for trustless performance fee calculation.
+1. **User signs one transaction** - the frontend builds a bundle of hooks (swap USDC → deposit into Morpho → bridge to Base) and presents it as a single signature request.
+2. **SuperBundler packages the bundle** - splits hooks per chain, wraps each into an ERC-4337 UserOperation, and stores a Merkle tree of all authorized operations.
+3. **Smart Account validates** - the on-chain SuperValidator checks the Merkle proof. If valid, the SuperExecutor iterates through hooks atomically.
+4. **Accounting updates** - SuperLedger records cost basis and position changes for trustless performance fee calculation.
 
 If any hook in a chain fails, the entire transaction reverts. Atomicity is guaranteed.
 
@@ -24,7 +24,7 @@ ERC-7579 executors (SuperExecutor, SuperDestinationExecutor) process hook bundle
 
 ### Validation Layer
 
-Merkle-proof validators (SuperValidator, SuperDestinationValidator) enable single-signature authorization for batched multi-chain operations. One Merkle root encodes every permitted action — no per-transaction approval needed.
+Merkle-proof validators (SuperValidator, SuperDestinationValidator) enable single-signature authorization for batched multi-chain operations. One Merkle root encodes every permitted action, so no per-transaction approval is needed.
 
 ### Accounting Layer
 
@@ -32,7 +32,7 @@ SuperLedger and YieldSourceOracles provide trustless cost basis tracking and per
 
 ### Infrastructure
 
-- **Bridge adapters** for cross-chain messaging (LayerZero, Hyperlane, CCIP)
+- **Bridge adapters** for cross-chain messaging (Across V3, deBridge, Circle)
 - **SuperNativePaymaster** for ERC-20 gas sponsorship (pay gas in USDC)
 - **SuperBundler** for batched UserOperation processing
 
@@ -41,7 +41,7 @@ SuperLedger and YieldSourceOracles provide trustless cost basis tracking and per
 | User | What They Do |
 |------|-------------|
 | **Depositors** | Earn yield through optimized vaults with a single deposit |
-| **Curators** | Manage vault strategies — select yield sources, set allocation priorities, automate rebalancing |
+| **Curators** | Manage vault strategies: select yield sources, set allocation priorities, automate rebalancing |
 | **Hook developers** | Build new on-chain modules for any DeFi protocol |
 | **Validators** | Stake $UP to secure price-per-share oracle updates |
 | **Integrators** | Embed Superform vaults and execution in their own products |

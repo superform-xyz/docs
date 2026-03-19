@@ -5,15 +5,15 @@ description: "ERC-7540 tokenized vaults with curator-managed yield strategies, M
 
 # SuperVaults
 
-SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Depositors supply assets; curators decide where that capital goes — which protocols, in what order, under what conditions.
+SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Depositors supply assets; curators decide where that capital goes: which protocols, in what order, under what conditions.
 
 ## Key Properties
 
-- **Non-custodial** — Depositor funds live in the vault contract, never in curator wallets
-- **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
-- **Merkle-verified execution** — Keepers can only call hooks that match leaves in the on-chain Merkle tree
-- **Automated operations** — Seven Celery-based keeper workers handle deposits, redemptions, reward claims, swaps, and transaction management
-- **Oracle-secured PPS** — Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted on-chain only after two-thirds weighted consensus
+- **Non-custodial** - Depositor funds live in the vault contract, never in curator wallets
+- **ERC-4626 compatible** - Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
+- **Merkle-verified execution** - Keepers can only call hooks that match leaves in the on-chain Merkle tree
+- **Automated operations** - Seven Celery-based keeper workers handle deposits, redemptions, reward claims, swaps, and transaction management
+- **Oracle-secured PPS** - Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted on-chain only after two-thirds weighted consensus
 
 ## How SuperVaults Work
 
@@ -22,7 +22,7 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
     A depositor submits a deposit or redemption request on-chain via the ERC-7540 interface.
   </Step>
   <Step title="Keeper Workers Execute">
-    Seven automated workers process requests: allocating deposits to yield sources per the curator's ladder configuration, fulfilling redemptions, claiming rewards, and managing swaps.
+    Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and managing swaps.
   </Step>
   <Step title="Curator Manages Strategy">
     The curator sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
@@ -38,8 +38,8 @@ Each SuperVault deployment consists of three on-chain contracts:
 
 | Contract | Purpose |
 |----------|---------|
-| **SuperVault** | ERC-7540 vault — holds depositor assets, issues share tokens |
-| **SuperVaultStrategy** | Execution engine — manages hook authorization via dual Merkle roots, controls yield source interactions |
+| **SuperVault** | ERC-7540 vault that holds depositor assets and issues share tokens |
+| **SuperVaultStrategy** | Execution engine that manages hook authorization via dual Merkle roots and controls yield source interactions |
 | **Escrow** | Holds shares during pending redemptions and assets during fulfillment claims |
 
 These contracts are managed through the **SuperVaultAggregator**, which handles vault creation, PPS oracle forwarding, upkeep accounting, and governor-level constraints.

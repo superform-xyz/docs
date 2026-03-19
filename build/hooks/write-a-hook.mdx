@@ -1,6 +1,6 @@
 ---
 title: "Write a Hook"
-description: "Step-by-step guide to building custom hooks on Superform — from repo setup through implementation and testing."
+description: "Step-by-step guide to building custom hooks on Superform, from repo setup through implementation and testing."
 ---
 
 # Write a Hook
@@ -73,17 +73,17 @@ make test-vvv
    2. An example of a hook with a simple encoding structure can be found [here](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/loan/morpho/MorphoSupplyAndBorrowHook.sol#L19). [This](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/bridges/debridge/DeBridgeSendOrderAndExecuteOnDstHook.sol#L16) is a more complex example of encoding natspec.
 3. The constructor sets the `HookType` and `HookSubtype` as well as any immutable state variables such as the target contract address to call during execution. For a breakdown of different `HookType` options see [Hook Classifications](/build/hooks/overview#hook-classifications), and the `HookSubTypes` are found in [this library](https://github.com/superform-xyz/v2-core/blob/dev/src/libraries/HookSubTypes.sol). If your hook will perform an action type that is not yet in the library, add it there as `bytes32 public constant CATEGORY_NAME`.
 4. It is necessary to decode and validate the encoded hook data used by the hook. It is recommended to create some internal decoder and validation helpers. The decoding must align with the data locations denoted in the natspec as that is the order in which data will be encoded. There are two libraries you can use during the decoding process:
-   1. `BytesLib` — This necessary library can be found in the `src/vendor` directory, you need only import it to gain access to its functionality.
-   2. `HookDataDecoder` — This library lives in the `src/libraries` directory. It must be imported and the statement `using HookDataDecoder for bytes` must be placed at the top of the hook contract.
+   1. `BytesLib` - This necessary library can be found in the `src/vendor` directory, you need only import it to gain access to its functionality.
+   2. `HookDataDecoder` - This library lives in the `src/libraries` directory. It must be imported and the statement `using HookDataDecoder for bytes` must be placed at the top of the hook contract.
 5. The `_buildHookExecutions()` function takes decoded hook data and returns an array of Executions.
    1. There are 3 parameters for this function:
-      1. `prevHook` — The address of the prior hook in a chain, `address(0)` if this hook is unchained or the first in a chain. Note: If you intend for this hook to be after another hook in a chain `bool usePrevHookAmount` must be added as a parameter to be encoded in the hook data structure natspec, and `ISuperHookResult` is required.
-      2. `account` — The smart account address if needed for the Execution payload.
-      3. `data` — The bytes hook data (encoded in the structure defined by the natspec)
+      1. `prevHook` - The address of the prior hook in a chain, `address(0)` if this hook is unchained or the first in a chain. Note: If you intend for this hook to be after another hook in a chain `bool usePrevHookAmount` must be added as a parameter to be encoded in the hook data structure natspec, and `ISuperHookResult` is required.
+      2. `account` - The smart account address if needed for the Execution payload.
+      3. `data` - The bytes hook data (encoded in the structure defined by the natspec)
    2. The payload of an Execution is as follows:
-      1. `Target` — The address to call (contract or another module)
-      2. `Value` — Native ETH amount to forward as `msg.value`
-      3. `Calldata` — The encoded function selector to be called and any arguments
+      1. `Target` - The address to call (contract or another module)
+      2. `Value` - Native ETH amount to forward as `msg.value`
+      3. `Calldata` - The encoded function selector to be called and any arguments
 
 ## Hook Contract Outline
 

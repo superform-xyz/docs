@@ -1,26 +1,62 @@
 ---
-title: "Welcome to Superform"
-description: "Superform is the user-owned neobank allowing single-signature execution of arbitrary actions across chains and optimized vaults."
+title: "What is Superform?"
+description: "Superform is smart account earn infrastructure for the onchain economy — single-signature, multi-chain yield execution."
 ---
 
 ## Do less. Earn more.
 
 Superform is smart account earn infrastructure for the onchain economy. Deposit into optimized vaults, execute multi-chain strategies with a single signature, and let curators compete to deliver the best risk-adjusted yields.
 
-<CardGroup cols={2}>
-  <Card title="What is Superform?" icon="circle-info" href="/what-is-superform">
-    Protocol architecture, smart accounts, hooks, and the execution model.
-  </Card>
-  <Card title="SuperVaults" icon="vault" href="/supervaults/overview">
-    ERC-7540 tokenized vaults with curator-managed yield strategies.
-  </Card>
-  <Card title="Build on Superform" icon="code" href="/build/hooks/overview">
-    Write hooks, manage a vault, or become a validator.
-  </Card>
-  <Card title="Curate a Vault" icon="gauge-high" href="/curate">
-    Full technical reference for SuperVault curators.
-  </Card>
-</CardGroup>
+The protocol is a suite of persistent, non-upgradeable smart contracts that compress arbitrary on-chain actions into a single, Merkle-verified signature. Users interact through ERC-7579 Smart Accounts, and composition comes from plug-and-play Hooks that anyone can deploy.
+
+## How It Works
+
+1. **User signs one transaction** — the frontend builds a bundle of hooks (swap USDC → deposit into Morpho → bridge to Base) and presents it as a single signature request.
+2. **SuperBundler packages the bundle** — splits hooks per chain, wraps each into an ERC-4337 UserOperation, and stores a Merkle tree of all authorized operations.
+3. **Smart Account validates** — the on-chain SuperValidator checks the Merkle proof. If valid, the SuperExecutor iterates through hooks atomically.
+4. **Accounting updates** — SuperLedger records cost basis and position changes for trustless performance fee calculation.
+
+If any hook in a chain fails, the entire transaction reverts. Atomicity is guaranteed.
+
+## Core Components
+
+### Execution Layer
+
+ERC-7579 executors (SuperExecutor, SuperDestinationExecutor) process hook bundles with transient storage for gas-efficient inter-hook communication. Same-chain bundles are atomic; cross-chain bundles use bridge adapters with destination validators.
+
+### Validation Layer
+
+Merkle-proof validators (SuperValidator, SuperDestinationValidator) enable single-signature authorization for batched multi-chain operations. One Merkle root encodes every permitted action, so no per-transaction approval is needed.
+
+### Accounting Layer
+
+SuperLedger and YieldSourceOracles provide trustless cost basis tracking and performance fee calculation across vault standards (ERC-4626, ERC-5115, ERC-7540, Pendle).
+
+### Infrastructure
+
+- **Bridge adapters** for cross-chain messaging (Across V3, deBridge, Circle)
+- **SuperNativePaymaster** for ERC-20 gas sponsorship (pay gas in USDC)
+- **SuperBundler** for batched UserOperation processing
+
+## Who Uses Superform
+
+| User | What They Do |
+|------|-------------|
+| **Depositors** | Earn yield through optimized vaults with a single deposit |
+| **Curators** | Manage vault strategies: select yield sources, set allocation priorities, automate rebalancing |
+| **Hook developers** | Build new on-chain modules for any DeFi protocol |
+| **Validators** | Stake $UP to secure price-per-share oracle updates |
+| **Integrators** | Embed Superform vaults and execution in their own products |
+
+## Open and Permissionless
+
+Anyone can:
+- Deploy Superform Core contracts
+- Write and register new hooks
+- Create a SuperVault
+- Build on top of the protocol
+
+The contracts are non-upgradeable and fully open-source. No admin keys, no proxy upgrades, no trusted setup.
 
 ## Key Numbers
 
@@ -35,15 +71,27 @@ Superform is smart account earn infrastructure for the onchain economy. Deposit 
 
 Superform compresses arbitrary multi-chain actions into a single Merkle-verified signature. The stack:
 
-- **Smart Accounts** - ERC-7579 accounts with gas abstraction, passkey login, and session keys
-- **Hooks** - Permissionless on-chain modules (bridge, swap, lend) that chain together into strategies
-- **SuperBundler** - Batches hook chains into UserOperations with Merkle proofs
-- **SuperVaults** - ERC-7540 tokenized vaults where curators manage yield allocation
-- **$UP** - Protocol token for upkeep, validator bonding, staking, and governance
+- **Smart Accounts** — ERC-7579 accounts with gas abstraction, passkey login, and session keys
+- **Hooks** — Permissionless on-chain modules (bridge, swap, lend) that chain together into strategies
+- **SuperBundler** — Batches hook chains into UserOperations with Merkle proofs
+- **SuperVaults** — ERC-7540 tokenized vaults where curators manage yield allocation
+- **$UP** — Protocol token for upkeep, validator bonding, staking, and governance
+
+<CardGroup cols={2}>
+  <Card title="SuperVaults" icon="vault" href="/supervaults/overview">
+    ERC-7540 tokenized vaults with curator-managed yield strategies.
+  </Card>
+  <Card title="Build on Superform" icon="code" href="/build/hooks/overview">
+    Write hooks, manage a vault, or become a validator.
+  </Card>
+  <Card title="Curate a Vault" icon="gauge-high" href="/curate">
+    Full technical reference for SuperVault curators.
+  </Card>
+</CardGroup>
 
 ## Resources
 
-- [Whitepaper](https://github.com/superform-xyz/whitepapers/blob/main/superform_v2_whitepaper.pdf) - Superform v2 published June 2025
-- [v2-core GitHub](https://github.com/superform-xyz/v2-core) - Core smart contracts
-- [v2-periphery GitHub](https://github.com/superform-xyz/v2-periphery) - Periphery contracts (SuperVaults, $UP)
-- [Brand Assets](https://github.com/superform-xyz/brand-kit) - Logo pack and color palette
+- [Whitepaper](https://github.com/superform-xyz/whitepapers/blob/main/superform_v2_whitepaper.pdf) — Superform v2 published June 2025
+- [v2-core GitHub](https://github.com/superform-xyz/v2-core) — Core smart contracts
+- [v2-periphery GitHub](https://github.com/superform-xyz/v2-periphery) — Periphery contracts (SuperVaults, $UP)
+- [Brand Assets](https://github.com/superform-xyz/brand-kit) — Logo pack and color palette

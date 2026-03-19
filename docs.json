@@ -16,47 +16,22 @@
     "tabs": [
       {
         "tab": "Learn",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "introduction",
-              "what-is-superform"
-            ]
-          },
-          {
-            "group": "Protocol",
-            "pages": [
-              "learn/superform-core",
-              "learn/smart-accounts"
-            ]
-          },
-          {
-            "group": "SuperVaults",
-            "pages": [
-              "supervaults/overview",
-              "supervaults/architecture",
-              "supervaults/transaction-lifecycle",
-              "supervaults/economics"
-            ]
-          },
-          {
-            "group": "Tokenomics",
-            "pages": [
-              "usdup"
-            ]
-          },
-          {
-            "group": "Reference",
-            "pages": [
-              "glossary"
-            ]
-          }
+        "pages": [
+          "introduction",
+          "supervaults/overview",
+          "usdup"
         ]
       },
       {
         "tab": "Build",
         "groups": [
+          {
+            "group": "Core Protocol",
+            "pages": [
+              "learn/superform-core",
+              "learn/smart-accounts"
+            ]
+          },
           {
             "group": "Hooks",
             "pages": [
@@ -67,6 +42,8 @@
           {
             "group": "SuperVaults",
             "pages": [
+              "supervaults/transaction-lifecycle",
+              "supervaults/economics",
               "build/manage-a-supervault",
               "build/become-a-validator"
             ]

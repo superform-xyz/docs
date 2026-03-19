@@ -3,7 +3,7 @@ title: "SuperVaults Curator Documentation"
 description: "Technical reference for SuperVault curators: vault operations, strategy automation, API integration, and risk management."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Curators set allocation priorities, define automated rebalancing rules, manage on-chain permissions through merkle-verified hook authorization, and monitor vault health across a 127-endpoint API surface spanning four backend services.
+SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Curators set allocation priorities, define automated rebalancing rules, manage on-chain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
 
 This documentation covers everything a curator needs to operate a SuperVault: from initial vault creation and yield source whitelisting through strategy automation via the DeFiX v0.1 intent protocol.
 
@@ -19,12 +19,11 @@ The contracts are open-source and audited. Anyone can interact with them directl
 
 ## Architecture at a Glance
 
-SuperVaults split responsibilities across four backend services:
+SuperVaults split responsibilities across three backend services:
 
 | Service | Role | Language |
 |---------|------|----------|
-| **Erebor** | Vault management, analytics, merkle authorization, registry | Go |
-| **Superman** | Keeper worker orchestration, ladder config, execution history | Python |
+| **Erebor** | Vault management, analytics, merkle authorization, registry, service controls | Go |
 | **Strategy Engine** | Rule-based strategy evaluation, intent dispatch | Go |
 | **OMS** | DeFiX v0.1 intent execution, on-chain transaction management | Go |
 
@@ -39,11 +38,8 @@ Every on-chain write operation follows a **prepare pattern**: the backend constr
   <Card title="Merkle Authorization" icon="shield-halved" href="/curate/ui/merkle-trees">
     Whitelist exactly which hooks can be called with which parameters. Each authorized combination becomes a merkle tree leaf verified on-chain before execution.
   </Card>
-  <Card title="Ladder Configuration" icon="list-ol" href="/curate/ui/ladder">
-    Set deposit priority, redemption priority, reserve ratios, reward claim thresholds, and swap floors. Seven Celery workers execute against your ladder config continuously.
-  </Card>
   <Card title="Full API Access" icon="code" href="/curate/api/overview">
-    127 endpoints across four services. Programmatic control over every operation the UI exposes, plus analytics, audit logs, and admin utilities.
+    ~107 endpoints across three services. Programmatic control over every operation the UI exposes, plus analytics, audit logs, and admin utilities.
   </Card>
 </CardGroup>
 
@@ -63,7 +59,7 @@ Every on-chain write operation follows a **prepare pattern**: the backend constr
     API reference for all four backends with endpoint tables, request shapes, and error codes. [Read more →](/curate/api/overview)
   </Step>
   <Step title="Automate">
-    Build programmatic curators: monitoring loops, ladder automation, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
+    Build programmatic curators: monitoring loops, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
   </Step>
 </Steps>
 

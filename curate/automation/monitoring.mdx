@@ -10,7 +10,7 @@ SuperVaults uses a polling-first monitoring model. No webhook system is implemen
 | Vault state (PPS, pause, supply) | `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
 | Analytics overview (APY, TVL) | `GET .../analytics/overview` | 60s |
 | Risk metrics | `GET .../analytics/risk` | 120s |
-| Service health | `GET /services/status` | 30s |
+| Service health | `GET /api/v1/vaults/{chain_id}/{vault}/services` | 30s |
 | Infrastructure health | `GET /health` | 30s |
 
 ## Key Metrics
@@ -57,7 +57,6 @@ import time
 import logging
 
 EREBOR_URL = "https://erebor.superform.xyz"
-SUPERMAN_URL = "https://superman.superform.xyz"
 JWT = "<your-jwt>"
 CHAIN_ID = 8453
 VAULT = "0xYourVault..."
@@ -75,19 +74,11 @@ def fetch_vault_state():
 
 def fetch_service_health():
     r = requests.get(
-        f"{SUPERMAN_URL}/services/status",
+        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}/services",
         headers=headers, timeout=10
     )
     r.raise_for_status()
-    return r.json().get("services", [])
-
-def fetch_infra_health():
-    r = requests.get(
-        f"{SUPERMAN_URL}/health",
-        headers=headers, timeout=10
-    )
-    r.raise_for_status()
-    return r.json().get("components", [])
+    return r.json()
 
 def alert(severity: str, message: str):
     """Replace with Slack/PagerDuty integration."""
@@ -125,17 +116,6 @@ def run_checks():
     except Exception as e:
         alert("ERROR", f"Failed to fetch service health: {e}")
 
-    # Infrastructure
-    try:
-        components = fetch_infra_health()
-        for comp in components:
-            if comp["status"] == "down":
-                alert("CRITICAL", f"Infrastructure {comp['component']}: DOWN")
-            elif comp["status"] == "degraded":
-                alert("WARNING", f"Infrastructure {comp['component']}: degraded")
-    except Exception as e:
-        alert("ERROR", f"Failed to fetch infra health: {e}")
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     while True:
@@ -145,8 +125,7 @@ if __name__ == "__main__":
 
 ```typescript TypeScript
 const EREBOR_URL = "https://erebor.superform.xyz";
-const SUPERMAN_URL = "https://superman.superform.xyz";
-const JWT = process.env.SUPERMAN_JWT!;
+const JWT = process.env.CURATOR_JWT!;
 const CHAIN_ID = 8453;
 const VAULT = "0xYourVault...";
 const headers = { Authorization: `Bearer ${JWT}` };
@@ -184,7 +163,9 @@ async function runChecks() {
   }
 
   try {
-    const { services } = await fetchWithTimeout(`${SUPERMAN_URL}/services/status`);
+    const services = await fetchWithTimeout(
+      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}/services`
+    );
     for (const svc of services) {
       if (svc.success_rate < 0.80) alert("CRITICAL", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
       else if (svc.success_rate < 0.95) alert("WARNING", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);

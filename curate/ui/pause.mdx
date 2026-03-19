@@ -55,7 +55,7 @@ Independent of the on-chain pause. Control individual workers for a specific vau
 
 ```bash
 PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/pause
-{ "reason": "Reconfiguring deposit ladder" }
+{ "reason": "Reconfiguring strategy" }
 ```
 
 ### Resuming a Service
@@ -79,7 +79,7 @@ PUT /api/v1/vaults/{chain_id}/{vault}/services/enabled
 |---------|-------|-------------|
 | On-chain pause | Contract-level, all operations | Yes |
 | Services enabled (bulk) | All keeper workers | No |
-| Vault Enabled toggle ([Ladder](/curate/ui/ladder)) | All keeper workers | No |
+| Vault Enabled toggle | All keeper workers | No |
 | Individual service pause | Single keeper worker | No |
 
 ## Audit Trail

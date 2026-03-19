@@ -33,7 +33,7 @@ On-chain delegates with operational authority. A vault supports multiple seconda
 
 - Added via `POST /api/v1/users/secondary-manager/prepare` (prepare pattern, requires wallet signature)
 - Removed via `POST /api/v1/users/secondary-manager/remove/prepare`
-- Full operational access: ladders, yield sources, merkle trees, strategies, pause/unpause, view-only user management
+- Full operational access: yield sources, merkle trees, strategies, pause/unpause, view-only user management
 - Cannot modify vault settings or add/remove other secondary managers
 
 ## View Only
@@ -58,7 +58,7 @@ Global permission for managing Erebor registries. Not vault-scoped.
 | Action | Primary | Secondary | View Only | Registry Maintainer |
 |--------|---------|-----------|-----------|---------------------|
 | View dashboard | ✅ | ✅ | ✅ | — |
-| Configure ladders | ✅ | ✅ | ❌ | — |
+| Configure strategies | ✅ | ✅ | ❌ | — |
 | Manage yield sources | ✅ | ✅ | ❌ | — |
 | Merkle tree operations | ✅ | ✅ | ❌ | — |
 | Create/edit strategies | ✅ | ✅ | ❌ | — |
@@ -74,7 +74,7 @@ Global permission for managing Erebor registries. Not vault-scoped.
 
 The Curator App enforces permissions at both the page level and the API level:
 
-**Client-side:** `AuthGuard` checks `superman_is_manager` in localStorage and redirects unauthorized users.
+**Client-side:** `AuthGuard` checks `curator_is_manager` in localStorage and redirects unauthorized users.
 
 **Server-side:** All Erebor endpoints validate JWT claims. A `403 Forbidden` response means the connected wallet lacks the required role.
 

@@ -16,10 +16,10 @@ SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JW
   </Step>
   <Step title="JWT Stored in Browser">
     The Curator App stores auth state in `localStorage`:
-    - `superman_jwt` — the Bearer token used on all API requests
-    - `superman_address` — connected wallet address
-    - `superman_is_manager` — boolean flag
-    - `superman_vaults` — array of vault addresses you manage
+    - `curator_jwt` — the Bearer token used on all API requests
+    - `curator_address` — connected wallet address
+    - `curator_is_manager` — boolean flag
+    - `curator_vaults` — array of vault addresses you manage
   </Step>
   <Step title="Auth Verified">
     The app calls `GET /api/v1/auth/me` on load to fetch your vault roles and confirm the JWT is valid.
@@ -125,5 +125,5 @@ console.log(`Manages ${user.vaults.length} vault(s)`);
 </CodeGroup>
 
 <Warning>
-Never hardcode JWTs in source code. Use environment variables (`SUPERMAN_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
+Never hardcode JWTs in source code. Use environment variables (`CURATOR_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
 </Warning>

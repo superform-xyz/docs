@@ -128,7 +128,7 @@ Seven Celery-based keeper workers run continuously against each vault's configur
 
 | Worker | Responsibility |
 |--------|---------------|
-| `fulfill_deposits` | Allocates free vault assets to yield sources per the deposit ladder |
+| `fulfill_deposits` | Allocates free vault assets to yield sources based on the configured allocation strategy |
 | `fulfill_redeems` | Processes pending ERC-7540 redemption requests |
 | `fulfill_claims` | Claims accumulated reward tokens from external protocols |
 | `fulfill_swaps` | Swaps non-underlying tokens back to the vault's base asset |
@@ -140,11 +140,10 @@ Workers execute on configurable intervals. Curators control:
 - **Global enable/disable** per vault (stops all workers)
 - **Per-service pause/resume** (targeted worker control)
 - **Schedule adjustment** (change execution frequency)
-- **Ladder configuration** (directs deposit and redemption behavior)
 
 ## The Strategy Engine
 
-The Strategy Engine adds rule-based automation on top of the keeper system. Instead of static ladder ordering, curators define strategies with:
+The Strategy Engine adds rule-based automation on top of the keeper system. Curators define strategies via the Strategy Canvas with:
 
 - **Indicators** — named variables evaluated each tick (e.g., `morpho_apy`, `free_assets`)
 - **Rules** — boolean logic trees (`EXPR`, `AND`, `OR`, `NOT`, `VOTE`) that determine when to act

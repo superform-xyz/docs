@@ -70,14 +70,7 @@ A mandatory delay (in seconds) between redemption request submission and fulfill
 - **Liquidity management** — keepers source liquidity from yield sources before fulfillment
 - **Regulatory compliance** — some contexts require enforced redemption delays
 
-The redeem timelock is managed via the Superman Python backend:
-
-```bash
-PUT /vaults/{chain_id}/{vault_address}/redeem-timelock
-{ "redeem_timelock_seconds": 86400 }
-```
-
-Setting `redeem_timelock_seconds` to `null` removes the timelock (instant redemptions).
+The redeem timelock is configured via an on-chain transaction. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
 
 <Warning>
 Setting a timelock on a live vault affects all future redemption requests. Requests submitted before the change are not retroactively affected.
@@ -134,4 +127,3 @@ Monitor upkeep balance regularly. When the balance is low, the UI displays a war
 | Endpoint | Method | Backend | Description |
 |----------|--------|---------|-------------|
 | `GET /api/v1/vaults/{chain_id}/{vault_address}` | GET | Erebor | Full vault detail including `fee_config` and `upkeep_info` fields |
-| `PUT /vaults/{chain_id}/{vault_address}/redeem-timelock` | PUT | Superman | Set/update redeem timelock |

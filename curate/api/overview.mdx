@@ -1,22 +1,17 @@
 ---
 title: "API Overview"
-description: "Four backends, one auth model. Route-to-backend matrix and common patterns for the SuperVaults API."
+description: "Three backends, one auth model. Route-to-backend matrix and common patterns for the SuperVaults API."
 ---
 
-SuperVaults exposes ~127 endpoints across four backend services. All share a single JWT auth model issued by Dynamic.xyz.
+SuperVaults exposes ~107 endpoints across three backend services. All share a single JWT auth model issued by Dynamic.xyz.
 
 ## Backend Services
 
 | Service | Language | Base URL | OpenAPI Spec |
 |---------|----------|----------|-------------|
 | **Erebor** | Go | `https://erebor.superform.xyz` | ✅ Available |
-| **Superman** | Python | `https://superman.superform.xyz` | ❌ Not yet generated |
 | **Strategy Engine** | Go | `https://strategy.superform.xyz` | ✅ Available |
 | **OMS** | Go | `https://oms.superform.xyz` | ✅ Available |
-
-<Warning>
-The **Superman Python** backend (ladder, history, services) does not yet have an OpenAPI spec. The [Superman API reference](/curate/api/superman) is manually maintained. Treat endpoint shapes as best-effort until a spec is generated.
-</Warning>
 
 ## Authentication
 
@@ -100,13 +95,11 @@ Strategy Engine PUT operations require a `version` field. Concurrent edits retur
 | Home vault list | Erebor | None |
 | Dashboard analytics | Erebor | JWT |
 | Strategy canvas | Strategy Engine | JWT |
-| Ladder config | Superman | JWT |
 | Merkle tree management | Erebor | JWT |
 | Yield source management | Erebor | JWT |
 | User management | Erebor | JWT |
 | Vault settings | Erebor | JWT |
-| Execution history | Superman | JWT |
-| Service health | Superman | JWT |
+| Service health | Erebor | JWT |
 | Pause operations | Erebor | JWT |
 | Registry management | Erebor | JWT |
 | Admin backfill | Erebor | JWT |
@@ -130,7 +123,6 @@ Implement exponential backoff on `429 Too Many Requests`.
 | Backend | Endpoints |
 |---------|----------|
 | Erebor | ~89 |
-| Superman | ~20 |
 | Strategy Engine | 14 |
 | OMS | 4 |
-| **Total** | **~127** |
+| **Total** | **~107** |

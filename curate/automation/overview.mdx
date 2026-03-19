@@ -3,7 +3,7 @@ title: "Building an Automated Curator"
 description: "Programmatic auth, safety patterns, and an end-to-end example for automated vault management."
 ---
 
-Automated curators monitor vault state 24/7, rebalance ladders based on real-time APY data, pause services on anomaly detection, and execute strategies without human latency. SuperVaults supports full programmatic control across all four API backends.
+Automated curators monitor vault state 24/7, define rule-based strategies via the Strategy Canvas, pause services on anomaly detection, and execute operations without human latency. SuperVaults supports full programmatic control via the Erebor management API and the Strategy Engine.
 
 ## Authentication for Automation
 
@@ -35,7 +35,7 @@ print(f"Vaults: {[v['vault_address'] for v in user['vaults']]}")
 
 ```typescript TypeScript
 const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERMAN_JWT!;
+const JWT = process.env.CURATOR_JWT!;
 
 const headers = { Authorization: `Bearer ${JWT}` };
 
@@ -66,7 +66,6 @@ Base (chain ID: 8453) has lower gas costs and faster confirmation times. Validat
 | Vault state | 15s |
 | Analytics overview | 60s |
 | Service health | 30s |
-| Ladder state | On-demand (after changes) |
 
 ### Circuit Breakers
 
@@ -91,16 +90,16 @@ def safe_api_call(fn):
 
 ### Validate Before Writing
 
-Before pushing ladder changes:
+Before pushing strategy or configuration changes:
 1. Fetch current state
-2. Validate the proposed change is meaningful (order actually changed)
-3. Confirm yield sources in the new order are all still whitelisted
+2. Validate the proposed change is meaningful
+3. Confirm yield sources are all still whitelisted
 4. Apply change
 5. Re-fetch and verify the change was applied
 
-## Example: Automated Deposit Rebalancing
+## Example: Strategy-Driven Vault Monitoring
 
-Fetches yield source data, sorts by APY, and updates the deposit ladder:
+Fetches vault state from Erebor and checks key health indicators:
 
 <CodeGroup>
 
@@ -109,93 +108,77 @@ import requests
 import time
 
 EREBOR_URL = "https://erebor.superform.xyz"
-SUPERMAN_URL = "https://superman.superform.xyz"
 JWT = "<your-jwt>"
 CHAIN_ID = 8453
 VAULT_ADDRESS = "0xYourVault..."
 
 headers = {"Authorization": f"Bearer {JWT}"}
 
-def get_ladder_state():
-    resp = requests.get(f"{SUPERMAN_URL}/ladder/ladders", headers=headers)
-    resp.raise_for_status()
-    ladders = resp.json()
-    return next((l for l in ladders if l["vault_address"].lower() == VAULT_ADDRESS.lower()), None)
-
-def update_deposit_priority(ordered_addresses: list[str]):
-    resp = requests.put(
-        f"{SUPERMAN_URL}/ladder/{CHAIN_ID}/{VAULT_ADDRESS}/deposit-priority",
-        headers=headers,
-        json={"deposit_priority": [{"address": a} for a in ordered_addresses]}
+def get_vault_state():
+    resp = requests.get(
+        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT_ADDRESS}",
+        headers=headers
     )
     resp.raise_for_status()
-    print(f"Updated deposit priority: {ordered_addresses}")
+    return resp.json()
 
-def run_rebalance():
-    ladder = get_ladder_state()
-    if not ladder:
-        print("Vault not found in ladder state")
-        return
+def check_vault_health():
+    vault = get_vault_state()
 
-    current_order = [item["address"] for item in ladder["deposit_priority"]]
-    print(f"Current order: {current_order}")
+    # Check PPS staleness
+    remaining = vault.get("remaining_staleness_time", 9999)
+    if remaining < 3600:
+        print(f"WARNING: PPS expires in {remaining // 60} minutes")
 
-    # Implement your APY ranking logic here
-    # ranked_by_apy = sort_yield_sources_by_apy(current_order)
-    # if ranked_by_apy != current_order:
-    #     update_deposit_priority(ranked_by_apy)
+    # Check pause status
+    if vault.get("is_paused"):
+        print("CRITICAL: Vault is paused on-chain")
+
+    # Check TVL
+    tvl = vault.get("tvl_usd", 0)
+    print(f"TVL: ${tvl:,.0f} | PPS staleness: {remaining}s")
 
 if __name__ == "__main__":
     while True:
         try:
-            run_rebalance()
+            check_vault_health()
         except Exception as e:
             print(f"Error: {e}")
-        time.sleep(300)  # Every 5 minutes
+        time.sleep(60)
 ```
 
 ```typescript TypeScript
-const SUPERMAN_URL = "https://superman.superform.xyz";
-const JWT = process.env.SUPERMAN_JWT!;
+const EREBOR_URL = "https://erebor.superform.xyz";
+const JWT = process.env.CURATOR_JWT!;
 const CHAIN_ID = 8453;
 const VAULT_ADDRESS = "0xYourVault...";
 const headers = { Authorization: `Bearer ${JWT}` };
 
-async function getLadderState() {
-  const resp = await fetch(`${SUPERMAN_URL}/ladder/ladders`, { headers });
-  if (!resp.ok) throw new Error(`Ladder fetch failed: ${resp.status}`);
-  const ladders = await resp.json();
-  return ladders.find((l: any) =>
-    l.vault_address.toLowerCase() === VAULT_ADDRESS.toLowerCase()
-  );
-}
-
-async function updateDepositPriority(orderedAddresses: string[]) {
+async function getVaultState() {
   const resp = await fetch(
-    `${SUPERMAN_URL}/ladder/${CHAIN_ID}/${VAULT_ADDRESS}/deposit-priority`,
-    {
-      method: "PUT",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        deposit_priority: orderedAddresses.map(a => ({ address: a }))
-      })
-    }
+    `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT_ADDRESS}`,
+    { headers }
   );
-  if (!resp.ok) throw new Error(`Ladder update failed: ${resp.status}`);
-  console.log(`Updated deposit priority: ${orderedAddresses}`);
+  if (!resp.ok) throw new Error(`Vault fetch failed: ${resp.status}`);
+  return resp.json();
 }
 
-async function runRebalance() {
-  const ladder = await getLadderState();
-  if (!ladder) { console.log("Vault not found"); return; }
+async function checkVaultHealth() {
+  const vault = await getVaultState();
 
-  const currentOrder = ladder.deposit_priority.map((item: any) => item.address);
-  console.log("Current order:", currentOrder);
+  const remaining = vault.remaining_staleness_time ?? 9999;
+  if (remaining < 3600) {
+    console.warn(`WARNING: PPS expires in ${Math.floor(remaining / 60)} minutes`);
+  }
 
-  // Implement your rebalancing logic here
+  if (vault.is_paused) {
+    console.error("CRITICAL: Vault is paused on-chain");
+  }
+
+  console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
 }
 
-setInterval(runRebalance, 300_000);
+setInterval(checkVaultHealth, 60_000);
 ```
 
 </CodeGroup>
@@ -205,12 +188,6 @@ setInterval(runRebalance, 300_000);
 <CardGroup cols={2}>
   <Card title="Monitoring" icon="chart-line" href="/curate/automation/monitoring">
     Poll vault state and build alert conditions.
-  </Card>
-  <Card title="Ladder Automation" icon="list-ol" href="/curate/automation/ladders">
-    Programmatic ladder updates for all 5 ladder types.
-  </Card>
-  <Card title="Service Health" icon="heart-pulse" href="/curate/automation/services">
-    Monitor and control keeper services via API.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/curate/automation/webhooks">
     Audit logs as interim event stream.

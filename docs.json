@@ -110,16 +110,13 @@
             "pages": [
               "curate/ui/dashboard",
               "curate/ui/strategy",
-              "curate/ui/ladder",
-              "curate/ui/history",
-              "curate/ui/services"
+              "curate/ui/yield-sources",
+              "curate/ui/merkle-trees"
             ]
           },
           {
-            "group": "Configuration",
+            "group": "Access & Settings",
             "pages": [
-              "curate/ui/yield-sources",
-              "curate/ui/merkle-trees",
               "curate/ui/vault-settings",
               "curate/ui/user-management"
             ]
@@ -144,7 +141,6 @@
             "pages": [
               "curate/api/overview",
               "curate/api/erebor",
-              "curate/api/superman",
               "curate/api/strategy",
               "curate/api/oms"
             ]
@@ -154,8 +150,6 @@
             "pages": [
               "curate/automation/overview",
               "curate/automation/monitoring",
-              "curate/automation/ladders",
-              "curate/automation/services",
               "curate/automation/webhooks"
             ]
           }

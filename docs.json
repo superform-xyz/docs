@@ -19,11 +19,10 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["introduction"]
-          },
-          {
-            "group": "What is Superform?",
-            "pages": ["learn/superform-protocol"]
+            "pages": [
+              "introduction",
+              "learn/superform-protocol"
+            ]
           },
           {
             "group": "Superform Core",
@@ -43,11 +42,15 @@
           },
           {
             "group": "$UP",
-            "pages": ["usdup"]
+            "pages": [
+              "usdup"
+            ]
           },
           {
             "group": "Reference",
-            "pages": ["glossary"]
+            "pages": [
+              "glossary"
+            ]
           }
         ]
       },

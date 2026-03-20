@@ -221,5 +221,8 @@
   "description": "Superform is the user-owned neobank enabling single-signature execution of arbitrary actions across chains and optimized vaults.",
   "seo": {
     "indexing": "all"
+  },
+  "thumbnails": {
+    "background": "/images/block.daddy_ben_franklin_in_USA_swim_trunks_swimming_in_a_pool__227dc90d-6aa5-48ec-b9e8-c281f0c993ed1(1).png"
   }
 }

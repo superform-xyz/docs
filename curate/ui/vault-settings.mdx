@@ -8,7 +8,7 @@ description: "Configure fees, PPS parameters, redeem timelock, banned hook leave
 Vault Settings is the configuration hub for vault-level parameters. The left sidebar organizes settings into five categories: **Fees**, **PPS**, **Timing**, **Security**, and **Balance**. Primary manager only — secondary managers receive `403 Forbidden`.
 
 <Note>
-Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **on-chain transactions**. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
+Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **onchain transactions**. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
 </Note>
 
 ---
@@ -29,10 +29,10 @@ The current configuration is displayed as a read-only summary. To modify fees, c
 | Management Fee (%) | Annualized percentage of TVL taken as fees |
 | Recipient Address | Wallet that receives accrued fees when skimmed |
 
-These settings are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current fee values are read from `GET /api/v1/vaults/{chain_id}/{address}` (`fee_config` field in the response).
+These settings are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current fee values are read from `GET /api/v1/vaults/{chain_id}/{address}` (`fee_config` field in the response).
 
 <Warning>
-Fee changes are subject to an on-chain timelock. Depositors can observe pending fee proposals and withdraw before they take effect.
+Fee changes are subject to an onchain timelock. Depositors can observe pending fee proposals and withdraw before they take effect.
 </Warning>
 
 ---
@@ -43,9 +43,9 @@ Price-per-share parameters control how PPS updates are validated and when stalen
 
 ### Deviation Threshold
 
-The maximum allowed deviation between the off-chain calculated PPS and the current on-chain PPS. If an update exceeds this threshold, it is rejected to prevent erroneous PPS values from being posted.
+The maximum allowed deviation between the offchain calculated PPS and the current onchain PPS. If an update exceeds this threshold, it is rejected to prevent erroneous PPS values from being posted.
 
-A value of `100` means 1% — any PPS update differing by more than 1% from the current on-chain value will be rejected.
+A value of `100` means 1% — any PPS update differing by more than 1% from the current onchain value will be rejected.
 
 ### PPS Expiration
 
@@ -53,9 +53,9 @@ The staleness window (in hours) after which vault operations are blocked. If PPS
 
 ### Min Update Interval
 
-The minimum time (in seconds) between consecutive PPS updates. Prevents excessive on-chain updates that waste gas without meaningful price changes.
+The minimum time (in seconds) between consecutive PPS updates. Prevents excessive onchain updates that waste gas without meaningful price changes.
 
-PPS parameters are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current PPS configuration values are read from `GET /api/v1/vaults/{chain_id}/{address}`.
+PPS parameters are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current PPS configuration values are read from `GET /api/v1/vaults/{chain_id}/{address}`.
 
 ---
 
@@ -70,7 +70,7 @@ A mandatory delay (in seconds) between redemption request submission and fulfill
 - **Liquidity management** — keepers source liquidity from yield sources before fulfillment
 - **Regulatory compliance** — some contexts require enforced redemption delays
 
-The redeem timelock is configured via an on-chain transaction. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
+The redeem timelock is configured via an onchain transaction. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
 
 <Warning>
 Setting a timelock on a live vault affects all future redemption requests. Requests submitted before the change are not retroactively affected.
@@ -84,9 +84,9 @@ Setting a timelock on a live vault affects all future redemption requests. Reque
 
 Merkle leaves that have been explicitly banned from execution, even if they appear in an authorized merkle tree. Use this to emergency-block a specific hook+parameter combination without regenerating and resyncing the entire merkle tree.
 
-When a leaf is banned, keepers attempting to execute that leaf will receive a rejection even though the leaf's proof verifies against the on-chain root.
+When a leaf is banned, keepers attempting to execute that leaf will receive a rejection even though the leaf's proof verifies against the onchain root.
 
-Banned hook leaves are configured via on-chain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
+Banned hook leaves are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
 
 <Tip>
 Banning a leaf is an immediate control mechanism. Use it as a fast-response mechanism while you prepare a proper merkle tree update.

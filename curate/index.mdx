@@ -3,13 +3,13 @@ title: "SuperVaults Curator Documentation"
 description: "Technical reference for SuperVault curators: vault operations, strategy automation, API integration, and risk management."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Curators set allocation priorities, define automated rebalancing rules, manage on-chain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
+SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Curators set allocation priorities, define automated rebalancing rules, manage onchain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
 
 This documentation covers everything a curator needs to operate a SuperVault: from initial vault creation and yield source whitelisting through strategy automation via the DeFiX v0.1 intent protocol.
 
 ## Non-Custodial by Design
 
-SuperVaults are ERC-4626/ERC-7540 smart contracts deployed permissionlessly on-chain. No intermediary holds custody of vault assets — depositor funds live in the contracts at all times. The curator platform at [curators.superform.xyz](https://curators.superform.xyz) is a management interface built on top of this decentralized infrastructure: it constructs calldata, your wallet signs, and you submit transactions directly to the protocol. Superform never touches your keys or your vault's assets.
+SuperVaults are ERC-4626/ERC-7540 smart contracts deployed permissionlessly onchain. No intermediary holds custody of vault assets — depositor funds live in the contracts at all times. The curator platform at [curators.superform.xyz](https://curators.superform.xyz) is a management interface built on top of this decentralized infrastructure: it constructs calldata, your wallet signs, and you submit transactions directly to the protocol. Superform never touches your keys or your vault's assets.
 
 The contracts are open-source and audited. Anyone can interact with them directly without using this interface.
 
@@ -24,7 +24,7 @@ The contracts are open-source and audited. Anyone can interact with them directl
     Define rule-based strategies with indicator expressions, conviction thresholds, and configurable tick intervals. The Strategy Engine evaluates conditions and dispatches DeFiX intents automatically.
   </Card>
   <Card title="Merkle Authorization" icon="shield-halved" href="/curate/ui/merkle-trees">
-    Whitelist exactly which hooks can be called with which parameters. Each authorized combination becomes a merkle tree leaf verified on-chain before execution.
+    Whitelist exactly which hooks can be called with which parameters. Each authorized combination becomes a merkle tree leaf verified onchain before execution.
   </Card>
   <Card title="Full API Access" icon="code" href="/curate/api/overview">
     ~107 endpoints across three services. Programmatic control over every operation the UI exposes, plus analytics, audit logs, and admin utilities.

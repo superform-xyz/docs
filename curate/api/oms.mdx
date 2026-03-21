@@ -1,9 +1,9 @@
 ---
 title: "OMS API — DeFiX Intents"
-description: "4-endpoint DeFiX v0.1 intent protocol for submitting, tracking, and cancelling on-chain vault operations."
+description: "4-endpoint DeFiX v0.1 intent protocol for submitting, tracking, and cancelling onchain vault operations."
 ---
 
-The OMS (Order Management System) implements the **DeFiX v0.1** protocol: a standardized intent interface for DeFi vault operations. It receives intents from the Strategy Engine and executes them on-chain.
+The OMS (Order Management System) implements the **DeFiX v0.1** protocol: a standardized intent interface for DeFi vault operations. It receives intents from the Strategy Engine and executes them onchain.
 
 **Base URL:** `https://oms.superform.xyz`
 **Auth:** `Authorization: Bearer <jwt>`
@@ -115,7 +115,7 @@ State transition log:
 | Status | Description |
 |--------|-------------|
 | `Processing` | Queued or being executed |
-| `Completed` | Successfully executed on-chain |
+| `Completed` | Successfully executed onchain |
 | `Failed` | Execution failed (see error in intent detail) |
 | `Cancelled` | Cancelled before execution |
 

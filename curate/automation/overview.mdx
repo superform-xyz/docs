@@ -132,7 +132,7 @@ def check_vault_health():
 
     # Check pause status
     if vault.get("is_paused"):
-        print("CRITICAL: Vault is paused on-chain")
+        print("CRITICAL: Vault is paused onchain")
 
     # Check TVL
     tvl = vault.get("tvl_usd", 0)
@@ -172,7 +172,7 @@ async function checkVaultHealth() {
   }
 
   if (vault.is_paused) {
-    console.error("CRITICAL: Vault is paused on-chain");
+    console.error("CRITICAL: Vault is paused onchain");
   }
 
   console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);

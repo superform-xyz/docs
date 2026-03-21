@@ -1,11 +1,11 @@
 ---
 title: "Pause Operations"
-description: "Emergency on-chain vault pause and per-vault keeper service controls."
+description: "Emergency onchain vault pause and per-vault keeper service controls."
 ---
 
 ![SuperVaults Pause Operations — Pause Vault and Pause Keepers controls with Vault Pause Control card](/curate/images/screenshots/pause.jpg)
 
-The Pause page provides two control mechanisms: on-chain vault pause (halts contract-level execution, requires gas) and per-vault keeper service controls (halts individual workers, no gas). Both are fully operational and wired to Erebor.
+The Pause page provides two control mechanisms: onchain vault pause (halts contract-level execution, requires gas) and per-vault keeper service controls (halts individual workers, no gas). Both are fully operational and wired to Erebor.
 
 <Warning>
 The Pause page (`/pause`) is distinct from the Emergency page (`/emergency`). Pause is **fully operational**. The Emergency page is a mock Fireblocks multi-sig flow not yet implemented.
@@ -26,7 +26,7 @@ API: `GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr},{chainId}:{va
 3. Erebor calls `POST /api/v1/vaults/emergency-pause/prepare` → calldata
 4. Sign the transaction
 
-When paused: Strategy Engine stops dispatching intents, all on-chain vault operations halt, PPS oracle updates may be blocked.
+When paused: Strategy Engine stops dispatching intents, all onchain vault operations halt, PPS oracle updates may be blocked.
 
 ### Unpausing
 
@@ -36,7 +36,7 @@ When paused: Strategy Engine stops dispatching intents, all on-chain vault opera
 
 ## Section 2: Keeper Service Controls
 
-Independent of the on-chain pause. Control individual workers for a specific vault without gas.
+Independent of the onchain pause. Control individual workers for a specific vault without gas.
 
 ### Viewing Services
 

@@ -10,7 +10,7 @@ Erebor is the primary management backend for SuperVaults. Go service, REST endpo
 **OpenAPI spec:** `erebor-openapi2.json`
 
 <Note>
-Settings changes (fees, PPS parameters, timelocks, banned leaves) are **on-chain transactions**. The curator UI constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change.
+Settings changes (fees, PPS parameters, timelocks, banned leaves) are **onchain transactions**. The curator UI constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change.
 </Note>
 
 <Note>
@@ -120,7 +120,7 @@ All under `/api/v1/vaults/{chain_id}/{address}/analytics/`:
 | `/api/v1/users` | GET | All users for vault (`?vault_address={}&chain_id={}`) |
 | `/api/v1/users/secondary-manager/prepare` | POST | Prepare add secondary manager tx |
 | `/api/v1/users/secondary-manager/remove/prepare` | POST | Prepare remove secondary manager tx |
-| `/api/v1/users/view-only` | POST | Add view-only user (off-chain) |
+| `/api/v1/users/view-only` | POST | Add view-only user (offchain) |
 | `/api/v1/users/view-only/{wallet}` | DELETE | Remove view-only user |
 | `/api/v1/users/{wallet}/display-name` | PATCH | Update display name |
 
@@ -165,8 +165,8 @@ All under `/api/v1/vaults/{chain_id}/{address}/analytics/`:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/vaults/pause-status` | GET | Batch pause status (`?vaults={chainId}:{addr},...`) |
-| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare on-chain pause tx |
-| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare on-chain unpause tx |
+| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare onchain pause tx |
+| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare onchain unpause tx |
 
 ---
 

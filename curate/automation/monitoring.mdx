@@ -90,7 +90,7 @@ def run_checks():
         vault = fetch_vault_state()
 
         if vault.get("is_paused"):
-            alert("CRITICAL", f"Vault {VAULT} is paused on-chain")
+            alert("CRITICAL", f"Vault {VAULT} is paused onchain")
 
         remaining = vault.get("remaining_staleness_time", 9999)
         if remaining < 600:

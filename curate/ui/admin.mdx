@@ -3,7 +3,7 @@ title: "Admin: Backfill & Maintenance"
 description: "Internal data maintenance tools for backfilling APY, TVL, and event history for vaults."
 ---
 
-The Admin page provides data backfill utilities for Erebor's historical analytics. Use these when vault data is missing from the analytics database: after onboarding a vault with existing on-chain history, or after a data pipeline incident.
+The Admin page provides data backfill utilities for Erebor's historical analytics. Use these when vault data is missing from the analytics database: after onboarding a vault with existing onchain history, or after a data pipeline incident.
 
 <Note>
 Backfill operations are long-running (up to 120s per request). The API client timeout is overridden accordingly. Requires `registry_maintainer` permission.
@@ -51,7 +51,7 @@ Response:
 
 ### Events Backfill
 
-Re-indexes deposit, withdrawal, and other on-chain events. Max 365 days.
+Re-indexes deposit, withdrawal, and other onchain events. Max 365 days.
 
 ```bash
 POST /api/v1/admin/backfill/events

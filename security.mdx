@@ -3,7 +3,7 @@ title: "Security"
 description: "Superform's multi-layered security model: dual Merkle validation, emergency controls, timelocks, access roles, and audits."
 ---
 
-Superform has been reviewed by multiple independent security firms across both core and periphery contracts. The protocol enforces security at multiple layers: on-chain Merkle verification for keeper operations, timelocked governance updates, circuit-breaker PPS validation, role-based access control, and continuous invariant monitoring.
+Superform has been reviewed by multiple independent security firms across both core and periphery contracts. The protocol enforces security at multiple layers: onchain Merkle verification for keeper operations, timelocked governance updates, circuit-breaker PPS validation, role-based access control, and continuous invariant monitoring.
 
 ## Audits
 
@@ -30,7 +30,7 @@ Superform has been reviewed by multiple independent security firms across both c
 
 ### Dual Merkle Hook Validation
 
-All keeper operations are gated by a dual Merkle tree system. A hook can only execute if the exact combination of hook address + parameters matches a leaf in one of two on-chain roots:
+All keeper operations are gated by a dual Merkle tree system. A hook can only execute if the exact combination of hook address + parameters matches a leaf in one of two onchain roots:
 
 | Root | Controlled By | Timelock | Scope |
 |------|---------------|----------|-------|
@@ -69,7 +69,7 @@ Price-per-share updates pass through multiple validation layers before acceptanc
 
 Strategies are automatically paused when:
 - PPS dispersion exceeds threshold (high standard deviation among validator submissions)
-- PPS deviation is too large (absolute change from current on-chain value)
+- PPS deviation is too large (absolute change from current onchain value)
 - Validator participation rate falls below minimum
 - Updates are stale beyond the configured window
 

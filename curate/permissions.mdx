@@ -5,18 +5,18 @@ description: "Four access levels for SuperVaults: Primary Manager, Secondary Man
 
 ## Role Tiers
 
-SuperVaults enforces four permission tiers with distinct on-chain and off-chain boundaries:
+SuperVaults enforces four permission tiers with distinct onchain and offchain boundaries:
 
 | Role | On-Chain? | Scope | Mutable? |
 |------|-----------|-------|---------|
 | **Primary Manager** | Yes | Full vault control | Immutable (set at creation) |
-| **Secondary Manager** | Yes | All operations except vault settings | Removable via on-chain tx |
-| **View Only** | No | Dashboard read access | Added/removed off-chain |
+| **Secondary Manager** | Yes | All operations except vault settings | Removable via onchain tx |
+| **View Only** | No | Dashboard read access | Added/removed offchain |
 | **Registry Maintainer** | No | Global registry CRUD | DB-level grant |
 
 ## Primary Manager
 
-The primary manager is the on-chain vault owner. One per vault.
+The primary manager is the onchain vault owner. One per vault.
 
 - Set at vault creation: the wallet that signs `POST /api/v1/vaults/create/prepare`
 - Cannot be changed without governance-level contract interaction
@@ -38,7 +38,7 @@ On-chain delegates with operational authority. A vault supports multiple seconda
 
 ## View Only
 
-Off-chain read access. No on-chain transaction required.
+Off-chain read access. No onchain transaction required.
 
 - Added via `POST /api/v1/users/view-only`
 - Removed via `DELETE /api/v1/users/view-only/{wallet}`
@@ -62,7 +62,7 @@ Global permission for managing Erebor registries. Not vault-scoped.
 | Manage yield sources | ✅ | ✅ | ❌ | — |
 | Merkle tree operations | ✅ | ✅ | ❌ | — |
 | Create/edit strategies | ✅ | ✅ | ❌ | — |
-| Pause vault (on-chain) | ✅ | ✅ | ❌ | — |
+| Pause vault (onchain) | ✅ | ✅ | ❌ | — |
 | Pause keeper services | ✅ | ✅ | ❌ | — |
 | Add/remove secondary managers | ✅ | ❌ | ❌ | — |
 | Add/remove view-only users | ✅ | ✅ | ❌ | — |
@@ -90,7 +90,7 @@ POST /api/v1/users/secondary-manager/prepare
 Authorization: Bearer <jwt>
 { "vault_address": "0x...", "chain_id": 8453, "manager_address": "0xnew..." }
 
-# Add view-only user (off-chain, no gas)
+# Add view-only user (offchain, no gas)
 POST /api/v1/users/view-only
 Authorization: Bearer <jwt>
 { "vault_address": "0x...", "chain_id": 8453, "wallet_address": "0x...", "display_name": "Risk Monitor" }

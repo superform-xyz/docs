@@ -9,15 +9,15 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
 
 - **Non-custodial** — Depositor funds live in the vault contract, never in curator wallets
 - **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
-- **Merkle-verified execution** — Keepers can only call hooks that match leaves in the on-chain Merkle tree
+- **Merkle-verified execution** — Keepers can only call hooks that match leaves in the onchain Merkle tree
 - **Automated operations** — Seven Celery-based keeper workers handle deposits, redemptions, reward claims, swaps, and transaction management
-- **Oracle-secured PPS** — Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted on-chain only after two-thirds weighted consensus
+- **Oracle-secured PPS** — Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted onchain only after two-thirds weighted consensus
 
 ## How SuperVaults Work
 
 <Steps>
   <Step title="Depositor Requests">
-    A depositor submits a deposit or redemption request on-chain via the ERC-7540 interface.
+    A depositor submits a deposit or redemption request onchain via the ERC-7540 interface.
   </Step>
   <Step title="Keeper Workers Execute">
     Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and managing swaps.
@@ -26,7 +26,7 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
     The curator sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
   </Step>
   <Step title="Validators Secure PPS">
-    Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update on-chain. The oracle accepts updates only with supermajority validator consensus.
+    Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update onchain. The oracle accepts updates only with supermajority validator consensus.
   </Step>
 </Steps>
 
@@ -66,7 +66,7 @@ The architecture comprises three systems: vault triads, governance coordination,
 
 ### Vault Triads
 
-Each SuperVault deployment consists of three on-chain contracts managed through the **SuperVaultAggregator** (factory, registry, PPS oracle forwarding, upkeep accounting, and governor-level constraints):
+Each SuperVault deployment consists of three onchain contracts managed through the **SuperVaultAggregator** (factory, registry, PPS oracle forwarding, upkeep accounting, and governor-level constraints):
 
 | Contract | Purpose |
 |----------|---------|

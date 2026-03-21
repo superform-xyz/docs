@@ -76,6 +76,7 @@
       },
       {
         "tab": "Build",
+        "url": "build/introduction",
         "groups": [
           {
             "group": "Introduction",
@@ -101,6 +102,7 @@
       },
       {
         "tab": "Curate",
+        "url": "curate/index",
         "groups": [
           {
             "group": "Introduction",

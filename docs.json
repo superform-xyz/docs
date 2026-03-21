@@ -54,15 +54,15 @@
           {
             "group": "SuperVaults",
             "pages": [
-              "supervaults/overview",
-              "supervaults/transaction-lifecycle",
-              "supervaults/economics"
+              "learn/supervaults/overview",
+              "learn/supervaults/transaction-lifecycle",
+              "learn/supervaults/economics"
             ]
           },
           {
             "group": "$UP",
             "pages": [
-              "usdup"
+              "learn/usdup"
             ]
           },
           {
@@ -76,6 +76,7 @@
       },
       {
         "tab": "Build",
+        "url": "build/introduction",
         "groups": [
           {
             "group": "Introduction",
@@ -101,6 +102,7 @@
       },
       {
         "tab": "Curate",
+        "url": "curate/index",
         "groups": [
           {
             "group": "Introduction",

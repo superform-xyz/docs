@@ -39,7 +39,7 @@
           {
             "group": "Introduction",
             "pages": [
-              "introduction",
+              "index",
               "learn/superform-protocol"
             ]
           },
@@ -54,7 +54,7 @@
           {
             "group": "SuperVaults",
             "pages": [
-              "learn/supervaults/overview",
+              "learn/supervaults",
               "learn/supervaults/transaction-lifecycle",
               "learn/supervaults/economics"
             ]
@@ -76,12 +76,12 @@
       },
       {
         "tab": "Build",
-        "url": "build/introduction",
         "groups": [
           {
             "group": "Introduction",
+            "root": "build",
             "pages": [
-              "build/introduction"
+              "build"
             ]
           },
           {
@@ -102,12 +102,12 @@
       },
       {
         "tab": "Curate",
-        "url": "curate/index",
         "groups": [
           {
             "group": "Introduction",
+            "root": "curate",
             "pages": [
-              "curate/index",
+              "curate",
               "curate/concepts"
             ]
           },

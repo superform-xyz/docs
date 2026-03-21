@@ -5,7 +5,28 @@ description: "Superform's multi-layered security model: dual Merkle validation, 
 
 # Security
 
-Superform enforces security at multiple layers: on-chain Merkle verification for keeper operations, timelocked governance updates, circuit-breaker PPS validation, role-based access control, and continuous invariant monitoring.
+Superform has been reviewed by multiple independent security firms across both core and periphery contracts. The protocol enforces security at multiple layers: on-chain Merkle verification for keeper operations, timelocked governance updates, circuit-breaker PPS validation, role-based access control, and continuous invariant monitoring.
+
+## Audits
+
+### v2-core
+
+| Auditor | Date | Report |
+|---------|------|--------|
+| Orion Security | August 2025 | [Report](https://github.com/superform-xyz/v2-core/blob/dev/audits/2025.08.22-orion.pdf) |
+| Cantina Competition | June 2025 | [Report](https://github.com/superform-xyz/v2-core/blob/dev/audits/2025.06.02-cantina-competition.pdf) |
+| Node Security | May 2025 | [Report](https://github.com/superform-xyz/v2-core/blob/dev/audits/2025.05.05-nodesecurity.pdf) |
+| Cantina Code | April 2025 | [Report](https://github.com/superform-xyz/v2-core/blob/dev/audits/2025.04.19-cantinacode.pdf) |
+| Sujith Somraaj | March 2025 | [Report](https://github.com/superform-xyz/v2-core/blob/dev/audits/2025.03.24-sujithsomraaj.pdf) |
+
+### v2-periphery
+
+| Auditor | Date | Report |
+|---------|------|--------|
+| Octane Security | November 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.30-octane-security.pdf) |
+| 0xMacro | November 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.27-0xMacro.pdf) |
+| GetRecon | November 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.07-GetRecon.pdf) |
+| Cantina Code | June 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.06.30-cantinacode.pdf) |
 
 ## Security Model
 
@@ -77,40 +98,23 @@ Strategies are automatically paused when:
 
 ### Emergency Controls
 
-**Strategy Pausing** - Both primary and secondary managers can pause strategies immediately. Unpausing marks PPS as stale until a fresh oracle update is posted.
+**Strategy Pausing** — Both primary and secondary managers can pause strategies immediately. Unpausing marks PPS as stale until a fresh oracle update is posted.
 
-**Banned Hook Leaves** - Individual Merkle leaves can be banned without regenerating the entire tree. This provides an immediate block on specific hook + parameter combinations.
+**Banned Hook Leaves** — Individual Merkle leaves can be banned without regenerating the entire tree. This provides an immediate block on specific hook + parameter combinations.
 
-**Guardian Veto** - Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
+**Guardian Veto** — Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
 
-**Emergency Withdrawals** - Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
+**Emergency Withdrawals** — Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
 
 ## Cross-Contract Integrity
 
 The SuperVault architecture enforces state consistency across contracts:
 
-- **PPS Consistency** - Vault uses strategy's stored PPS for all share calculations
-- **Pause Propagation** - Strategy pause state affects vault deposit limits
-- **Share Custody** - Escrow holds shares during pending redemptions; only strategy (via vault) can burn escrowed shares
-- **Asset Custody** - Escrow holds fulfilled assets until the user claims them
+- **PPS Consistency** — Vault uses strategy's stored PPS for all share calculations
+- **Pause Propagation** — Strategy pause state affects vault deposit limits
+- **Share Custody** — Escrow holds shares during pending redemptions; only strategy (via vault) can burn escrowed shares
+- **Asset Custody** — Escrow holds fulfilled assets until the user claims them
 
 ## Monitoring & Invariants
 
 All critical properties and invariants are tested through the [GetRecon](https://getrecon.xyz/) invariant suite using both Echidna and Medusa across >100 million runs. They are continuously monitored through [Tenderly](https://tenderly.co/monitoring) and cron-based monitors.
-
-## Audits
-
-Superform maintains a continuous audit program across both core and periphery contracts.
-
-| Auditor | Date | Scope | Report |
-|---------|------|-------|--------|
-| Octane Security | November 2025 | v2-periphery | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.30-octane-security.pdf) |
-| 0xMacro | November 2025 | v2-periphery | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.27-0xMacro.pdf) |
-| GetRecon | November 2025 | Invariant testing | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.07-GetRecon.pdf) |
-| Spearbit | June 2025 | v2-core, v2-periphery | [Report](https://cantina.xyz/portfolio/1088c45d-1813-4ea4-9ce1-fadb26cb5060) |
-| Cantina Competition | June 2025 | Competitive audit | [Report](https://cantina.xyz/portfolio/1088c45d-1813-4ea4-9ce1-fadb26cb5060) |
-| Node Security | May 2025 | v2-periphery | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.07-GetRecon.pdf) |
-| Orion Security | August 2025 | v2-core | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.27-0xMacro.pdf) |
-| Sujith Somraaj | March 2025 | Independent review | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.30-octane-security.pdf) |
-
-

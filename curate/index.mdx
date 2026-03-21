@@ -17,18 +17,6 @@ The contracts are open-source and audited. Anyone can interact with them directl
 - [v2-periphery contracts (GitHub)](https://github.com/superform-xyz/v2-periphery)
 - [ERC-7540 standard](https://eips.ethereum.org/EIPS/eip-7540)
 
-## Architecture at a Glance
-
-SuperVaults split responsibilities across three backend services:
-
-| Service | Role | Language |
-|---------|------|----------|
-| **Erebor** | Vault management, analytics, merkle authorization, registry, service controls | Go |
-| **Strategy Engine** | Rule-based strategy evaluation, intent dispatch | Go |
-| **OMS** | DeFiX v0.1 intent execution, on-chain transaction management | Go |
-
-Every on-chain write operation follows a **prepare pattern**: the backend constructs EVM calldata, your wallet signs the transaction, and the backend confirms the result. Private keys never touch the server.
-
 ## Key Capabilities
 
 <CardGroup cols={2}>
@@ -62,17 +50,6 @@ Every on-chain write operation follows a **prepare pattern**: the backend constr
     Build programmatic curators: monitoring loops, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
   </Step>
 </Steps>
-
-## Security Model
-
-SuperVaults enforce security at multiple layers:
-
-- **On-chain merkle verification** ensures keepers can only execute pre-authorized hook + parameter combinations
-- **ERC-7540 async redemption** separates request from fulfillment, giving curators time to source liquidity
-- **Timelocked merkle root updates** prevent instant unauthorized changes to keeper permissions
-- **Role-based access control** across primary manager, secondary manager, and view-only tiers
-- **Emergency pause** halts all vault operations with a single on-chain transaction
-- **Audited contracts** reviewed by Spearbit, Cantina, and yAudit across multiple engagements
 
 <Note>
 This documentation targets curators and integrators. For depositor-facing information, see the [Superform App](https://app.superform.xyz). For protocol-level specifications, see the [Superform Protocol Docs](/introduction).

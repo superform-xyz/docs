@@ -10,7 +10,7 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
 - **Non-custodial** — Depositor funds live in the vault contract, never in curator wallets
 - **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
 - **Merkle-verified execution** — Keepers can only call hooks that match leaves in the on-chain Merkle tree
-- **Automated operations** — Seven Celery-based keeper workers handle deposits, redemptions, reward claims, swaps, and transaction management
+- **Automated operations** — Workers handle any actions, from deposits, redemptions, reward claims, swaps, and transaction management
 - **Oracle-secured PPS** — Price-per-share is computed by validators, signed as EIP-712 typed data, and accepted on-chain only after two-thirds weighted consensus
 
 ## How SuperVaults Work
@@ -45,7 +45,7 @@ SuperVaults enforce safety at every layer:
 SuperVaults are engineered for scale:
 
 - **Native ERC-7540 compliance** enables efficient flows for low-cost deposits and async withdrawals as well as onchain composability.
-- **Cross-chain deposits** via the SuperBundler support 8+ networks with a single signature.
+- **Cross-chain deposits** via the SuperBundler support 8\+ networks with a single signature.
 - **Modular hook engine** allows SuperVaults to access any yield source. Strategies can evolve as markets do, without redeployments or protocol upgrades.
 
 ## Transparency
@@ -59,7 +59,7 @@ Depositors do not have to trust; they can verify:
 ## Architecture
 
 <Frame>
-  <img src="/images/supervault-architecture.png" alt="SuperVault Architecture" />
+  ![SuperVault Architecture](/images/supervault-architecture.png)
 </Frame>
 
 The architecture comprises three systems: vault triads, governance coordination, and PPS validation.
@@ -69,7 +69,7 @@ The architecture comprises three systems: vault triads, governance coordination,
 Each SuperVault deployment consists of three on-chain contracts managed through the **SuperVaultAggregator** (factory, registry, PPS oracle forwarding, upkeep accounting, and governor-level constraints):
 
 | Contract | Purpose |
-|----------|---------|
+| --- | --- |
 | **SuperVault** | ERC-7540 vault that holds depositor assets and issues share tokens. Entry-point for synchronous deposits and asynchronous redeems. |
 | **SuperVaultStrategy** | Execution engine that manages hook authorization via dual Merkle roots, tracks PPS high water mark, queues/fulfills redemption requests, and enforces fee policies. |
 | **Escrow** | Holds user shares during pending redemptions (allowing cancellation) and assets during fulfillment claims. |
@@ -77,22 +77,22 @@ Each SuperVault deployment consists of three on-chain contracts managed through 
 ### Governance & Coordination
 
 | Component | Role |
-|-----------|------|
-| **$UP Token** | Managers stake $UP to access the validator network; $UP covers the cost of PPS update writes. |
+| --- | --- |
+| **\$UP Token** | Managers stake $UP to access the validator network; $ UP covers the cost of PPS update writes. |
 | **SuperGovernor** | Central registry and access control hub. Manages role-based permissions, timelocked parameter updates, and emergency intervention powers. |
 | **SuperBank** | Protocol treasury that handles protocol fees and executes governance-approved hook operations. |
 
 ### PPS Validation
 
 | Component | Role |
-|-----------|------|
+| --- | --- |
 | **ECDSAPPSOracle** | Validates price-per-share updates using ECDSA signatures and forwards validated updates to the Aggregator. |
 | **Validator Network** | Validators monitor PPS updates, submit attestations, and the network performs consensus verification with economic slashing if required. |
 
 ## Supported Yield Sources
 
 | Type | Description | Example |
-|------|-------------|---------|
+| --- | --- | --- |
 | `erc4626` | Standard ERC-4626 vaults | Morpho, Aave wrappers, Euler |
 | `pendle_pt` | Pendle Principal Tokens | Fixed-rate yield via PT purchase |
 
@@ -108,9 +108,11 @@ SuperVaults are live on **Ethereum** and **Base** with flagship vaults for USDC,
   <Card title="Transaction Lifecycle" icon="arrows-spin" href="/supervaults/transaction-lifecycle">
     End-to-end flow from deposit request to yield accrual.
   </Card>
+
   <Card title="Economics" icon="chart-pie" href="/supervaults/economics">
-    Fee structure, $UP upkeep, and protocol revenue.
+    Fee structure, \$UP upkeep, and protocol revenue.
   </Card>
+
   <Card title="Become a Curator" icon="gauge-high" href="/curate">
     Full technical guide for vault operators.
   </Card>

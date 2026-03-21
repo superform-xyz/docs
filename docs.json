@@ -13,6 +13,25 @@
     "dark": "/logo/dark.svg"
   },
   "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Superform App",
+          "icon": "clapperboard-play",
+          "href": "https://app.superform.xyz"
+        },
+        {
+          "anchor": "Curator App",
+          "icon": "gauge-high",
+          "href": "https://curators.superform.xyz"
+        },
+        {
+          "anchor": "GitHub",
+          "icon": "github",
+          "href": "https://github.com/superform-xyz"
+        }
+      ]
+    },
     "tabs": [
       {
         "tab": "Learn",
@@ -177,26 +196,7 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Superform App",
-          "href": "https://app.superform.xyz",
-          "icon": "arrow-up-right-from-square"
-        },
-        {
-          "anchor": "Curator App",
-          "href": "https://curators.superform.xyz",
-          "icon": "gauge-high"
-        },
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/superform-xyz",
-          "icon": "github"
-        }
-      ]
-    }
+    ]
   },
   "navbar": {
     "links": [

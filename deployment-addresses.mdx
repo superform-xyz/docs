@@ -5,11 +5,9 @@ description: "All Superform v2 contract addresses across Ethereum, Base, Optimis
 
 Superform Core v2 contracts are deployed at deterministic addresses across Ethereum, Base, Optimism, Arbitrum, BNB, Polygon, Avalanche, Unichain, and HyperEVM.
 
-## Infrastructure
+## Core Contracts
 
-Execution, validation, accounting, smart accounts, and gas contracts share the same address across all supported chains.
-
-### Execution & Validation
+### Infrastructure
 
 | Contract | Address |
 |----------|---------|
@@ -19,37 +17,20 @@ Execution, validation, accounting, smart accounts, and gas contracts share the s
 | SuperDestinationValidator | `0xADEFF5A0684392C4c273a9C638d1dB8c5dfd0098` |
 | SuperBundler | `0x1101eec94dd79bee1b5a77b96c15ac24a4691e2e` |
 | SuperSenderCreator | `0xBC6FB94D2f10A3B4349F592FFA80C4B7C97C1799` |
-
-### Accounting
-
-| Contract | Address |
-|----------|---------|
 | SuperLedger | `0x04916bB42564CdED96E10F55C059d65E4FCb1Be6` |
 | SuperLedgerConfiguration | `0x2e2D71289CBA19f831856f85DEC7f194B0165e69` |
 | FlatFeeLedger | `0xAb56d09Ad9975116fCeb14970F2fFb3bB0ad683E` |
-
-### Smart Accounts (Biconomy Nexus)
-
-| Contract | Address |
-|----------|---------|
 | Nexus | `0xA3AA31f8d4Da6005aAfB0d61e5012a64d15F5B3A` |
 | NexusAccountFactory | `0x4153Db38136E74a88A77b51a955A88823820C050` |
 | NexusBootstrap | `0x5eBeb4d51723bA345080D81bBF178D93E84bC9BE` |
 | NexusProxy | `0x8a3A6698C3D142b9dAD80F114947d46671A5290E` |
-
-### Gas
-
-| Contract | Address |
-|----------|---------|
 | SuperNativePaymaster | `0x2288C49689c2CceD5C5bdd74Ac3b775E61a7A532` |
 
-## Hooks
+### Hooks
 
 <Warning>
 Hook addresses may vary across chains. Always verify hook addresses against the onchain registry before integrating directly.
 </Warning>
-
-### Vault Operations
 
 | Contract | Address |
 |----------|---------|
@@ -64,11 +45,6 @@ Hook addresses may vary across chains. Always verify hook addresses against the 
 | Redeem4626VaultHook | `0x5c3edf3F7c43828Bb72a668e2B29f9e2D9Af5A69` |
 | Redeem5115VaultHook | `0x6aB1fD107825F9bB3E079d23508A07486b44e6F5` |
 | Redeem7540VaultHook | `0xE165FBBc89a60756F57Cf0E34c04c35Cc1BbA79D` |
-
-### Utility
-
-| Contract | Address |
-|----------|---------|
 | ApproveERC20Hook | `0x8b789980dc6cC7d88E30C442D704646ff7F6d306` |
 | BatchTransferFromHook | `0x816d5de8835FB7A003896f486fCce46a6DEBB00A` |
 | BatchTransferHook | `0x852c6E00A7eC7590318DEAaD03030d4ddD74C93a` |
@@ -87,7 +63,7 @@ Hook addresses may vary across chains. Always verify hook addresses against the 
 | SwapOdosV2Hook | `0xf09106eAA87a5d81DAcFC91F6F564131c57495bE` |
 | TransferERC20Hook | `0x6031c3953BC12D9Af4651B7ed517190A31a67ca4` |
 
-## Yield Source Oracles
+### Yield Source Oracles
 
 | Contract | Address |
 |----------|---------|

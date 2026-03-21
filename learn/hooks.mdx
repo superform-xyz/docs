@@ -17,7 +17,7 @@ The execution of hooks is a four-step sequence:
 
 1. **Build** - Frontend selects the addresses and calldata of the hook(s) in a chain.
 2. **Bundle** - SuperBundler splits hooks per chain and wraps each into an ERC-4337 UserOp, storing a Merkle tree.
-3. **Validate** - Smart Account delegates to SuperValidator on-chain to perform Merkle proof verification.
+3. **Validate** - Smart Account delegates to SuperValidator onchain to perform Merkle proof verification.
 4. **Execute** - SuperExecutor iterates through hooks, performs each action and updates SuperLedger.
 
 ### Hook Classifications

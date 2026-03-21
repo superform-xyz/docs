@@ -1,13 +1,13 @@
 ---
 title: "Merkle Trees"
-description: "Manage hook configurations and on-chain merkle root authorization for vault keeper operations."
+description: "Manage hook configurations and onchain merkle root authorization for vault keeper operations."
 ---
 
 ![SuperVaults Merkle Trees — Hook Configs and Merkle Trees tabs with Create Hook Config action](/curate/images/screenshots/merkle-trees.jpg)
 
-The Merkle Trees page is the authorization control center for keeper operations. Every on-chain action a keeper can perform must be encoded as a leaf in the vault's merkle tree and verified against the on-chain root before execution.
+The Merkle Trees page is the authorization control center for keeper operations. Every onchain action a keeper can perform must be encoded as a leaf in the vault's merkle tree and verified against the onchain root before execution.
 
-The workflow: create a hook config defining authorized operations, generate a merkle tree from that config, then sync the tree root on-chain through a timelocked proposal-execute cycle.
+The workflow: create a hook config defining authorized operations, generate a merkle tree from that config, then sync the tree root onchain through a timelocked proposal-execute cycle.
 
 ## Tab 1: Hook Configs
 
@@ -41,7 +41,7 @@ Generated trees for the vault, showing:
 | Root Hash | 32-byte merkle root |
 | Leaf Count | Number of authorized (hook, params) combinations |
 | Config Hash | Hash of the source config version |
-| Is Current | Whether this root is active on-chain |
+| Is Current | Whether this root is active onchain |
 
 Click a tree to view individual leaves: hook name and address, encoded argument values, leaf hash, index, and merkle proof path. This makes the contents of each leaf explicit to depositors and operators, including the hook name and parameter values that were authorized.
 
@@ -66,7 +66,7 @@ GET /api/v1/merkle/jobs/{job_id}
 
 ## Syncing to Chain
 
-After generation, click **Sync to Chain**. Erebor evaluates on-chain state and returns the required action:
+After generation, click **Sync to Chain**. Erebor evaluates onchain state and returns the required action:
 
 | Sync Action | Description |
 |-------------|-------------|
@@ -74,7 +74,7 @@ After generation, click **Sync to Chain**. Erebor evaluates on-chain state and r
 | `needs_generation` | No tree exists for the active config. |
 | `propose` | Tree ready. Sign and submit root proposal (starts timelock). |
 | `pending_timelock` | Root proposed. Waiting for timelock expiry. Shows `effectiveTime`. |
-| `execute` | Timelock expired. Sign to activate the new root on-chain. |
+| `execute` | Timelock expired. Sign to activate the new root onchain. |
 
 ```bash
 GET /api/v1/merkle/sync?vault_address={addr}&chain_id={id}
@@ -82,7 +82,7 @@ GET /api/v1/merkle/sync?vault_address={addr}&chain_id={id}
 ```
 
 <Note>
-Keepers cannot execute against yield sources until the merkle root is synced on-chain. A pending timelock means your authorization changes are queued but not yet active.
+Keepers cannot execute against yield sources until the merkle root is synced onchain. A pending timelock means your authorization changes are queued but not yet active.
 </Note>
 
 ## Merkle Proofs

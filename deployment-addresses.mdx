@@ -3,11 +3,11 @@ title: "Deployment Addresses"
 description: "All Superform v2 contract addresses across Ethereum, Base, Optimism, Arbitrum, BNB, Polygon, Avalanche, Unichain, and HyperEVM."
 ---
 
-# Deployment Addresses
-
-## Core Contracts
-
 Superform Core v2 contracts are deployed at deterministic addresses across Ethereum, Base, Optimism, Arbitrum, BNB, Polygon, Avalanche, Unichain, and HyperEVM.
+
+## Infrastructure
+
+Execution, validation, accounting, smart accounts, and gas contracts share the same address across all supported chains.
 
 ### Execution & Validation
 
@@ -43,20 +43,13 @@ Superform Core v2 contracts are deployed at deterministic addresses across Ether
 |----------|---------|
 | SuperNativePaymaster | `0x2288C49689c2CceD5C5bdd74Ac3b775E61a7A532` |
 
-### Yield Source Oracles
+## Hooks
 
-| Contract | Address |
-|----------|---------|
-| ERC4626YieldSourceOracle | `0xd12A40B2aBD166e17f18854f57ccd202091D9fB8` |
-| ERC5115YieldSourceOracle | `0xEC64fE4256e9e2B935F9acb13cF0B1cE06C6DD5C` |
-| ERC7540YieldSourceOracle | `0x8963d668adCE629996cA0247885771B490612005` |
-| PendlePTYieldSourceOracle | `0x98D40e5B9D0911F15278223D58fdDCB5cB4799A6` |
-| SpectraPTYieldSourceOracle | `0x30Ecd1150B3d198d75c51DBb41Bb7711Bd1E3260` |
-| StakingYieldSourceOracle | `0x6A685CAD15b7BB46094497243DcF94aD6557394c` |
-| SuperYieldSourceOracle | `0x98F0682ef39dE9cd6028D91090Be6EdAE129f52D` |
-| SuperVaultYieldSource | `0xeEbb42210D8a8B165dCF154b325C588EE8dF149A` |
+<Warning>
+Hook addresses may vary across chains. Always verify hook addresses against the onchain registry before integrating directly.
+</Warning>
 
-### Hooks - Vault Operations
+### Vault Operations
 
 | Contract | Address |
 |----------|---------|
@@ -72,7 +65,7 @@ Superform Core v2 contracts are deployed at deterministic addresses across Ether
 | Redeem5115VaultHook | `0x6aB1fD107825F9bB3E079d23508A07486b44e6F5` |
 | Redeem7540VaultHook | `0xE165FBBc89a60756F57Cf0E34c04c35Cc1BbA79D` |
 
-### Hooks - Utility
+### Utility
 
 | Contract | Address |
 |----------|---------|
@@ -94,15 +87,22 @@ Superform Core v2 contracts are deployed at deterministic addresses across Ether
 | SwapOdosV2Hook | `0xf09106eAA87a5d81DAcFC91F6F564131c57495bE` |
 | TransferERC20Hook | `0x6031c3953BC12D9Af4651B7ed517190A31a67ca4` |
 
----
+## Yield Source Oracles
+
+| Contract | Address |
+|----------|---------|
+| ERC4626YieldSourceOracle | `0xd12A40B2aBD166e17f18854f57ccd202091D9fB8` |
+| ERC5115YieldSourceOracle | `0xEC64fE4256e9e2B935F9acb13cF0B1cE06C6DD5C` |
+| ERC7540YieldSourceOracle | `0x8963d668adCE629996cA0247885771B490612005` |
+| PendlePTYieldSourceOracle | `0x98D40e5B9D0911F15278223D58fdDCB5cB4799A6` |
+| SpectraPTYieldSourceOracle | `0x30Ecd1150B3d198d75c51DBb41Bb7711Bd1E3260` |
+| StakingYieldSourceOracle | `0x6A685CAD15b7BB46094497243DcF94aD6557394c` |
+| SuperYieldSourceOracle | `0x98F0682ef39dE9cd6028D91090Be6EdAE129f52D` |
+| SuperVaultYieldSource | `0xeEbb42210D8a8B165dCF154b325C588EE8dF149A` |
 
 ## SuperVault Contracts
 
-Chain-specific deployments for SuperVault governance, infrastructure, and flagship vaults.
-
-### Ethereum
-
-#### Governance & Infrastructure
+Core SuperVault infrastructure contracts. These addresses are the same on both Ethereum and Base.
 
 | Contract | Address |
 |----------|---------|
@@ -112,41 +112,9 @@ Chain-specific deployments for SuperVault governance, infrastructure, and flagsh
 | SuperBank | [`0x6fCc6a6A825FC14e6e56Fd14978FC6B97ACB5d15`](https://etherscan.io/address/0x6fCc6a6A825FC14e6e56Fd14978FC6B97ACB5d15) |
 | SuperOracle | [`0x8943128DbAb4279D561654dEED2930Bb975AA070`](https://etherscan.io/address/0x8943128DbAb4279D561654dEED2930Bb975AA070) |
 
-#### SuperUSDC Flagship
-
-| Contract | Address |
-|----------|---------|
-| Vault | [`0xf6EbeA08a0Dfd44825f67Fa9963911c81BE2a947`](https://etherscan.io/address/0xf6EbeA08a0Dfd44825f67Fa9963911c81BE2a947) |
-| Strategy | [`0x41A9Eb398518D2487301c61D2b33E4e966A9F1DD`](https://etherscan.io/address/0x41A9Eb398518D2487301c61D2b33E4e966A9F1DD) |
-| Escrow | [`0x11c016dFb1745A81587e5e3Fa8fc75f5693F427b`](https://etherscan.io/address/0x11c016dFb1745A81587e5e3Fa8fc75f5693F427b) |
-
-#### SuperWETH Flagship
-
-| Contract | Address |
-|----------|---------|
-| Vault | [`0xa036823b9A24F63c32553367bf181Ee04229c3AC`](https://etherscan.io/address/0xa036823b9A24F63c32553367bf181Ee04229c3AC) |
-| Strategy | [`0x1199a6B2587Ed96446E76Dee3FB660bb8fCfd0b2`](https://etherscan.io/address/0x1199a6B2587Ed96446E76Dee3FB660bb8fCfd0b2) |
-| Escrow | [`0x41941100b24765ea0f31Bcc95094c5874D27c93d`](https://etherscan.io/address/0x41941100b24765ea0f31Bcc95094c5874D27c93d) |
-
-#### SuperWBTC Flagship
-
-| Contract | Address |
-|----------|---------|
-| Vault | [`0x8c365aF7094Eaac29314eDeE577B435892CA93A3`](https://etherscan.io/address/0x8c365aF7094Eaac29314eDeE577B435892CA93A3) |
-| Strategy | [`0xa96060B0B6907406EdBDf3cCc9438abf0F78Cf83`](https://etherscan.io/address/0xa96060B0B6907406EdBDf3cCc9438abf0F78Cf83) |
-| Escrow | [`0xdE61F1c76b1E169EF76faA2b97955F8714cd69d4`](https://etherscan.io/address/0xdE61F1c76b1E169EF76faA2b97955F8714cd69d4) |
-
-### Base
-
-#### Governance & Infrastructure
-
-| Contract | Address |
-|----------|---------|
-| SuperGovernor | [`0xB5396ef2bF8CA360cEB4166b77AFb2bed20e74d4`](https://basescan.org/address/0xB5396ef2bF8CA360cEB4166b77AFb2bed20e74d4) |
-| SuperVaultAggregator | [`0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698`](https://basescan.org/address/0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698) |
-| ECDSAPPSOracle | [`0x366d88F03B8EF34eb49F32a927ff6e1609F694F2`](https://basescan.org/address/0x366d88F03B8EF34eb49F32a927ff6e1609F694F2) |
-
----
+<Note>
+Individual vault, strategy, and escrow addresses vary per curator. To look up a specific SuperVault's contracts, visit the [Curator App](https://curators.superform.xyz).
+</Note>
 
 ## $UP Token
 

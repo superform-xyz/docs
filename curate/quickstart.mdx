@@ -3,7 +3,7 @@ title: "Quickstart"
 description: "Create and configure a SuperVault end-to-end in approximately 15 minutes."
 ---
 
-This guide covers the complete vault creation and configuration flow. By the end, you will have a live SuperVault with yield sources whitelisted, a merkle root synced on-chain, strategies configured, and keeper services running.
+This guide covers the complete vault creation and configuration flow. By the end, you will have a live SuperVault with yield sources whitelisted, a merkle root synced onchain, strategies configured, and keeper services running.
 
 **Time required:** ~15 minutes
 **Prerequisites:** EVM wallet connected, ETH for gas, manager access granted by the Superform team
@@ -49,7 +49,7 @@ Navigate to **Merkle Trees** for your vault.
 2. Add each hook you want keepers to execute: select hook from registry, assign parameter values (yield source address, token, oracle)
 3. Click **Activate** on the new config version
 
-Each hook + parameter combination becomes a merkle tree leaf. Only authorized combinations pass on-chain verification.
+Each hook + parameter combination becomes a merkle tree leaf. Only authorized combinations pass onchain verification.
 </Step>
 
 <Step title="Generate and Sync Merkle Tree">
@@ -63,7 +63,7 @@ Still in **Merkle Trees**:
    - **Execute**: timelock expired, sign to activate the new root
 
 <Note>
-Keepers cannot execute against whitelisted yield sources until the merkle root is synced on-chain. This step gates all vault operations.
+Keepers cannot execute against whitelisted yield sources until the merkle root is synced onchain. This step gates all vault operations.
 </Note>
 </Step>
 
@@ -90,7 +90,7 @@ Navigate to **Dashboard** and check service status. Confirm keeper workers show 
 | `fulfill_claims` | Claims reward tokens from external protocols |
 | `fulfill_swaps` | Swaps non-underlying tokens to underlying asset |
 | `redemption_queue_engine` | Monitors subgraph for new redemption requests |
-| `cleanup_processed_redeems` | Reconciles on-chain vs DB redemption state |
+| `cleanup_processed_redeems` | Reconciles onchain vs DB redemption state |
 | `tx_manager` | Broadcasts transactions, monitors confirmations |
 </Step>
 
@@ -111,7 +111,7 @@ Navigate to **Dashboard** and select your vault. Key metrics after launch:
 
 Before accepting external deposits:
 
-- [ ] All target yield sources whitelisted on-chain
+- [ ] All target yield sources whitelisted onchain
 - [ ] Merkle root synced (not pending timelock)
 - [ ] Strategies configured and running on the Strategy Canvas
 - [ ] At least one deposit executed successfully

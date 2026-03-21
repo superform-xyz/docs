@@ -5,7 +5,7 @@ description: "Add and remove secondary managers and view-only users for your vau
 
 ![SuperVaults User Management — Primary, Secondary, and View Only manager role tabs](/curate/images/screenshots/user-management.jpg)
 
-This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (on-chain delegates), and view-only users (off-chain read access). Primary manager access required.
+This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (onchain delegates), and view-only users (offchain read access). Primary manager access required.
 
 The full manager list is fetched from `GET /api/v1/users?vault_address={}&chain_id={}&limit=100`.
 
@@ -22,16 +22,16 @@ On-chain delegates with full operational access (except vault settings and user 
 1. Click **Add Secondary Manager**
 2. Enter wallet address
 3. Click **Prepare** — `POST /api/v1/users/secondary-manager/prepare` → calldata
-4. Sign the on-chain transaction
+4. Sign the onchain transaction
 
 ### Removing
 
 1. Click **Remove** — `POST /api/v1/users/secondary-manager/remove/prepare` → calldata
-2. Sign the on-chain transaction
+2. Sign the onchain transaction
 
 ### Updating Display Names
 
-Click the pencil icon to update any user's display name (off-chain, no gas):
+Click the pencil icon to update any user's display name (offchain, no gas):
 
 ```bash
 PATCH /api/v1/users/{wallet_address}/display-name
@@ -40,7 +40,7 @@ PATCH /api/v1/users/{wallet_address}/display-name
 
 ## Tab 3: View Only
 
-Read-only dashboard access. No on-chain transaction required.
+Read-only dashboard access. No onchain transaction required.
 
 ```bash
 # Add

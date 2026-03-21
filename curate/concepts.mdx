@@ -27,19 +27,19 @@ The primary manager key is the root of trust for the vault. If compromised, an a
 
 ---
 
-SuperVaults combine on-chain vault contracts with off-chain automation services. Understanding how these layers interact is essential for effective curator operations.
+SuperVaults combine onchain vault contracts with offchain automation services. Understanding how these layers interact is essential for effective curator operations.
 
 ## ERC-7540 Vault Standard
 
 <Note>
-SuperVault contracts are live on-chain and fully non-custodial. The curator UI at [curators.superform.xyz](https://curators.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct on-chain transactions signed by your wallet.
+SuperVault contracts are live onchain and fully non-custodial. The curator UI at [curators.superform.xyz](https://curators.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct onchain transactions signed by your wallet.
 </Note>
 
 SuperVaults implement ERC-7540, the asynchronous tokenized vault standard. ERC-7540 extends ERC-4626 compatibility (standard deposit/withdraw interface) with asynchronous request-fulfillment flows for deposits and redemptions.
 
 **Why async matters:** Cross-chain yield sources, illiquid positions, and redemption timelocks all require time between a user's request and its fulfillment. ERC-7540 formalizes this into a two-phase flow:
 
-1. **Request** — Depositor submits a deposit or redemption request on-chain
+1. **Request** — Depositor submits a deposit or redemption request onchain
 2. **Fulfillment** — Keeper workers process the request when conditions are met (liquidity available, timelock expired, strategy rules satisfied)
 
 Vault shares are ERC-20 tokens representing a depositor's pro-rata claim on vault assets. Price-per-share (PPS) tracks the value of each share in terms of the underlying asset.
@@ -55,16 +55,16 @@ PPS is the core accounting primitive. It determines:
 
 | PPS Metric | Description |
 |-----------|-------------|
-| **Current PPS** | Last on-chain recorded value |
+| **Current PPS** | Last onchain recorded value |
 | **Calculated PPS** | Off-chain computed value (may differ during update intervals) |
 | **HWM PPS** | All-time high-water mark. Performance fees accrue only above this level. |
 | **Staleness countdown** | Time remaining before PPS expires. If PPS goes stale, vault operations are blocked until an update is pushed. The staleness window is configurable per vault and defaults to 24 hours. |
 
-Validators compute PPS off-chain, sign the result as EIP-712 typed data, and any party can submit the update on-chain via `ECDSAPPSOracle.updatePPS()`. A PPS update is accepted only after at least two-thirds of weighted validator stake has signed off. Misreporting is deterred through validator slashing and an insurance fund backstop.
+Validators compute PPS offchain, sign the result as EIP-712 typed data, and any party can submit the update onchain via `ECDSAPPSOracle.updatePPS()`. A PPS update is accepted only after at least two-thirds of weighted validator stake has signed off. Misreporting is deterred through validator slashing and an insurance fund backstop.
 
 ## The Hook System
 
-Hooks are on-chain modules that keepers invoke to interact with external protocols. Each hook type corresponds to an operation:
+Hooks are onchain modules that keepers invoke to interact with external protocols. Each hook type corresponds to an operation:
 
 | Hook Type | Operation |
 |----------|-----------|
@@ -74,7 +74,7 @@ Hooks are on-chain modules that keepers invoke to interact with external protoco
 
 Hooks are registered in the global Hook Registry with typed parameters (`inspectParams`) that define what arguments each invocation requires: yield source addresses, token addresses, oracle addresses, or freeform values.
 
-A keeper can only call a hook if the exact combination of hook address + parameters matches a leaf in the vault's on-chain merkle tree.
+A keeper can only call a hook if the exact combination of hook address + parameters matches a leaf in the vault's onchain merkle tree.
 
 ## Merkle Authorization
 
@@ -91,13 +91,13 @@ Merkle authorization is the access control layer for keeper operations. The flow
     Submit the new root to the SuperVaultStrategy contract. A timelock period begins.
   </Step>
   <Step title="Execute">
-    After the timelock expires, execute the root update on-chain. Keepers can now use proofs from the new tree.
+    After the timelock expires, execute the root update onchain. Keepers can now use proofs from the new tree.
   </Step>
 </Steps>
 
 **Why timelocks:** The timelock between proposal and execution gives depositors time to exit if they disagree with a curator's authorization changes. This is a standard DeFi governance safety pattern.
 
-When a keeper executes a hook, the on-chain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
+When a keeper executes a hook, the onchain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
 
 SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments; updates to this root are subject to a 15-minute timelock. The **strategy hooks root** is curator-controlled and contains the full strategy-specific authorization set, including beneficiary-specific hooks; updates to this root are subject to a 7-day timelock. A hook must be present in either tree to execute.
 
@@ -120,7 +120,7 @@ Each yield source must be paired with an oracle that prices the position back in
 | `pendle_pt` | Spot market price of the PT |
 | `pendle_pt_amortized` | Linear decay to par value as PT approaches maturity |
 
-Adding or removing yield sources and updating oracle assignments are on-chain operations that follow the prepare pattern (Erebor constructs calldata, curator signs).
+Adding or removing yield sources and updating oracle assignments are onchain operations that follow the prepare pattern (Erebor constructs calldata, curator signs).
 
 ## Keeper Workers
 
@@ -133,7 +133,7 @@ Seven Celery-based keeper workers run continuously against each vault's configur
 | `fulfill_claims` | Claims accumulated reward tokens from external protocols |
 | `fulfill_swaps` | Swaps non-underlying tokens back to the vault's base asset |
 | `redemption_queue_engine` | Monitors the subgraph for new redemption requests |
-| `cleanup_processed_redeems` | Reconciles pending redemptions with on-chain state |
+| `cleanup_processed_redeems` | Reconciles pending redemptions with onchain state |
 | `tx_manager` | Broadcasts transactions, monitors confirmations, handles reorgs |
 
 Workers execute on configurable intervals. Curators control:
@@ -157,7 +157,7 @@ Strategies evaluate on configurable tick intervals and dispatch **DeFiX intents*
 DeFiX is the standardized intent interface between the Strategy Engine and the OMS (Order Management System). An intent represents a desired vault operation:
 
 ```
-Strategy triggers → Intent submitted to OMS → OMS validates merkle proof → OMS executes on-chain
+Strategy triggers → Intent submitted to OMS → OMS validates merkle proof → OMS executes onchain
 ```
 
 Intent lifecycle:
@@ -165,7 +165,7 @@ Intent lifecycle:
 | Status | Description |
 |--------|-------------|
 | `Processing` | Queued or being executed |
-| `Completed` | Successfully executed on-chain |
+| `Completed` | Successfully executed onchain |
 | `Failed` | Execution failed (error details attached) |
 | `Cancelled` | Cancelled before execution |
 
@@ -173,7 +173,7 @@ The OMS handles nonce management, gas estimation, transaction broadcasting, and 
 
 ## The Prepare Pattern
 
-All on-chain operations in SuperVaults follow a consistent two-phase flow:
+All onchain operations in SuperVaults follow a consistent two-phase flow:
 
 1. **Prepare** — Call a `prepare-*` endpoint on Erebor. It returns raw EVM calldata (`{ to, data, value }`).
 2. **Sign** — Pass the calldata to your wallet for signature and broadcast.

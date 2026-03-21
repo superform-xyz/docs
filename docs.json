@@ -40,7 +40,7 @@
             "group": "Introduction",
             "pages": [
               "index",
-              "learn/superform-protocol"
+              "learn/learn"
             ]
           },
           {
@@ -69,7 +69,7 @@
             "group": "Reference",
             "pages": [
               "learn/glossary",
-              "learn/technical-resources"
+              "learn/links"
             ]
           }
         ]
@@ -87,8 +87,7 @@
           {
             "group": "Hooks",
             "pages": [
-              "build/hooks/overview",
-              "build/hooks/write-a-hook"
+              "build/hooks"
             ]
           },
           {

@@ -3,6 +3,32 @@ title: "Write a Hook"
 description: "Step-by-step guide to building custom hooks on Superform, from repo setup through implementation and testing."
 ---
 
+Hooks are lightweight, permissionless contracts which perform a specific action (*bridge, swap, lend*, etc.). They are designed to be composable and can be chained together to create complex transaction flows which can achieve any multi-chain strategy. Hook chains can be fulfilled by any ERC-7579 smart account with the SuperValidator and SuperExecutor modules installed.
+
+## Key Concepts
+
+Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This allows for efficient inter-hook communication that avoids the high gas costs associated with permanent storage writes. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
+
+### Hook Lifecycle
+
+The execution of hooks is a three-step sequence bundled in the hook's `build()` function:
+`preExecute` → `execution(s)` → `postExecute`
+
+1. **Build** - Frontend selects the addresses and calldata of the hook(s) in a chain.
+2. **Bundle** - SuperBundler splits hooks per chain and wraps each into an ERC-4337 UserOp, storing a Merkle tree.
+3. **Validate** - Smart Account delegates to SuperValidator onchain to perform Merkle proof verification.
+4. **Execute** - SuperExecutor iterates through hooks, performs each action and updates SuperLedger.
+
+### Hook Classifications
+
+Hooks are classified based on `HookType` and `HookSubType`.
+`HookType` must be defined as `NONACCOUNTING`, `INFLOW`, or `OUTFLOW` depending on the hook's expected interaction with the accounting system.
+`HookSubTypes` designate which action category the hook implements.
+
+- **NONACCOUNTING** - Utility hooks that do not update the accounting system. These hooks include `HookSubTypes` like `SWAP`, `STAKE`, `BRIDGE`.
+- **INFLOW** - Hooks that process additions to positions and typically encode some sort of `deposit` action. They include a `HookSubType` corresponding to the underlying vault being deposited into like `ERC4626`, `ERC7540`, etc.
+- **OUTFLOW** - Hooks that process reductions to positions and typically encode some sort of `redeem` action. They include similar `HookSubType` to `INFLOW` hooks.
+
 ## Quick Start
 
 **Requirements**
@@ -69,7 +95,7 @@ make test-vvv
 2. Each hook contract begins with natspec detailing the layout of the hook data, this ensures that SuperBundler is able to encode the data required for hook execution.
    1. The natspec of the data structure must be placed after the line saying `@dev data has the following structure` and the natspec must follow the format of `@notice DataType Name Offset`.
    2. An example of a hook with a simple encoding structure can be found [here](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/loan/morpho/MorphoSupplyAndBorrowHook.sol#L19). [This](https://github.com/superform-xyz/v2-core/blob/dev/src/hooks/bridges/debridge/DeBridgeSendOrderAndExecuteOnDstHook.sol#L16) is a more complex example of encoding natspec.
-3. The constructor sets the `HookType` and `HookSubtype` as well as any immutable state variables such as the target contract address to call during execution. For a breakdown of different `HookType` options see [Hook Classifications](/build/hooks/overview#hook-classifications), and the `HookSubTypes` are found in [this library](https://github.com/superform-xyz/v2-core/blob/dev/src/libraries/HookSubTypes.sol). If your hook will perform an action type that is not yet in the library, add it there as `bytes32 public constant CATEGORY_NAME`.
+3. The constructor sets the `HookType` and `HookSubtype` as well as any immutable state variables such as the target contract address to call during execution. For a breakdown of different `HookType` options see [Hook Classifications](#hook-classifications), and the `HookSubTypes` are found in [this library](https://github.com/superform-xyz/v2-core/blob/dev/src/libraries/HookSubTypes.sol). If your hook will perform an action type that is not yet in the library, add it there as `bytes32 public constant CATEGORY_NAME`.
 4. It is necessary to decode and validate the encoded hook data used by the hook. It is recommended to create some internal decoder and validation helpers. The decoding must align with the data locations denoted in the natspec as that is the order in which data will be encoded. There are two libraries you can use during the decoding process:
    1. `BytesLib` - This necessary library can be found in the `src/vendor` directory, you need only import it to gain access to its functionality.
    2. `HookDataDecoder` - This library lives in the `src/libraries` directory. It must be imported and the statement `using HookDataDecoder for bytes` must be placed at the top of the hook contract.

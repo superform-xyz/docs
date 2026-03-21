@@ -1,6 +1,5 @@
 ---
 title: "Security"
-description: "Superform's multi-layered security model: dual Merkle validation, emergency controls, timelocks, access roles, and audits."
 ---
 
 Superform has been reviewed by multiple independent security firms across both core and periphery contracts. The protocol enforces security at multiple layers: onchain Merkle verification for keeper operations, timelocked governance updates, circuit-breaker PPS validation, role-based access control, and continuous invariant monitoring.
@@ -26,6 +25,10 @@ Superform has been reviewed by multiple independent security firms across both c
 | GetRecon | November 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.11.07-GetRecon.pdf) |
 | Cantina Code | June 2025 | [Report](https://github.com/superform-xyz/v2-periphery/blob/dev/audits/2025.06.30-cantinacode.pdf) |
 
+<Note>
+All critical properties and invariants are tested through the [GetRecon](https://getrecon.xyz/) invariant suite using both Echidna and Medusa across >100 million runs, and continuously monitored through [Tenderly](https://tenderly.co/monitoring).
+</Note>
+
 ## Security Model
 
 ### Dual Merkle Hook Validation
@@ -38,26 +41,6 @@ All keeper operations are gated by a dual Merkle tree system. A hook can only ex
 | **Strategy hooks root** | Curator (primary strategist) | 7 days | Vault-specific hooks including beneficiary-specific arguments |
 
 Both roots support guardian veto; guardians can block malicious root updates before they take effect.
-
-```solidity
-// Simplified validation logic
-function _validateSingleHook(
-    address strategy,
-    bytes calldata hookArgs,
-    bytes32[] calldata globalProof,
-    bytes32[] calldata strategyProof
-) internal view returns (bool) {
-    bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(hookArgs))));
-
-    // Try global root first
-    if (MerkleProof.verify(globalProof, _globalHooksRoot, leaf)) return true;
-
-    // Try strategy root
-    if (MerkleProof.verify(strategyProof, strategyRoot, leaf)) return true;
-
-    return false;
-}
-```
 
 ### PPS Oracle Security
 
@@ -103,16 +86,3 @@ Strategies are automatically paused when:
 **Guardian Veto** — Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
 
 **Emergency Withdrawals** — Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
-
-## Cross-Contract Integrity
-
-The SuperVault architecture enforces state consistency across contracts:
-
-- **PPS Consistency** — Vault uses strategy's stored PPS for all share calculations
-- **Pause Propagation** — Strategy pause state affects vault deposit limits
-- **Share Custody** — Escrow holds shares during pending redemptions; only strategy (via vault) can burn escrowed shares
-- **Asset Custody** — Escrow holds fulfilled assets until the user claims them
-
-## Monitoring & Invariants
-
-All critical properties and invariants are tested through the [GetRecon](https://getrecon.xyz/) invariant suite using both Echidna and Medusa across >100 million runs. They are continuously monitored through [Tenderly](https://tenderly.co/monitoring) and cron-based monitors.

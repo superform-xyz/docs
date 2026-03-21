@@ -54,15 +54,15 @@
           {
             "group": "SuperVaults",
             "pages": [
-              "supervaults/overview",
-              "supervaults/transaction-lifecycle",
-              "supervaults/economics"
+              "learn/supervaults/overview",
+              "learn/supervaults/transaction-lifecycle",
+              "learn/supervaults/economics"
             ]
           },
           {
             "group": "$UP",
             "pages": [
-              "usdup"
+              "learn/usdup"
             ]
           },
           {

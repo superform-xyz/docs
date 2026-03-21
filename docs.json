@@ -18,7 +18,7 @@
         "tab": "Learn",
         "groups": [
           {
-            "group": "Overview",
+            "group": "Introduction",
             "pages": [
               "introduction",
               "learn/superform-protocol"
@@ -49,7 +49,8 @@
           {
             "group": "Reference",
             "pages": [
-              "glossary"
+              "learn/glossary",
+              "learn/technical-resources"
             ]
           }
         ]
@@ -57,6 +58,12 @@
       {
         "tab": "Build",
         "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "build/introduction"
+            ]
+          },
           {
             "group": "Hooks",
             "pages": [
@@ -69,12 +76,6 @@
             "pages": [
               "build/manage-a-supervault",
               "build/become-a-validator"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "build/technical-resources"
             ]
           }
         ]

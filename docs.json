@@ -81,12 +81,14 @@
             "group": "Build",
             "root": "build",
             "pages": [
-              "build",
-              "build/hooks",
-              "build/manage-a-supervault",
-              "build/become-a-validator"
+              "build"
             ]
           }
+        ],
+        "pages": [
+          "build/hooks",
+          "build/manage-a-supervault",
+          "build/become-a-validator"
         ]
       },
       {

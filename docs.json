@@ -76,14 +76,8 @@
       },
       {
         "tab": "Build",
+        "pages": ["build"],
         "groups": [
-          {
-            "group": "Introduction",
-            "root": "build",
-            "pages": [
-              "build"
-            ]
-          },
           {
             "group": "Hooks",
             "pages": [
@@ -101,12 +95,11 @@
       },
       {
         "tab": "Curate",
+        "pages": ["curate"],
         "groups": [
           {
-            "group": "Introduction",
-            "root": "curate",
+            "group": "Concepts",
             "pages": [
-              "curate",
               "curate/concepts"
             ]
           },

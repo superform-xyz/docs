@@ -83,12 +83,20 @@
             "pages": [
               "build"
             ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "build/hooks"
+            ]
+          },
+          {
+            "group": "SuperVaults",
+            "pages": [
+              "build/manage-a-supervault",
+              "build/become-a-validator"
+            ]
           }
-        ],
-        "pages": [
-          "build/hooks",
-          "build/manage-a-supervault",
-          "build/become-a-validator"
         ]
       },
       {

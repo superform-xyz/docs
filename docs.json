@@ -76,17 +76,13 @@
       },
       {
         "tab": "Build",
-        "pages": ["build"],
         "groups": [
           {
-            "group": "Hooks",
+            "group": "Build",
+            "root": "build",
             "pages": [
-              "build/hooks"
-            ]
-          },
-          {
-            "group": "SuperVaults",
-            "pages": [
+              "build",
+              "build/hooks",
               "build/manage-a-supervault",
               "build/become-a-validator"
             ]
@@ -95,11 +91,12 @@
       },
       {
         "tab": "Curate",
-        "pages": ["curate"],
         "groups": [
           {
-            "group": "Concepts",
+            "group": "Curate",
+            "root": "curate",
             "pages": [
+              "curate",
               "curate/concepts"
             ]
           },

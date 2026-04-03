@@ -16,13 +16,15 @@ SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JW
   </Step>
   <Step title="JWT Stored in Browser">
     The Curator App stores auth state in `localStorage`:
-    - `curator_jwt` — the Bearer token used on all API requests
-    - `curator_address` — connected wallet address
-    - `curator_is_manager` — boolean flag
-    - `curator_vaults` — array of vault addresses you manage
+    - `superman_jwt` — the Bearer token used on all API requests
+    - `superman_address` — connected wallet address
+    - `superman_is_manager` — boolean flag
+    - `superman_vaults` — array of vault addresses you manage
+
+    Tokens are also held in-memory via `tokenService` for injection into Erebor and OMS API clients.
   </Step>
-  <Step title="Auth Verified">
-    The app calls `GET /api/v1/auth/me` on load to fetch your vault roles and confirm the JWT is valid.
+  <Step title="Auth Verified (Erebor-first)">
+    The app calls `GET /api/v1/auth/me` on Erebor as the **primary session gate**. If this succeeds, the session is considered authenticated. A secondary call to Persephone `/admin` enriches the `userType` field from the product catalog — this call is non-fatal; its failure does not break the session.
   </Step>
 </Steps>
 

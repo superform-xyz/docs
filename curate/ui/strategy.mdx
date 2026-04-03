@@ -102,6 +102,42 @@ Drag strategy cards within a column to change priority order. When multiple stra
 
 Strategy updates require a `version` field. If two clients edit the same strategy, the second write returns `409 Conflict`. Refresh and retry with the latest version.
 
+## OMS Session Key
+
+Before strategies can dispatch intents, the vault must have a valid **OMS session key** — a delegated signing key that authorises the OMS to execute onchain actions on behalf of the vault.
+
+If no valid session key exists, the canvas displays an **OMS Canvas Gate** overlay blocking automation. Use the **Session Key** panel (accessible via `VaultStrategyHeaderControls` in the header) to grant or renew.
+
+### Session Key States
+
+| State | Description |
+|-------|-------------|
+| Ready | Valid key exists, automation can run |
+| Not Ready | No key or key expired — canvas gate shown |
+| Pending Rotation | Rotation initiated but not yet completed onchain |
+
+### Grant / Renew Flow
+
+1. Open the session key panel from the strategy header controls
+2. Click **Grant** (new) or **Renew** (expiring soon) — the UI calls the OMS grant/rotation endpoint and returns EVM calldata
+3. Sign the transaction with your connected wallet
+4. Call **Complete Rotation** after the transaction confirms
+
+The UI polls readiness every 45 seconds; polling accelerates to every 20 seconds while the signing popover is open.
+
+### Session Key API Endpoints (OMS)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/defix/vaults/{vault_id}/session-key/readiness` | GET | Check if key is ready |
+| `/defix/vaults/{vault_id}/session-key/grant` | GET | Get grant calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation` | GET | Get renewal calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation/complete` | POST | Complete rotation |
+| `/defix/vaults/{vault_id}/session-key/rotation/cancel` | POST | Cancel pending rotation |
+| `/defix/vaults/{vault_id}/session-key/revoke` | GET | Get revoke calldata |
+
+See [OMS API](/curate/api/oms) for full endpoint documentation.
+
 ## API Reference
 
 | Endpoint | Method | Description |

@@ -1,6 +1,6 @@
 ---
-title: "OMS API — DeFiX Intents"
-description: "4-endpoint DeFiX v0.1 intent protocol for submitting, tracking, and cancelling onchain vault operations."
+title: "OMS API — DeFiX Intents & Session Keys"
+description: "10-endpoint DeFiX v0.1 intent protocol for submitting, tracking, and cancelling onchain vault operations, plus session-key management for strategy automation."
 ---
 
 The OMS (Order Management System) implements the **DeFiX v0.1** protocol: a standardized intent interface for DeFi vault operations. It receives intents from the Strategy Engine and executes them onchain.
@@ -130,6 +130,78 @@ State transition log:
 
 ---
 
+## Session Keys
+
+Strategy automation requires a **session key** — a delegated signing key that authorises the OMS to execute intents on behalf of a vault. The Strategy Canvas shows an `omsCanvasGate` overlay when the session key is not ready, blocking automation until the key is granted or renewed.
+
+`vault_id` format: `{chainId}:{normalizedVaultAddress}` (same convention as the Strategy Engine).
+
+### Check Readiness
+
+```
+GET /defix/vaults/{vault_id}/session-key/readiness
+```
+
+Returns whether the vault has a valid, non-expired session key. Polled automatically by the UI every 45 seconds (25 s stale time); polling accelerates to every 20 s while the signing popover is open.
+
+```json
+{
+  "vault_id": "8453:0xdef...",
+  "is_ready": true,
+  "session_key_address": "0xsessionkey...",
+  "expires_at": "2026-04-10T00:00:00Z",
+  "pending_rotation": false
+}
+```
+
+### Grant Session Key
+
+```
+GET /defix/vaults/{vault_id}/session-key/grant
+```
+
+Returns calldata to grant a new session key. Pass `?requested_expiry=168h` to set a custom duration (defaults to server default).
+
+Response: `{ "to": "0x...", "data": "0x...", "value": "0" }` — sign and submit with your wallet.
+
+### Rotate (Renew) Session Key
+
+```
+GET /defix/vaults/{vault_id}/session-key/rotation
+```
+
+Returns calldata to rotate an existing session key. Used for key renewal before expiry.
+
+### Complete Rotation
+
+```
+POST /defix/vaults/{vault_id}/session-key/rotation/complete
+```
+
+Finalises a pending rotation after the signed transaction is submitted onchain.
+
+### Cancel Rotation
+
+```
+POST /defix/vaults/{vault_id}/session-key/rotation/cancel
+```
+
+Cancels a pending rotation that has not yet been completed.
+
+### Revoke Session Key
+
+```
+GET /defix/vaults/{vault_id}/session-key/revoke
+```
+
+Returns calldata to revoke the current session key immediately.
+
+<Note>
+Grant, rotation, and revoke endpoints return raw EVM calldata — the same prepare pattern used elsewhere in the API. Your wallet signs and submits; no Erebor or OMS endpoint is called for the actual onchain action.
+</Note>
+
+---
+
 ## Summary
 
 | Endpoint | Method | Description |
@@ -138,3 +210,9 @@ State transition log:
 | `/defix/intents/{id}` | GET | Get intent state |
 | `/defix/intents/{id}/cancel` | POST | Cancel pending intent |
 | `/defix/intents/{id}/events` | GET | Intent event log |
+| `/defix/vaults/{vault_id}/session-key/readiness` | GET | Session key readiness check |
+| `/defix/vaults/{vault_id}/session-key/grant` | GET | Get grant calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation` | GET | Get rotation calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation/complete` | POST | Complete pending rotation |
+| `/defix/vaults/{vault_id}/session-key/rotation/cancel` | POST | Cancel pending rotation |
+| `/defix/vaults/{vault_id}/session-key/revoke` | GET | Get revoke calldata |

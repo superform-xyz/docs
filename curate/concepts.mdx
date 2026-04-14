@@ -99,7 +99,7 @@ Merkle authorization is the access control layer for keeper operations. The flow
 
 When a keeper executes a hook, the onchain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
 
-SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments. The **strategy hooks root** is proposed by the vault's main manager and contains the full strategy-specific authorization set, including beneficiary-specific hooks. Both update flows use the aggregator's hook-root timelock, which defaults to 15 minutes and is configurable by protocol governance. A hook must be present in either tree to execute.
+SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments. The **strategy hooks root** is proposed by the vault's main manager and contains the full strategy-specific authorization set, including beneficiary-specific hooks. Both update flows use the aggregator's hook-root timelock, which defaults to 15 minutes and can be updated by governance. A hook must be present in either tree to execute.
 
 ## Yield Sources and Oracles
 

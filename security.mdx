@@ -40,7 +40,7 @@ All keeper operations are gated by a dual Merkle tree system. A hook can only ex
 | **Global hooks root** | SuperGovernor (governance) | Default 15 minutes | Protocol-wide hooks without beneficiary-specific arguments |
 | **Strategy hooks root** | Main manager proposal via SuperVaultAggregator | Default 15 minutes | Vault-specific hooks including beneficiary-specific arguments |
 
-Both hook-root flows pass through the aggregator's configurable hook-root timelock. Protocol governance can update that delay, including setting it to zero.
+Both hook-root flows pass through the aggregator's configurable hook-root timelock. Protocol governance can update that delay.
 
 ### PPS Oracle Security
 
@@ -70,13 +70,13 @@ Strategies are automatically paused when:
 
 | Change Type | Timelock |
 |-------------|----------|
-| Primary strategist updates | 7 days |
 | Hook-root updates (global and strategy) | Default 15 minutes, configurable by governance |
+| Post-unpause skim | 12 hours |
+| Upkeep withdrawal | 24 hours |
+| Min update interval changes | 3 days |
+| Primary strategist updates | 7 days |
 | Fee configuration changes | 7 days |
 | PPS expiration threshold updates | 7 days |
-| Min update interval changes | 3 days |
-| Upkeep withdrawal | 24 hours |
-| Post-unpause skim | 12 hours |
 
 ### Emergency Controls
 

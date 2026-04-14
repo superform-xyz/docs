@@ -34,11 +34,11 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
 
 SuperVaults enforce safety at every layer:
 
-- **Double-Merkle hook allowlisting and blacklisting** at both global and strategy levels ensures vaults can only perform pre-approved actions like depositing, redeeming, swapping, and bridging. Everything is timelocked with no arbitrary execution, no "manager key" risk, and no discretionary movement of funds.
-- **Clear role separation** across Managers, Validators, and Guardians. Managers set high-level parameters under timelock with the ability to execute the strategy only through pre-approved hooks. Validators attest price-per-share with bonded accountability. Guardians oversee risk and can veto or pause unsafe changes.
-- **Validator-signed price-per-share (PPS)** with economic slashing and insurance backstops.
-- **7-day timelocks and Guardian veto rights** ensure no configuration change or parameter update can happen instantly or out of view.
-- **Automated emergency controls** provide emergency withdrawal mechanisms with built-in pause functionality on circuit breakers.
+- **Double-Merkle hook allowlisting and blacklisting** at both global and strategy levels ensures vaults can only perform pre-approved actions like depositing, redeeming, swapping, and bridging. Hook-root updates are proposal based, with the aggregator hook-root timelock defaulting to 15 minutes, and keepers still cannot execute anything outside approved leaves.
+- **Clear role separation** across Managers, Validators, and Guardians. Managers operate through pre-approved hooks, validators attest price-per-share, and guardians retain emergency intervention powers such as pause controls.
+- **Validator-signed price-per-share (PPS)** with quorum, signature, staleness, and deviation checks enforced onchain.
+- **Timelocked sensitive parameters** such as fee changes, PPS expiration threshold updates, active PPS oracle changes after first set, and some governance actions, while other operational controls remain immediate.
+- **Automated emergency controls** provide pause functionality, banned leaves, and emergency withdrawal paths using authorized hooks.
 
 ## Efficiency
 
@@ -78,8 +78,8 @@ Each SuperVault deployment consists of three onchain contracts managed through t
 
 | Component | Role |
 | --- | --- |
-| **\$UP Token** | Managers stake $UP to access the validator network; $ UP covers the cost of PPS update writes. |
-| **SuperGovernor** | Central registry and access control hub. Manages role-based permissions, timelocked parameter updates, and emergency intervention powers. |
+| **\$UP Token** | Protocol token used for governance via sUP, with validator-bonding utility introduced in later phases. Upkeep tokens for PPS update writes are configurable by chain. |
+| **SuperGovernor** | Central registry and access control hub. Manages role-based permissions, selected timelocked parameter updates, and emergency intervention powers. |
 | **SuperBank** | Protocol treasury that handles protocol fees and executes governance-approved hook operations. |
 
 ### PPS Validation
@@ -87,7 +87,7 @@ Each SuperVault deployment consists of three onchain contracts managed through t
 | Component | Role |
 | --- | --- |
 | **ECDSAPPSOracle** | Validates price-per-share updates using ECDSA signatures and forwards validated updates to the Aggregator. |
-| **Validator Network** | Validators monitor PPS updates, submit attestations, and the network performs consensus verification with economic slashing if required. |
+| **Validator Network** | Validators monitor PPS updates and submit attestations, with consensus, signature, and quorum checks enforced before updates are accepted. |
 
 ## Supported Yield Sources
 

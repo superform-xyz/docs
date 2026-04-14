@@ -37,10 +37,10 @@ All keeper operations are gated by a dual Merkle tree system. A hook can only ex
 
 | Root | Controlled By | Timelock | Scope |
 |------|---------------|----------|-------|
-| **Global hooks root** | SuperGovernor (governance) | 15 minutes | Protocol-wide hooks without beneficiary-specific arguments |
-| **Strategy hooks root** | Curator (primary strategist) | 7 days | Vault-specific hooks including beneficiary-specific arguments |
+| **Global hooks root** | SuperGovernor (governance) | Default 15 minutes | Protocol-wide hooks without beneficiary-specific arguments |
+| **Strategy hooks root** | Main manager proposal via SuperVaultAggregator | Default 15 minutes | Vault-specific hooks including beneficiary-specific arguments |
 
-Both roots support guardian veto; guardians can block malicious root updates before they take effect.
+Both hook-root flows pass through the aggregator's configurable hook-root timelock. Protocol governance can update that delay, including setting it to zero.
 
 ### PPS Oracle Security
 
@@ -63,18 +63,19 @@ Strategies are automatically paused when:
 | **SuperGovernor** | Protocol governance with strategy-level overrides; updates global hook root |
 | **Primary Strategist** | Full vault control: hook whitelisting, fees, deposit/redemption processing |
 | **Secondary Strategists** | Day-to-day operations, everything except hook whitelisting and fees |
-| **Guardians** | Threat monitoring network; veto powers for hook root updates |
-| **Validators** | $UP stakers that attest to PPS updates; subject to slashing for misreporting |
+| **Guardians** | Threat monitoring network with emergency intervention powers such as pause controls |
+| **Validators** | Validators that attest to PPS updates and must satisfy signature and quorum checks before updates are accepted |
 
 ### Timelock Protections
 
 | Change Type | Timelock |
 |-------------|----------|
 | Primary strategist updates | 7 days |
-| Strategy hooks root | 7 days |
-| Global hooks root | 15 minutes |
+| Hook-root updates (global and strategy) | Default 15 minutes, configurable by governance |
 | Fee configuration changes | 7 days |
-| Emergency withdrawal activation | 7 days |
+| PPS expiration threshold updates | 7 days |
+| Min update interval changes | 3 days |
+| Upkeep withdrawal | 24 hours |
 | Post-unpause skim | 12 hours |
 
 ### Emergency Controls
@@ -83,6 +84,6 @@ Strategies are automatically paused when:
 
 **Banned Hook Leaves** — Individual Merkle leaves can be banned without regenerating the entire tree. This provides an immediate block on specific hook + parameter combinations.
 
-**Guardian Veto** — Guardians can veto both global and strategy hook root updates, providing rapid response to detected threats.
+**Guardian Controls** — Guardians retain emergency intervention powers such as pause controls, allowing rapid response to detected threats.
 
-**Emergency Withdrawals** — Managers can perform emergency withdrawals by adding hooks to the strategy hooks root and executing them.
+**Emergency Withdrawals** — Managers can perform emergency withdrawals through authorized hooks. Expanding that authorization still requires a hook-root proposal and execution flow before new leaves become active.

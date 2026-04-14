@@ -46,7 +46,7 @@ Generated trees for the vault, showing:
 Click a tree to view individual leaves: hook name and address, encoded argument values, leaf hash, index, and merkle proof path. This makes the contents of each leaf explicit to depositors and operators, including the hook name and parameter values that were authorized.
 
 <Note>
-SuperVaults use two merkle roots for hook authorization: a governance-controlled global hooks root with a 15-minute timelock, and a curator-controlled strategy hooks root with a 7-day timelock. A hook must be included in either root to execute.
+SuperVaults use two merkle roots for hook authorization: a governance-controlled global hooks root and a manager-proposed strategy hooks root. Both flow through the aggregator's hook-root timelock, which defaults to 15 minutes and can be updated by protocol governance. A hook must be included in either root to execute.
 </Note>
 
 ## Generating a Tree

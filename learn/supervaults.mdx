@@ -1,13 +1,13 @@
 ---
 title: "SuperVaults"
-description: "ERC-7540 tokenized vaults with curator-managed yield strategies, Merkle-verified execution, and validator-secured price-per-share."
+description: "ERC-7540 tokenized vaults with institution-managed yield strategies, Merkle-verified execution, and validator-secured price-per-share."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic control over yield strategy execution. Depositors supply assets; curators decide where that capital goes: which protocols, in what order, under what conditions.
+SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Depositors supply assets; institutions decide where that capital goes: which protocols, in what order, under what conditions.
 
 ## Key Properties
 
-- **Non-custodial** — Depositor funds live in the vault contract, never in curator wallets
+- **Non-custodial** — Depositor funds live in the vault contract, never in institution-controlled wallets
 - **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
 - **Merkle-verified execution** — Keepers can only call hooks that match leaves in the onchain Merkle tree
 - **Automated operations** — Workers handle any actions, from deposits, redemptions, reward claims, swaps, and transaction management
@@ -22,8 +22,8 @@ SuperVaults are ERC-7540 tokenized vaults that give curators full programmatic c
   <Step title="Keeper Workers Execute">
     Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and managing swaps.
   </Step>
-  <Step title="Curator Manages Strategy">
-    The curator sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
+  <Step title="Institution Manages Strategy">
+    The institution sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
   </Step>
   <Step title="Validators Secure PPS">
     Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update onchain. The oracle accepts updates only with supermajority validator consensus.
@@ -113,7 +113,7 @@ SuperVaults are live on **Ethereum** and **Base** with flagship vaults for USDC,
     Fee structure, \$UP upkeep, and protocol revenue.
   </Card>
 
-  <Card title="Become a Curator" icon="gauge-high" href="/curate">
-    Full technical guide for vault operators.
+  <Card title="For Institutions" icon="gauge-high" href="/curate">
+    Full technical guide for institutions operating vaults.
   </Card>
 </CardGroup>

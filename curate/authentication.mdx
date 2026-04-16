@@ -9,13 +9,13 @@ SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JW
 
 <Steps>
   <Step title="Connect Wallet">
-    Open [curators.superform.xyz](https://curators.superform.xyz) and click **Connect Wallet**. Dynamic.xyz presents a wallet selection modal supporting MetaMask, Rabby, WalletConnect, and others.
+    Open [institutions.superform.xyz](https://institutions.superform.xyz) and click **Connect Wallet**. Dynamic.xyz presents a wallet selection modal supporting MetaMask, Rabby, WalletConnect, and others.
   </Step>
   <Step title="Sign Auth Message">
     Your wallet signs a non-transactional message. Dynamic.xyz verifies the signature and issues a JWT tied to your wallet address.
   </Step>
   <Step title="JWT Stored in Browser">
-    The Curator App stores auth state in `localStorage`:
+    The institutional dashboard stores auth state in `localStorage`:
     - `curator_jwt` — the Bearer token used on all API requests
     - `curator_address` — connected wallet address
     - `curator_is_manager` — boolean flag
@@ -125,5 +125,5 @@ console.log(`Manages ${user.vaults.length} vault(s)`);
 </CodeGroup>
 
 <Warning>
-Never hardcode JWTs in source code. Use environment variables (`CURATOR_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
+Never hardcode JWTs in source code. Use environment variables (for example, `CURATOR_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
 </Warning>

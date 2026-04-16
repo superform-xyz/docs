@@ -8,7 +8,7 @@ description: "Configure fees, PPS parameters, redeem timelock, banned hook leave
 Vault Settings is the configuration hub for vault-level parameters. The left sidebar organizes settings into five categories: **Fees**, **PPS**, **Timing**, **Security**, and **Balance**. Primary manager only — secondary managers receive `403 Forbidden`.
 
 <Note>
-Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **onchain transactions**. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
+Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **onchain transactions**. The institutional dashboard constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
 </Note>
 
 ---
@@ -70,7 +70,7 @@ A mandatory delay (in seconds) between redemption request submission and fulfill
 - **Liquidity management** — keepers source liquidity from yield sources before fulfillment
 - **Regulatory compliance** — some contexts require enforced redemption delays
 
-The redeem timelock is configured via an onchain transaction. The curator UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
+The redeem timelock is configured via an onchain transaction. The institutional dashboard constructs the calldata and your wallet signs and submits it directly to the vault contract.
 
 <Warning>
 Setting a timelock on a live vault affects all future redemption requests. Requests submitted before the change are not retroactively affected.

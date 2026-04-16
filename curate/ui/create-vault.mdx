@@ -39,7 +39,7 @@ Your connected wallet becomes primary manager. Optionally add secondary managers
 |-------|-------------|
 | Performance Fee (bps) | Charged on yield above the high-water mark |
 | Management Fee (bps) | Annualized charge on TVL |
-| Fee Recipient | Address receiving the curator's fee share |
+| Fee Recipient | Address receiving the institution's fee share |
 
 Protocol constraints for vault creation (fee bounds, revenue share parameters) are fetched from onchain SuperGovernor contract data, not a REST API.
 
@@ -49,7 +49,7 @@ Delay in seconds before redemption requests can be fulfilled. 0 = instant. Chang
 
 ### Step 7: Review SuperGovernor Config
 
-Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not curator-configurable.
+Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not institution-configurable.
 
 ### Step 8: Sign Transaction
 

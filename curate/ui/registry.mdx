@@ -20,7 +20,7 @@ Every supported yield-generating protocol contract, organized by chain.
 | `name` | string | Human-readable name (e.g., "Morpho USDC") |
 | `underlying_asset` | address | Asset the yield source accepts |
 | `yield_source_type` | enum | `erc4626` or `pendle_pt` |
-| `is_active` | boolean | Available for curator whitelisting |
+| `is_active` | boolean | Available for institution whitelisting |
 
 ### Syncing from Providers
 
@@ -51,7 +51,7 @@ Oracles price yield source positions back into the vault's underlying asset.
 | `oracle_address` | address | Oracle contract |
 | `oracle_id` | string | Identifier for onchain config |
 | `oracle_type` | enum | `erc4626`, `pendle_pt`, or `pendle_pt_amortized` |
-| `is_active` | boolean | Available for curator assignment |
+| `is_active` | boolean | Available for institution assignment |
 
 ### CRUD
 

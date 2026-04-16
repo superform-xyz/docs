@@ -5,7 +5,7 @@ description: "The institution role, ERC-7540 vault mechanics, the hook system, m
 
 ## The Institution Role
 
-An institution manages a SuperVault's yield strategy: which protocols receive capital, in what order, under what conditions, and with what risk parameters. The institution does not hold depositor funds — the vault contract does.
+An institution curates a SuperVault's yield strategy: which protocols receive capital, in what order, under what conditions, and with what risk parameters. The institution does not hold depositor funds — the vault contract does.
 
 **What institutions control:** yield source selection, oracle assignment, allocation priority, reserve ratio, strategy rules, merkle authorization, fee configuration (at creation), redeem timelock, service controls, emergency pause, and access management.
 
@@ -32,7 +32,7 @@ SuperVaults combine onchain vault contracts with offchain automation services. U
 ## ERC-7540 Vault Standard
 
 <Note>
-SuperVault contracts are live onchain and fully non-custodial. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct onchain transactions signed by your wallet.
+SuperVault contracts are live onchain and fully non-custodial. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is an execution layer — it never holds keys or assets. All vault interactions are direct onchain transactions signed by your wallet.
 </Note>
 
 SuperVaults implement ERC-7540, the asynchronous tokenized vault standard. ERC-7540 extends ERC-4626 compatibility (standard deposit/withdraw interface) with asynchronous request-fulfillment flows for deposits and redemptions.

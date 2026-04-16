@@ -3,7 +3,7 @@ title: "Pause Operations"
 description: "Emergency onchain vault pause and per-vault keeper service controls."
 ---
 
-![SuperVaults Pause Operations — Pause Vault and Pause Keepers controls with Vault Pause Control card](/operate/images/screenshots/pause.jpg)
+![SuperVaults Pause Operations — Pause Vault and Pause Keepers controls with Vault Pause Control card](/curate/images/screenshots/pause.jpg)
 
 The Pause page provides two control mechanisms: onchain vault pause (halts contract-level execution, requires gas) and per-vault keeper service controls (halts individual workers, no gas). Both are fully operational and wired to Erebor.
 
@@ -15,7 +15,7 @@ The Pause page (`/pause`) is distinct from the Emergency page (`/emergency`). Pa
 
 ### Batch Pause Status
 
-Shows pause status for all vaults you manage. Each vault displays name, chain, pause state, timestamp, and actor.
+Shows pause status for all vaults you curate. Each vault displays name, chain, pause state, timestamp, and actor.
 
 API: `GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr},{chainId}:{vaultAddr},...` (polls every 10s)
 

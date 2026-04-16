@@ -60,7 +60,7 @@ PPS is the core accounting primitive. It determines:
 | **HWM PPS** | All-time high-water mark. Performance fees accrue only above this level. |
 | **Staleness countdown** | Time remaining before PPS expires. If PPS goes stale, vault operations are blocked until an update is pushed. The staleness window is configurable per vault and defaults to 24 hours. |
 
-Validators compute PPS offchain, sign the result as EIP-712 typed data, and any party can submit the update onchain via `ECDSAPPSOracle.updatePPS()`. A PPS update is accepted only after at least two-thirds of weighted validator stake has signed off. Misreporting is deterred through validator slashing and an insurance fund backstop.
+Validators compute PPS offchain, sign the result as EIP-712 typed data, and any party can submit the update onchain via `ECDSAPPSOracle.updatePPS()`. A PPS update is accepted only after at least two-thirds of weighted validator stake has signed off, with signature, staleness, and deviation checks enforced onchain.
 
 ## The Hook System
 
@@ -99,7 +99,7 @@ Merkle authorization is the access control layer for keeper operations. The flow
 
 When a keeper executes a hook, the onchain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
 
-SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments; updates to this root are subject to a 15-minute timelock. The **strategy hooks root** is curator-controlled and contains the full strategy-specific authorization set, including beneficiary-specific hooks; updates to this root are subject to a 7-day timelock. A hook must be present in either tree to execute.
+SuperVaults use a dual-merkle model for hook authorization. The **global hooks root** is governance-controlled and contains generic hooks without beneficiary-specific arguments. The **strategy hooks root** is proposed by the vault's main manager and contains the full strategy-specific authorization set, including beneficiary-specific hooks. Both update flows use the aggregator's hook-root timelock, which defaults to 15 minutes and can be updated by governance. A hook must be present in either tree to execute.
 
 ## Yield Sources and Oracles
 

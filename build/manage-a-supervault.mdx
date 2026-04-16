@@ -102,7 +102,7 @@ function removeSecondaryManager(address strategy, address manager) external;
 
 ## Upkeep Mechanism
 
-Managers must deposit upkeep tokens to ensure that validators are compensated for the cost of updating onchain PPS for their vaults. This is done in SuperVaultAggregator. The upkeep token is configurable per chain ($UP on mainnet, WETH on L2s, etc.)
+Managers must deposit $UP as upkeep to ensure that validators are compensated for the cost of updating onchain PPS for their vaults. This is done in SuperVaultAggregator.
 
 ```solidity
 /// @notice Deposits upkeep tokens for strategy upkeep

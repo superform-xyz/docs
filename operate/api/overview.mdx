@@ -21,7 +21,7 @@ All endpoints except explicitly public ones require a Bearer JWT:
 Authorization: Bearer <jwt>
 ```
 
-The JWT is issued by Dynamic.xyz upon wallet connection. See [Authentication](/curate/authentication) for the full flow.
+The JWT is issued by Dynamic.xyz upon wallet connection. See [Authentication](/operate/authentication) for the full flow.
 
 ### Public Endpoints
 
@@ -32,7 +32,7 @@ The JWT is issued by Dynamic.xyz upon wallet connection. See [Authentication](/c
 
 ## On-Chain Settings
 
-Settings changes (fees, PPS parameters, timelocks, banned leaves) are **onchain transactions**. The curator UI constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (e.g., `fee_config` and `upkeep_info` fields in the response).
+Settings changes (fees, PPS parameters, timelocks, banned leaves) are **onchain transactions**. The institutional dashboard constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (e.g., `fee_config` and `upkeep_info` fields in the response).
 
 ## Common Patterns
 

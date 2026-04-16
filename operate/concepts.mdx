@@ -1,19 +1,19 @@
 ---
 title: "Core Concepts"
-description: "The curator role, ERC-7540 vault mechanics, the hook system, merkle authorization, keeper workers, and the DeFiX intent protocol."
+description: "The institution role, ERC-7540 vault mechanics, the hook system, merkle authorization, keeper workers, and the DeFiX intent protocol."
 ---
 
-## The Curator Role
+## The Institution Role
 
-A curator manages a SuperVault's yield strategy: which protocols receive capital, in what order, under what conditions, and with what risk parameters. The curator does not hold depositor funds — the vault contract does.
+An institution manages a SuperVault's yield strategy: which protocols receive capital, in what order, under what conditions, and with what risk parameters. The institution does not hold depositor funds — the vault contract does.
 
-**What curators control:** yield source selection, oracle assignment, allocation priority, reserve ratio, strategy rules, merkle authorization, fee configuration (at creation), redeem timelock, service controls, emergency pause, and access management.
+**What institutions control:** yield source selection, oracle assignment, allocation priority, reserve ratio, strategy rules, merkle authorization, fee configuration (at creation), redeem timelock, service controls, emergency pause, and access management.
 
 **What the protocol enforces:** merkle-verified execution, timelocked root updates, fee bounds (SuperGovernor), PPS staleness enforcement, $UP upkeep requirements, high-water mark fee accrual, and protocol revenue share.
 
-**Trust model:** Depositors trust the curator to select sound yield sources and maintain vault health. Depositors do NOT need to trust the curator for fund custody (held by contract), honest execution (merkle-verified), accurate PPS (oracle-enforced), or fee limits (SuperGovernor-enforced).
+**Trust model:** Depositors trust the institution to select sound yield sources and maintain vault health. Depositors do NOT need to trust the institution for fund custody (held by contract), honest execution (merkle-verified), accurate PPS (oracle-enforced), or fee limits (SuperGovernor-enforced).
 
-### Curator Tiers
+### Institution Access Tiers
 
 | Role | On-chain? | Capabilities |
 |------|-----------|-------------|
@@ -27,12 +27,12 @@ The primary manager key is the root of trust for the vault. If compromised, an a
 
 ---
 
-SuperVaults combine onchain vault contracts with offchain automation services. Understanding how these layers interact is essential for effective curator operations.
+SuperVaults combine onchain vault contracts with offchain automation services. Understanding how these layers interact is essential for effective institutional operations.
 
 ## ERC-7540 Vault Standard
 
 <Note>
-SuperVault contracts are live onchain and fully non-custodial. The curator UI at [curators.superform.xyz](https://curators.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct onchain transactions signed by your wallet.
+SuperVault contracts are live onchain and fully non-custodial. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is a management layer — it never holds keys or assets. All vault interactions are direct onchain transactions signed by your wallet.
 </Note>
 
 SuperVaults implement ERC-7540, the asynchronous tokenized vault standard. ERC-7540 extends ERC-4626 compatibility (standard deposit/withdraw interface) with asynchronous request-fulfillment flows for deposits and redemptions.
@@ -95,7 +95,7 @@ Merkle authorization is the access control layer for keeper operations. The flow
   </Step>
 </Steps>
 
-**Why timelocks:** The timelock between proposal and execution gives depositors time to exit if they disagree with a curator's authorization changes. This is a standard DeFi governance safety pattern.
+**Why timelocks:** The timelock between proposal and execution gives depositors time to exit if they disagree with an institution's authorization changes. This is a standard DeFi governance safety pattern.
 
 When a keeper executes a hook, the onchain contract verifies the merkle proof. If the proof is invalid (the hook + params combination was not authorized), the transaction reverts.
 
@@ -120,7 +120,7 @@ Each yield source must be paired with an oracle that prices the position back in
 | `pendle_pt` | Spot market price of the PT |
 | `pendle_pt_amortized` | Linear decay to par value as PT approaches maturity |
 
-Adding or removing yield sources and updating oracle assignments are onchain operations that follow the prepare pattern (Erebor constructs calldata, curator signs).
+Adding or removing yield sources and updating oracle assignments are onchain operations that follow the prepare pattern (Erebor constructs calldata, institution signs).
 
 ## Keeper Workers
 
@@ -136,14 +136,14 @@ Seven Celery-based keeper workers run continuously against each vault's configur
 | `cleanup_processed_redeems` | Reconciles pending redemptions with onchain state |
 | `tx_manager` | Broadcasts transactions, monitors confirmations, handles reorgs |
 
-Workers execute on configurable intervals. Curators control:
+Workers execute on configurable intervals. Institutions control:
 - **Global enable/disable** per vault (stops all workers)
 - **Per-service pause/resume** (targeted worker control)
 - **Schedule adjustment** (change execution frequency)
 
 ## The Strategy Engine
 
-The Strategy Engine adds rule-based automation on top of the keeper system. Curators define strategies via the Strategy Canvas with:
+The Strategy Engine adds rule-based automation on top of the keeper system. Institutions define strategies via the Strategy Canvas with:
 
 - **Indicators** — named variables evaluated each tick (e.g., `morpho_apy`, `free_assets`)
 - **Rules** — boolean logic trees (`EXPR`, `AND`, `OR`, `NOT`, `VOTE`) that determine when to act

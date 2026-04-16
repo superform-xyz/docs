@@ -1,11 +1,11 @@
 ---
-title: "Manage"
-description: "Admin-level registry view for browsing all vaults, managing vault deployments, and provider administration."
+title: "Institutional"
+description: "Admin-level registry view for browsing all vaults, operating registry workflows, and provider administration."
 ---
 
-![SuperVaults Manage Vaults — full registry table with chain filter, search, and Add Vault actions](/curate/images/screenshots/manage-vaults.jpg)
+![SuperVaults Institutional Vaults — full registry table with chain filter, search, and Add Vault actions](/operate/images/screenshots/manage-vaults.jpg)
 
-The Manage section is the admin-level registry view, accessible from the top navigation bar. It provides a comprehensive view of all registered SuperVaults across chains, vault deployment management, and provider administration.
+The Institutional section is the admin-level registry view, accessible from the top navigation bar. It provides a comprehensive view of all registered SuperVaults across chains, vault deployment workflows, and provider administration.
 
 ---
 
@@ -13,7 +13,7 @@ The Manage section is the admin-level registry view, accessible from the top nav
 
 **Route:** `/manage`
 
-The primary Manage view is the full vault registry table. All authenticated users can browse the complete list of registered vaults.
+The primary Institutional view is the full vault registry table. All authenticated users can browse the complete list of registered vaults.
 
 ### Registry Table
 
@@ -62,7 +62,7 @@ My Vaults requires the `registry_maintainer` role. Users without this role will 
 
 **Route:** `/manage/providers`
 
-Provider management for registry maintainers, organized into two sub-tabs:
+Provider operations for registry maintainers, organized into two sub-tabs:
 
 | Tab | Description |
 |-----|-------------|
@@ -80,8 +80,8 @@ The Providers sub-page requires the `registry_maintainer` role. Users without th
 | Section | Required Role | Description |
 |---------|--------------|-------------|
 | Vaults (registry table) | Any authenticated user | Browse and search the full vault registry |
-| My Vaults | `registry_maintainer` | Manage vault deployments and approval queue |
-| Providers | `registry_maintainer` | Manage provider registrations and approval queue |
+| My Vaults | `registry_maintainer` | Operate vault deployments and approval queue |
+| Providers | `registry_maintainer` | Operate provider registrations and approval queue |
 
 ---
 

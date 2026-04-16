@@ -13,7 +13,7 @@ This guide covers the complete vault creation and configuration flow. By the end
 <Steps>
 
 <Step title="Connect Wallet">
-Navigate to [curators.superform.xyz](https://curators.superform.xyz) and click **Connect Wallet**. Dynamic.xyz requests a signature to issue your JWT session. After connecting, the top navigation shows three sections: **Home** (global vault overview), **Curate** (per-vault management), and **Manage** (admin operations).
+Navigate to [institutions.superform.xyz](https://institutions.superform.xyz) and click **Connect Wallet**. Dynamic.xyz requests a signature to issue your JWT session. After connecting, the top navigation shows three sections: **Home** (global vault overview), **Operate** (per-vault management), and **Institutional** (admin operations).
 </Step>
 
 <Step title="Create a Vault">
@@ -25,7 +25,7 @@ Click **Create Vault** (or navigate to `/vaults/create`). The creation flow:
 4. **Configure Managers** — Your wallet becomes primary manager. Add secondary managers now or later.
 5. **Configure Fees** — Performance fee (bps), management fee (bps), fee recipient address. Bounded by SuperGovernor constraints.
 6. **Redeem Timelock** (optional) — Delay in seconds before redemptions can be fulfilled. 0 = instant.
-7. **Review SuperGovernor Config** — Protocol-level constraints (min staleness, revenue share). Not curator-configurable.
+7. **Review SuperGovernor Config** — Protocol-level constraints (min staleness, revenue share). Not institution-configurable.
 8. **Sign Transaction** — Approve the vault creation transaction.
 
 Erebor starts a background indexing job after the transaction confirms. The modal polls until completion (up to 3 minutes, exponential backoff: 3s → 6s → 12s → 24s → 30s cap).
@@ -120,6 +120,6 @@ Before accepting external deposits:
 - [ ] Fee recipient address confirmed
 - [ ] PPS oracle updating on schedule
 
-<Card title="Dashboard" icon="chart-line" href="/curate/ui/dashboard">
+<Card title="Dashboard" icon="chart-line" href="/operate/ui/dashboard">
   Vault analytics, allocation breakdown, and operational monitoring.
 </Card>

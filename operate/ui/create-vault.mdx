@@ -31,7 +31,7 @@ Select the token depositors will supply (USDC, WETH, DAI, etc.).
 
 ### Step 4: Configure Managers
 
-Your connected wallet becomes primary manager. Optionally add secondary managers now (or later via [User Management](/curate/ui/user-management)).
+Your connected wallet becomes primary manager. Optionally add secondary managers now (or later via [User Management](/operate/ui/user-management)).
 
 ### Step 5: Configure Fees
 
@@ -39,17 +39,17 @@ Your connected wallet becomes primary manager. Optionally add secondary managers
 |-------|-------------|
 | Performance Fee (bps) | Charged on yield above the high-water mark |
 | Management Fee (bps) | Annualized charge on TVL |
-| Fee Recipient | Address receiving the curator's fee share |
+| Fee Recipient | Address receiving the institution's fee share |
 
 Protocol constraints for vault creation (fee bounds, revenue share parameters) are fetched from onchain SuperGovernor contract data, not a REST API.
 
 ### Step 6: Redeem Timelock (Optional)
 
-Delay in seconds before redemption requests can be fulfilled. 0 = instant. Changeable later via [Vault Settings](/curate/ui/vault-settings) (primary manager only).
+Delay in seconds before redemption requests can be fulfilled. 0 = instant. Changeable later via [Vault Settings](/operate/ui/vault-settings) (primary manager only).
 
 ### Step 7: Review SuperGovernor Config
 
-Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not curator-configurable.
+Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not institution-configurable.
 
 ### Step 8: Sign Transaction
 

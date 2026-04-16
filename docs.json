@@ -12,6 +12,16 @@
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
+  "redirects": [
+    {
+      "source": "/curate",
+      "destination": "/operate"
+    },
+    {
+      "source": "/curate/:slug*",
+      "destination": "/operate/:slug*"
+    }
+  ],
   "navigation": {
     "global": {
       "anchors": [

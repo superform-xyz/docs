@@ -1,6 +1,6 @@
 ---
 title: "SuperVaults"
-description: "ERC-7540 tokenized vaults with institution-managed yield strategies, Merkle-verified execution, and validator-secured price-per-share."
+description: "ERC-7540 tokenized vaults with institution-curated yield strategies, Merkle-verified execution, and validator-secured price-per-share."
 ---
 
 SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Depositors supply assets; institutions decide where that capital goes: which protocols, in what order, under what conditions.
@@ -20,10 +20,10 @@ SuperVaults are ERC-7540 tokenized vaults that give institutions full programmat
     A depositor submits a deposit or redemption request onchain via the ERC-7540 interface.
   </Step>
   <Step title="Keeper Workers Execute">
-    Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and managing swaps.
+    Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and executing swaps.
   </Step>
   <Step title="Institution Manages Strategy">
-    The institution sets allocation priorities, defines automated rebalancing rules, manages Merkle authorization for keeper operations, and monitors vault health.
+    The institution sets allocation priorities, defines automated rebalancing rules, configures Merkle authorization for keeper operations, and monitors vault health.
   </Step>
   <Step title="Validators Secure PPS">
     Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update onchain. The oracle accepts updates only with supermajority validator consensus.

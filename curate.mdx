@@ -3,13 +3,13 @@ title: "Introduction"
 description: "Technical reference for institutions curating SuperVaults: vault operations, strategy automation, API integration, and risk management."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, manage onchain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
+SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, configure onchain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
 
 This documentation covers everything an institution needs to operate a SuperVault: from initial vault creation and yield source whitelisting through strategy automation via the DeFiX v0.1 intent protocol.
 
 ## Non-Custodial by Design
 
-SuperVaults are ERC-4626/ERC-7540 smart contracts deployed permissionlessly onchain. No intermediary holds custody of vault assets — depositor funds live in the contracts at all times. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is a management interface built on top of this decentralized infrastructure: it constructs calldata, your wallet signs, and you submit transactions directly to the protocol. Superform never touches your keys or your vault's assets.
+SuperVaults are ERC-4626/ERC-7540 smart contracts deployed permissionlessly onchain. No intermediary holds custody of vault assets — depositor funds live in the contracts at all times. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is the institutional interface built on top of this decentralized infrastructure: it constructs calldata, your wallet signs, and you submit transactions directly to the protocol. Superform never touches your keys or your vault's assets.
 
 The contracts are open-source and audited. Anyone can interact with them directly without using this interface.
 

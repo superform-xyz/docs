@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "Technical reference for SuperVaults Institutional: vault operations, strategy automation, API integration, and risk management."
+description: "Technical reference for institutions curating SuperVaults: vault operations, strategy automation, API integration, and risk management."
 ---
 
 SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, manage onchain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
@@ -20,13 +20,13 @@ The contracts are open-source and audited. Anyone can interact with them directl
 ## Key Capabilities
 
 <CardGroup cols={2}>
-  <Card title="Strategy Automation" icon="robot" href="/operate/ui/strategy">
+  <Card title="Strategy Automation" icon="robot" href="/curate/ui/strategy">
     Define rule-based strategies with indicator expressions, conviction thresholds, and configurable tick intervals. The Strategy Engine evaluates conditions and dispatches DeFiX intents automatically.
   </Card>
-  <Card title="Merkle Authorization" icon="shield-halved" href="/operate/ui/merkle-trees">
+  <Card title="Merkle Authorization" icon="shield-halved" href="/curate/ui/merkle-trees">
     Whitelist exactly which hooks can be called with which parameters. Each authorized combination becomes a merkle tree leaf verified onchain before execution.
   </Card>
-  <Card title="Full API Access" icon="code" href="/operate/api/overview">
+  <Card title="Full API Access" icon="code" href="/curate/api/overview">
     ~107 endpoints across three services. Programmatic control over every operation the UI exposes, plus analytics, audit logs, and admin utilities.
   </Card>
 </CardGroup>
@@ -35,19 +35,19 @@ The contracts are open-source and audited. Anyone can interact with them directl
 
 <Steps>
   <Step title="Core Concepts">
-    What institutions control, what the protocol enforces, ERC-7540 mechanics, the hook system, and merkle authorization. [Read more →](/operate/concepts)
+    What institutions control, what the protocol enforces, ERC-7540 mechanics, the hook system, and merkle authorization. [Read more →](/curate/concepts)
   </Step>
   <Step title="Get Started">
-    Prerequisites, authentication, permissions, and a quickstart walkthrough. [Read more →](/operate/prerequisites)
+    Prerequisites, authentication, permissions, and a quickstart walkthrough. [Read more →](/curate/prerequisites)
   </Step>
-  <Step title="Operate">
-    UI guide for every page in the institutional dashboard, from Dashboard to Strategy Canvas. [Read more →](/operate/ui/home)
+  <Step title="Curate">
+    UI guide for every page in the institutional dashboard, from Dashboard to Strategy Canvas. [Read more →](/curate/ui/home)
   </Step>
   <Step title="Integrate">
-    API reference for all four backends with endpoint tables, request shapes, and error codes. [Read more →](/operate/api/overview)
+    API reference for all four backends with endpoint tables, request shapes, and error codes. [Read more →](/curate/api/overview)
   </Step>
   <Step title="Automate">
-    Build programmatic institutional workflows: monitoring loops, service health alerting, and audit log streaming. [Read more →](/operate/automation/overview)
+    Build programmatic institutional workflows: monitoring loops, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
   </Step>
 </Steps>
 

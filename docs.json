@@ -100,78 +100,78 @@
         ]
       },
       {
-        "tab": "Curate",
+        "tab": "Operate",
         "groups": [
           {
-            "group": "Curate",
-            "root": "curate",
+            "group": "Operate",
+            "root": "operate",
             "pages": [
-              "curate",
-              "curate/concepts"
+              "operate",
+              "operate/concepts"
             ]
           },
           {
             "group": "Getting Started",
             "pages": [
-              "curate/prerequisites",
-              "curate/authentication",
-              "curate/permissions",
-              "curate/quickstart"
+              "operate/prerequisites",
+              "operate/authentication",
+              "operate/permissions",
+              "operate/quickstart"
             ]
           },
           {
             "group": "Vault Setup",
             "pages": [
-              "curate/ui/home",
-              "curate/ui/create-vault"
+              "operate/ui/home",
+              "operate/ui/create-vault"
             ]
           },
           {
             "group": "Vault Operations",
             "pages": [
-              "curate/ui/dashboard",
-              "curate/ui/strategy",
-              "curate/ui/yield-sources",
-              "curate/ui/merkle-trees"
+              "operate/ui/dashboard",
+              "operate/ui/strategy",
+              "operate/ui/yield-sources",
+              "operate/ui/merkle-trees"
             ]
           },
           {
             "group": "Access & Settings",
             "pages": [
-              "curate/ui/vault-settings",
-              "curate/ui/user-management"
+              "operate/ui/vault-settings",
+              "operate/ui/user-management"
             ]
           },
           {
             "group": "Registry & Admin",
             "pages": [
-              "curate/ui/manage",
-              "curate/ui/registry",
-              "curate/ui/admin"
+              "operate/ui/manage",
+              "operate/ui/registry",
+              "operate/ui/admin"
             ]
           },
           {
             "group": "Emergency & Alerts",
             "pages": [
-              "curate/ui/pause",
-              "curate/ui/alerts"
+              "operate/ui/pause",
+              "operate/ui/alerts"
             ]
           },
           {
             "group": "API Reference",
             "pages": [
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms"
+              "operate/api/overview",
+              "operate/api/erebor",
+              "operate/api/strategy",
+              "operate/api/oms"
             ]
           },
           {
             "group": "Automation",
             "pages": [
-              "curate/automation/overview",
-              "curate/automation/monitoring",
-              "curate/automation/webhooks"
+              "operate/automation/overview",
+              "operate/automation/monitoring",
+              "operate/automation/webhooks"
             ]
           }
         ]

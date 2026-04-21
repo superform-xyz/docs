@@ -5,15 +5,22 @@ description: "A docs-native example mandate for flagship SuperVault construction
 
 This page outlines an example flagship mandate for curators running SuperVaults on Superform.
 
-The goal is not to maximize quoted APY in any single week. The goal is to compound durable, realizable onchain yield from exposures that can be sized, monitored, explained, and exited under pressure.
+The goal is not to maximize quoted APY in any single week. It is to compound durable, realizable onchain yield from exposures that can be sized, monitored, explained, and exited under pressure.
 
-Use this framework as a model for conservative flagship construction, then adapt limits and workflows to your own mandate.
+Use this framework as a model for conservative flagship construction, then adapt the limits and workflows to your own mandate.
 
 ## Scope
 
 This example policy applies to flagship SuperUSDC and SuperWETH mandates on Ethereum and Base.
 
-Each chain is managed independently. There is no cross-chain allocation inside a flagship mandate, no reliance on cross-chain liquidity, and no blended construction across chains.
+| Parameter | Policy |
+| --- | --- |
+| Mandates in scope | Flagship SuperUSDC and SuperWETH |
+| Chains in scope | Ethereum and Base |
+| Cross-chain allocation | Not permitted inside a flagship mandate |
+| Liquidity assumption | No reliance on cross-chain liquidity |
+
+Each chain is managed independently. There is no blended construction across chains.
 
 ## Portfolio construction
 
@@ -72,31 +79,13 @@ Sleeve classification and liquidity classification are separate. A position can 
 
 Every position should be tagged by current liquidity state.
 
-### Idle liquidity
-
-Idle liquidity is free assets sitting idle.
-
-**Minimum:** 50 bps of total vault assets at all times.
-
-### Warm liquidity
-
-Warm liquidity is capital that can be withdrawn with action, with high confidence that access is available in the near term.
-
-**Minimum:** 10%.
-
-### Portfolio target
-
-The combined **idle + warm** liquidity target is **60% to 80%**.
-
-### Lukewarm liquidity
-
-Lukewarm liquidity is withdrawable, but likely requires waiting for market conditions or other users unwinding.
-
-### Term liquidity
-
-Term liquidity is capital that is week-scale, or likely to require weeks to make liquid.
-
-**Hard cap:** 20%.
+| Liquidity state | Definition | Constraint |
+| --- | --- | --- |
+| Idle liquidity | Free assets sitting idle | Minimum 50 bps of total vault assets at all times |
+| Warm liquidity | Capital that can be withdrawn with action, with high confidence that access is available in the near term | Minimum 10% |
+| Idle + warm | Combined promptly accessible liquidity | Target 60% to 80% |
+| Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |
+| Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | Hard cap 20% |
 
 If liquidity compresses, reduce tactical and PT first.
 
@@ -104,13 +93,15 @@ If liquidity compresses, reduce tactical and PT first.
 
 These caps apply at all times within each flagship mandate:
 
-- **Max per market:** 20%
-- **Max per curator:** 50%
-- **Max per smaller unique collateral asset:** 10%
-- **Tactical sleeve hard cap:** 20%
-- **PT sleeve hard cap:** 20%
-- **PT sleeve target:** 10%
-- **Term liquidity hard cap:** 20%
+| Constraint | Limit |
+| --- | --- |
+| Max per market | 20% |
+| Max per curator | 50% |
+| Max per smaller unique collateral asset | 10% |
+| Tactical sleeve hard cap | 20% |
+| PT sleeve hard cap | 20% |
+| PT sleeve target | 10% |
+| Term liquidity hard cap | 20% |
 
 These are construction limits, not suggestions.
 
@@ -120,7 +111,7 @@ Displayed yield and underwritten yield are not the same thing.
 
 **MORPHO rewards count at par.** All other rewards should be haircut based on realizable liquidity and execution certainty.
 
-In practice, that usually means **20% to 80% haircuts**, and in many cases the correct value is **zero**.
+In practice, that usually means a **20% to 80% haircut**, and in many cases the correct value is **zero**.
 
 Rewards only matter to flagship construction if they can be harvested, monetized, and defended as real return.
 

@@ -107,8 +107,7 @@
             "root": "curate",
             "pages": [
               "curate",
-              "curate/concepts",
-              "curate/flagship-investment-policy"
+              "curate/concepts"
             ]
           },
           {
@@ -169,6 +168,7 @@
           {
             "group": "References",
             "pages": [
+              "curate/flagship-investment-policy",
               "curate/api/overview",
               "curate/api/erebor",
               "curate/api/strategy",

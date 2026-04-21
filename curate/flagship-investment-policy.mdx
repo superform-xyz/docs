@@ -26,6 +26,19 @@ This example policy applies to flagship SuperUSDC and SuperWETH mandates on Ethe
 
 Each chain is managed independently. There is no blended construction across chains.
 
+## Investment objective and risk profile
+
+Flagship mandates should target repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization.
+
+As a working benchmark, flagship construction should aim for mostly organic yield from lending carry, fixed-rate carry, and other economically legible sources. Incentives may contribute to return, but they should be treated as supplemental and haircut when realization is uncertain. Purely speculative rewards, points, or unpriced optionality should not be relied on as the core of the mandate.
+
+This is a conservative onchain mandate. That means:
+
+- most capital belongs in battle-tested venues with clear monitoring and withdrawal paths
+- concentration should be intentionally limited across protocols, curators, markets, and collateral types
+- liquidity should be protected as a live operating constraint, not assumed from headline TVL
+- governance, oracle, and chain dependencies should be treated as real risk factors, not background noise
+
 ## Strategy architecture
 
 Flagship construction starts from a simple principle: most capital should sit in exposures with legible risk, repeatable monitoring, and well-understood exit paths.
@@ -53,7 +66,7 @@ Nothing else qualifies as anchor. If an exposure sits outside that set, it is no
 
 The tactical sleeve exists to improve portfolio yield where the opportunity is understandable, measurable, and reducible.
 
-Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, but they do not become anchor simply by behaving well for a period of time.
+Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path, but they do not become anchor simply by behaving well for a period of time.
 
 Tactical is additive, not load-bearing. If a position materially complicates monitoring, weakens exit confidence, or becomes difficult to defend in size, it does not belong here.
 
@@ -78,6 +91,8 @@ Before sizing a position, the curator should be able to:
 3. Describe a credible exit path
 
 If any of those fail, the exposure is not flagship-eligible.
+
+In practice, flagship-eligible exposure should usually come from reputable, audited protocols with meaningful production history and operating scale. Morpho markets are the clearest flagship example. Comparable venues can qualify, but only if they meet the same standard for smart contract quality, governance quality, oracle design, liquidity, and live monitoring.
 
 | Sleeve | Eligible exposure set | Policy treatment |
 | --- | --- | --- |
@@ -122,7 +137,9 @@ Every position should be tagged by current liquidity state.
 | Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |
 | Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | Hard cap 20% |
 
-Liquidity is a live operating policy, not a marketing label. If liquidity compresses, reduce tactical and PT first.
+Flagship policy should also define redemption expectations in plain language. As a reference standard, a flagship mandate should maintain a meaningful instant redemption buffer and keep weighted average withdrawal latency short under normal conditions. If those conditions deteriorate, reduce tactical and PT first, then restore liquidity before reaching for additional yield.
+
+Flagship mandates should never imply guaranteed instant redemption in all market states. Instead, they should specify the liquidity profile they are built to support, the stressed conditions that can delay exits, and the actions the curator is authorized to take when prompt withdrawals come under pressure.
 
 ## Portfolio limits
 
@@ -133,6 +150,7 @@ These caps apply at all times within each flagship mandate:
 | Max per market | 20% | Applies regardless of sleeve |
 | Max per curator | 50% | Concentration control across the full mandate |
 | Max per smaller unique collateral asset | 10% | Applies even inside otherwise eligible venues |
+| Max per protocol or counterparty | 35% | Aggregate exposure cap across the full mandate |
 | Tactical sleeve hard cap | 20% | Tactical sleeve is additive, not core |
 | PT sleeve hard cap | 20% | PT sleeve must remain capped |
 | PT sleeve target | 10% | Target allocation, not required utilization |
@@ -143,6 +161,12 @@ These are construction limits, not suggestions.
 ## Reward treatment
 
 Displayed yield and underwritten yield are not the same thing.
+
+Flagship reporting should distinguish among:
+
+- organic yield that comes from lending, fixed-rate carry, or other durable economic activity
+- incentivized yield that depends on token emissions or temporary programs
+- speculative upside such as points or uncertain future distributions
 
 **MORPHO rewards may be counted at par when liquidity, execution path, and realization history support that treatment.** Otherwise, they should be haircut like other rewards based on realizable liquidity and execution certainty.
 
@@ -159,13 +183,16 @@ Curators should continuously monitor:
 - liquidity condition
 - reward composition
 - rate drift
-- concentration by market, curator, and collateral type
+- concentration by protocol, market, curator, and collateral type
+- oracle dependencies and price source quality
+- material governance changes that can alter withdrawal, collateral, or parameter risk
 
 At any point, the curator should be able to explain:
 
 - how a position exits
 - what the likely frictions are
 - what has to go right for current yield to be realized
+- what smart contract, oracle, or governance assumptions the position depends on
 
 If monitoring quality deteriorates, simulation stops being decision-useful, or exit mechanics become unclear, the position has failed the flagship standard even if headline APY still looks attractive.
 
@@ -191,6 +218,9 @@ By design, this flagship mandate excludes:
 
 - cross-chain allocation inside a flagship mandate
 - any anchor designation beyond Aave and Morpho curators Gauntlet, Steakhouse, and Karpatkey
+- unaudited or weakly monitored venues
+- recursive leverage or structurally amplified exposure
+- algorithmic stablecoin collateral or fragile synthetic dollar dependencies
 - bespoke or synthetic PT as core allocation
 - exposures whose reward economics rely on aggressive valuation of illiquid incentives
 - exposures without clear monitoring, simulation, and exit discipline

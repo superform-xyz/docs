@@ -3,9 +3,13 @@ title: "Flagship Investment Policy"
 description: "A docs-native example mandate for flagship SuperVault construction, risk limits, liquidity policy, and yield underwriting."
 ---
 
-This page outlines an example flagship mandate for curators running SuperVaults on Superform.
+## Overview
 
-The goal is not to maximize quoted APY in any single week. It is to compound durable, realizable onchain yield from exposures that can be sized, monitored, explained, and exited under pressure.
+This page outlines an example flagship policy for curators running SuperVaults on Superform.
+
+It is designed to read in two ways at once: as Superform's flagship policy framework, and as an illustrative example of the standard curators should use when drafting a public-facing investment policy of their own.
+
+The objective is not to maximize quoted APY in any single week. It is to compound durable, realizable onchain yield from exposures that can be sized, monitored, explained, and exited under pressure.
 
 Use this framework as a model for conservative flagship construction, then adapt the limits and workflows to your own mandate.
 
@@ -22,7 +26,7 @@ This example policy applies to flagship SuperUSDC and SuperWETH mandates on Ethe
 
 Each chain is managed independently. There is no blended construction across chains.
 
-## Portfolio construction
+## Strategy architecture
 
 Flagship construction starts from a simple principle: most capital should sit in exposures with legible risk, repeatable monitoring, and well-understood exit paths.
 
@@ -30,11 +34,11 @@ Higher-yielding sleeves can exist, but only around that core and only inside har
 
 The portfolio is divided into three sleeves.
 
-### Anchor
+### Anchor sleeve
 
-Anchor is the core sleeve for flagship capital. Anchor is a risk label, not a liquidity guarantee.
+The anchor sleeve is the core of flagship capital. It is defined by role in the portfolio, not by marketing claims or temporary yield leadership.
 
-Only the following qualify as anchor:
+Only the following qualify for the anchor sleeve:
 
 - Aave
 - Morpho vaults curated by Gauntlet
@@ -43,23 +47,23 @@ Only the following qualify as anchor:
 
 Nothing else qualifies as anchor. If an exposure sits outside that set, it is not core by definition.
 
-### Tactical
+### Tactical sleeve
 
 The tactical sleeve exists to improve portfolio yield where the opportunity is understandable, measurable, and reducible.
 
-Clearstar and Hyperithm are tactical examples. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, but they do not become anchor by behaving well for a period of time.
+Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, but they do not become anchor simply by behaving well for a period of time.
 
 Tactical is additive, not load-bearing. If a position materially complicates monitoring, weakens exit confidence, or becomes difficult to defend in size, it does not belong here.
 
-### PT
+### PT sleeve
 
-PT exposure is permitted, but only as a capped satellite sleeve.
+The PT sleeve is permitted, but only as a capped satellite sleeve.
 
 Vanilla PT is allowed but capped. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
 
 PT can improve carry, but it should not become the dominant driver of flagship yield or the part of the book that determines whether the mandate still feels liquid.
 
-## Eligibility standard
+## Eligible venues and flagship standard
 
 An exposure is only eligible for flagship capital if it clears a higher bar than simple yield attractiveness.
 
@@ -72,6 +76,35 @@ Before sizing a position, the curator should be able to:
 3. Describe a credible exit path
 
 If any of those fail, the exposure is not flagship-eligible.
+
+| Sleeve | Eligible exposure set | Policy treatment |
+| --- | --- | --- |
+| Anchor sleeve | Aave, Morpho vaults curated by Gauntlet, Steakhouse, and Karpatkey | Core allocation sleeve |
+| Tactical sleeve | Fluid, Gearbox, and other non-anchor exposures that satisfy the flagship standard | Additive yield sleeve, not load-bearing |
+| PT sleeve | Vanilla PT exposure | Capped satellite sleeve |
+
+## Allowed actions
+
+The allowed action surface should be explicit. Flagship policy is not just about what can be owned, but what a curator is authorized to do in the normal operation of the mandate.
+
+Within this policy, the curator may:
+
+- allocate and rebalance across approved sleeves and eligible venues
+- enter and exit approved positions
+- rotate between approved anchor sleeve exposures
+- rotate among approved tactical sleeve opportunities within hard caps
+- add or remove individual vanilla PT positions within the PT sleeve cap
+- claim rewards
+- realize rewards through approved swap paths, including standard routing venues such as DEX aggregators or routers used for execution quality
+- hold temporary idle balances as part of normal liquidity management
+
+The curator may not:
+
+- introduce cross-chain allocation within a flagship mandate
+- add a new venue without a formal amendment
+- treat bespoke or synthetic PT as core exposure
+- rely on illiquid incentive marks as if they were fully realizable yield
+- use unmodeled or weakly monitored exposures simply because they screen well on APY
 
 ## Liquidity policy
 
@@ -87,25 +120,25 @@ Every position should be tagged by current liquidity state.
 | Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |
 | Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | Hard cap 20% |
 
-If liquidity compresses, reduce tactical and PT first.
+Liquidity is a live operating policy, not a marketing label. If liquidity compresses, reduce tactical and PT first.
 
-## Hard portfolio limits
+## Portfolio limits
 
 These caps apply at all times within each flagship mandate:
 
-| Constraint | Limit |
-| --- | --- |
-| Max per market | 20% |
-| Max per curator | 50% |
-| Max per smaller unique collateral asset | 10% |
-| Tactical sleeve hard cap | 20% |
-| PT sleeve hard cap | 20% |
-| PT sleeve target | 10% |
-| Term liquidity hard cap | 20% |
+| Constraint | Limit | Notes |
+| --- | --- | --- |
+| Max per market | 20% | Applies regardless of sleeve |
+| Max per curator | 50% | Concentration control across the full mandate |
+| Max per smaller unique collateral asset | 10% | Applies even inside otherwise eligible venues |
+| Tactical sleeve hard cap | 20% | Tactical sleeve is additive, not core |
+| PT sleeve hard cap | 20% | PT sleeve must remain capped |
+| PT sleeve target | 10% | Target allocation, not required utilization |
+| Term liquidity hard cap | 20% | Liquidity policy overrides yield chasing |
 
 These are construction limits, not suggestions.
 
-## Yield underwriting
+## Reward treatment
 
 Displayed yield and underwritten yield are not the same thing.
 
@@ -113,9 +146,9 @@ Displayed yield and underwritten yield are not the same thing.
 
 In practice, that usually means a **20% to 80% haircut**, and in many cases the correct value is **zero**.
 
-Rewards only matter to flagship construction if they can be harvested, monetized, and defended as real return.
+Rewards only matter to flagship construction if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
 
-## Operating standard
+## Operating controls
 
 This mandate assumes active portfolio control. It is not a passive basket.
 
@@ -134,7 +167,22 @@ At any point, the curator should be able to explain:
 
 If monitoring quality deteriorates, simulation stops being decision-useful, or exit mechanics become unclear, the position has failed the flagship standard even if headline APY still looks attractive.
 
-## Explicit exclusions
+## Amendment rules
+
+Formal amendment is required for:
+
+- adding a new venue to the policy
+- changing the definition of the anchor sleeve or tactical sleeve
+- changing the scope of assets or chains in mandate scope
+
+Formal amendment is not required for:
+
+- adding new PT positions within the PT sleeve
+- changing hard caps or sleeve targets
+- changing reward treatment or haircut methodology
+- routine portfolio rebalancing within the approved action surface
+
+## Excluded exposures
 
 By design, this flagship mandate excludes:
 
@@ -148,6 +196,6 @@ By design, this flagship mandate excludes:
 
 A flagship SuperVault should feel conservative in structure even when it is efficient in yield.
 
-The core belongs in anchor. Tactical belongs in a controlled satellite sleeve. PT is allowed, but capped and watched. Liquidity is managed as a live constraint, not a marketing phrase.
+The core belongs in the anchor sleeve. Tactical belongs in a controlled satellite sleeve. The PT sleeve is allowed, but capped and watched. Liquidity is managed as a live policy, not a loose aspiration.
 
 If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the flagship mandate.

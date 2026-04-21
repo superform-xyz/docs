@@ -7,23 +7,25 @@ description: "Flagship SuperVault construction standard covering mandate design,
 
 This policy defines the construction standard for a flagship SuperVault.
 
-Flagship is not a yield leaderboard. It is not a strategy sandbox. It is not a curator playground. It is the highest-conviction expression of a mandate built to survive, stay liquid, and optimize only after those conditions are met.
+This flagship mandate is designed to generate durable onchain yield while preserving liquidity and controlling downside. Capital should be allocated only to exposures that can be monitored continuously, understood clearly, and exited in stressed conditions. The portfolio is optimized for resilience first and yield second.
 
-The ordering is deliberate. Survivability first. Liquidity second. Optimization third.
+This is not a yield leaderboard, strategy sandbox, or curator playground.
+
+The order is fixed. Survivability first. Liquidity second. Optimization third.
 
 Every position must be defensible before entry, monitorable while live, and exitable under pressure. If that standard fails, the position does not belong in flagship capital, regardless of quoted APY, incentive support, or recent performance.
 
-Flagship construction should favor durable, realizable onchain yield from exposures with clear risk, clear monitoring, and credible withdrawal paths. It should not depend on peak APY chasing, aggressive incentive marks, or complexity that cannot be explained and managed in size.
+Flagship construction should favor durable, realizable onchain yield from exposures with clear risk, clear monitoring, and credible exit paths. It should not depend on peak APY chasing, aggressive incentive marks, or complexity that cannot be explained and managed at size.
 
-This page is written as Superform's flagship example policy. Curators can adapt it to their own mandates, but the construction standard should remain conservative, explicit, and enforceable.
+This page sets out Superform's example flagship policy. Curators may adapt it to their own mandates, but the construction standard should remain conservative, explicit, and enforceable.
 
 ## Investment objective and risk profile
 
 The objective of a flagship mandate is repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization.
 
-This is a conservative onchain mandate. Most capital should sit in exposures with durable economics, clear monitoring, and credible withdrawal paths. Yield matters. Survivability matters more.
+This is a conservative onchain mandate. Most capital should remain in exposures with durable economics, clear monitoring, and credible withdrawal paths. Yield matters. Loss control matters more.
 
-As a working benchmark, flagship construction should target mostly organic yield from lending carry, fixed-rate carry, and other economically legible sources. Incentives may contribute to return, but they are supplemental. They should be haircut when realization is uncertain. Purely speculative rewards, points, or unpriced optionality should not support the core of the mandate.
+As a working benchmark, flagship construction should target mostly organic yield from lending carry, fixed-rate carry, and other economically legible sources. Incentives may contribute to return, but only as supplemental income. They should be haircut when realization is uncertain. Speculative rewards, points, or unpriced optionality should not support the core mandate.
 
 Flagship risk should be evaluated across the full stack:
 
@@ -36,13 +38,13 @@ Flagship risk should be evaluated across the full stack:
 
 ## Strategy architecture
 
-Flagship construction uses three sleeves. They are risk buckets, not product categories.
+Flagship construction uses three sleeves. These are risk buckets, not product categories.
 
 ### Anchor sleeve
 
 The anchor sleeve is the default home for capital. It holds the exposures that define the mandate.
 
-Anchor capital belongs in battle-tested venues with strong monitoring, durable liquidity, and simple exit mechanics. It is the part of the book that should remain understandable and defensible even under stress.
+Anchor capital belongs in battle-tested venues with strong monitoring, durable liquidity, and simple exit mechanics. This sleeve should remain understandable and defensible under stress.
 
 Only the following qualify for the anchor sleeve:
 
@@ -53,17 +55,17 @@ Only the following qualify for the anchor sleeve:
 
 *These named Morpho curators reflect Superform's flagship example policy, not a universal statement of curator quality across all mandates or market conditions.*
 
-Nothing else qualifies as anchor. If an exposure sits outside that set, it is not core by definition.
+Nothing else qualifies as anchor. If an exposure sits outside that set, it is not core.
 
 ### Tactical sleeve
 
 The tactical sleeve exists to improve portfolio yield without changing the character of the mandate.
 
-Tactical is earned, capped, and removable. It is additive, not load-bearing.
+Tactical capital is earned, capped, and removable. It is additive, not load-bearing.
 
-Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
+Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they meet the same flagship eligibility standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
 
-If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend in size, it should be removed.
+If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, it should be removed.
 
 ### PT sleeve
 
@@ -71,7 +73,7 @@ The PT sleeve is tolerated, not relied on.
 
 Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
 
-PT can improve carry. It should not determine whether the mandate still feels liquid, understandable, or defensible under pressure.
+PT can improve carry. It should not determine whether the mandate remains liquid, understandable, or defensible under pressure.
 
 ## Portfolio construction principles
 
@@ -84,11 +86,11 @@ Flagship construction should follow a small set of hard principles:
 - maintain liquidity as a live operating constraint
 - reduce complexity before stretching for marginal yield
 
-Flagship is not built to win a weekly APY table. It is built to compound through changing market conditions while preserving withdrawal confidence and underwriting discipline.
+The mandate is not built to top a weekly APY table. It is built to compound through changing conditions while preserving withdrawal confidence and underwriting discipline.
 
 ## Eligible venues and flagship standard
 
-An exposure is only eligible for flagship capital if it clears a higher bar than simple yield attractiveness.
+An exposure is eligible for flagship capital only if it clears a higher bar than simple yield attractiveness.
 
 Monitoring, simulation, and exit clarity are hard requirements.
 
@@ -168,7 +170,7 @@ These are construction limits, not suggestions.
 
 ## Reward treatment
 
-Displayed yield and underwritten yield are not the same thing.
+Displayed yield and underwritten yield are not the same.
 
 Flagship reporting should distinguish among:
 
@@ -180,7 +182,7 @@ Flagship reporting should distinguish among:
 
 In practice, that usually means a **20% to 80% haircut**, and in many cases the correct value is **zero**.
 
-Rewards only matter to flagship construction if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
+Rewards matter only if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
 
 ## Operating controls
 
@@ -236,8 +238,8 @@ By design, this flagship mandate excludes:
 
 ## Bottom line
 
-A flagship SuperVault should feel conservative in structure even when it is efficient in yield.
+A flagship SuperVault should be conservative in structure even when efficient in yield.
 
-The core belongs in the anchor sleeve. Tactical exists to improve the book without redefining it. PT is allowed, but capped and watched. Liquidity is managed as a live policy, not a loose aspiration.
+The core belongs in the anchor sleeve. Tactical exists to improve the book without redefining it. PT is allowed, but capped and monitored. Liquidity is managed as a live constraint, not a loose aspiration.
 
 If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the flagship mandate.

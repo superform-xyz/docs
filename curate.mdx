@@ -1,9 +1,9 @@
 ---
 title: "Introduction"
-description: "Technical reference for institutions curating SuperVaults: vault operations, strategy automation, API integration, and risk management."
+description: "Technical reference for institutions curating SuperVaults: vault operations, strategy automation, governance, and risk management."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, configure onchain permissions through merkle-verified hook authorization, and monitor vault health across a ~107-endpoint API surface spanning three backend services.
+SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, configure onchain permissions through merkle-verified hook authorization, and monitor vault health across the full vault lifecycle.
 
 This documentation covers everything an institution needs to operate a SuperVault: from initial vault creation and yield source whitelisting through strategy automation via the DeFiX v0.1 intent protocol.
 
@@ -26,9 +26,6 @@ The contracts are open-source and audited. Anyone can interact with them directl
   <Card title="Merkle Authorization" icon="shield-halved" href="/curate/ui/merkle-trees">
     Whitelist exactly which hooks can be called with which parameters. Each authorized combination becomes a merkle tree leaf verified onchain before execution.
   </Card>
-  <Card title="Full API Access" icon="code" href="/curate/api/overview">
-    ~107 endpoints across three services. Programmatic control over every operation the UI exposes, plus analytics, audit logs, and admin utilities.
-  </Card>
 </CardGroup>
 
 ## Documentation Structure
@@ -47,7 +44,7 @@ The contracts are open-source and audited. Anyone can interact with them directl
     Build programmatic institutional workflows: monitoring loops, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
   </Step>
   <Step title="References">
-    API reference, operating parameters, and the flagship policy example for curators running SuperVaults. [Read more →](/curate/flagship-investment-policy)
+    Flagship investment policy reference for curators running SuperVaults. [Read more →](/curate/flagship-investment-policy)
   </Step>
 </Steps>
 

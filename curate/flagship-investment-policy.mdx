@@ -5,29 +5,23 @@ description: "Flagship SuperVault construction standard covering mandate design,
 
 ## Overview
 
-This policy defines the construction standard for a flagship SuperVault.
+This policy sets the construction standard for a flagship SuperVault.
 
-This flagship mandate is designed to generate durable onchain yield while preserving liquidity and controlling downside. Capital should be allocated only to exposures that can be monitored continuously, understood clearly, and exited in stressed conditions. The portfolio is optimized for resilience first and yield second.
+The mandate is simple. Preserve capital. Preserve redemption reliability. Earn durable onchain yield. In that order.
 
 This is not a yield leaderboard, strategy sandbox, or curator playground.
 
-The order is fixed. Survivability first. Liquidity second. Optimization third.
+Every position must be defensible before entry, monitorable while live, and exitable under stress. If it fails that test, it does not belong in flagship capital, regardless of quoted APY, incentive support, or recent performance.
 
-Every position must be defensible before entry, monitorable while live, and exitable under pressure. If that standard fails, the position does not belong in flagship capital, regardless of quoted APY, incentive support, or recent performance.
-
-Flagship construction should favor durable, realizable onchain yield from exposures with clear risk, clear monitoring, and credible exit paths. It should not depend on peak APY chasing, aggressive incentive marks, or complexity that cannot be explained and managed at size.
-
-This page sets out Superform's example flagship policy. Curators may adapt it to their own mandates, but the construction standard should remain conservative, explicit, and enforceable.
+This page sets out Superform's example flagship policy. Curators may adapt it, but the standard should remain conservative, explicit, and enforceable.
 
 ## Investment objective and risk profile
 
-The objective of a flagship mandate is repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization.
+The objective is repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization.
 
-This is a conservative onchain mandate. Most capital should remain in exposures with durable economics, clear monitoring, and credible withdrawal paths. Yield matters. Loss control matters more.
+Most capital should remain in exposures with durable economics, clear monitoring, and credible withdrawal paths. Organic yield from lending carry, fixed-rate carry, and similar legible sources should anchor the book. Incentives may contribute, but only as supplemental income. Speculative rewards, points, and unpriced optionality do not support the core mandate.
 
-As a working benchmark, flagship construction should target mostly organic yield from lending carry, fixed-rate carry, and other economically legible sources. Incentives may contribute to return, but only as supplemental income. They should be haircut when realization is uncertain. Speculative rewards, points, or unpriced optionality should not support the core mandate.
-
-Flagship risk should be evaluated across the full stack:
+Risk must be underwritten across the full stack:
 
 - smart contract quality
 - oracle design and price-source dependence
@@ -44,9 +38,9 @@ Flagship construction uses three sleeves. These are risk buckets, not product ca
 
 The anchor sleeve is the default home for capital. It holds the exposures that define the mandate.
 
-Anchor capital belongs in battle-tested venues with strong monitoring, durable liquidity, and simple exit mechanics. This sleeve should remain understandable and defensible under stress.
+Anchor capital belongs in battle-tested venues with strong monitoring, durable liquidity, and simple exit mechanics.
 
-Only the following qualify for the anchor sleeve:
+Only the following qualify for anchor:
 
 - Aave
 - Morpho vaults curated by Gauntlet
@@ -55,7 +49,7 @@ Only the following qualify for the anchor sleeve:
 
 *These named Morpho curators reflect Superform's flagship example policy, not a universal statement of curator quality across all mandates or market conditions.*
 
-Nothing else qualifies as anchor. If an exposure sits outside that set, it is not core.
+Nothing else qualifies as anchor.
 
 ### Tactical sleeve
 
@@ -63,9 +57,9 @@ The tactical sleeve exists to improve portfolio yield without changing the chara
 
 Tactical capital is earned, capped, and removable. It is additive, not load-bearing.
 
-Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter the mandate only if they meet the same flagship eligibility standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
+Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter only if they meet the same flagship standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
 
-If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, it should be removed.
+If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, remove it.
 
 ### PT sleeve
 
@@ -73,11 +67,23 @@ The PT sleeve is tolerated, not relied on.
 
 Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
 
-PT can improve carry. It should not determine whether the mandate remains liquid, understandable, or defensible under pressure.
+PT can improve carry. It must not determine whether the mandate remains liquid, understandable, or defensible under pressure.
+
+## Flagship standard and eligible venues
+
+An exposure is flagship-eligible only if it can be monitored, simulated, and exited with confidence. If any of those fail, the exposure is not eligible.
+
+In practice, flagship-eligible exposure should usually come from reputable, audited protocols with meaningful production history and operating scale. Morpho markets are the clearest example. Comparable venues can qualify only if they meet the same standard for smart contract quality, governance quality, oracle design, liquidity, and live monitoring.
+
+| Sleeve | Eligible exposure set | Policy treatment |
+| --- | --- | --- |
+| Anchor sleeve | Aave, Morpho vaults curated by Gauntlet, Steakhouse, and Karpatkey | Core allocation sleeve |
+| Tactical sleeve | Fluid, Gearbox, and other non-anchor exposures that satisfy the flagship standard | Additive yield sleeve, not load-bearing |
+| PT sleeve | Vanilla PT exposure | Capped satellite sleeve |
 
 ## Portfolio construction principles
 
-Flagship construction should follow a small set of hard principles:
+Apply these rules at all times:
 
 - keep the core in anchor exposures
 - size tactical risk deliberately and below hard caps
@@ -86,33 +92,9 @@ Flagship construction should follow a small set of hard principles:
 - maintain liquidity as a live operating constraint
 - reduce complexity before stretching for marginal yield
 
-The mandate is not built to top a weekly APY table. It is built to compound through changing conditions while preserving withdrawal confidence and underwriting discipline.
-
-## Eligible venues and flagship standard
-
-An exposure is eligible for flagship capital only if it clears a higher bar than simple yield attractiveness.
-
-Monitoring, simulation, and exit clarity are hard requirements.
-
-Before sizing a position, the curator should be able to:
-
-1. observe it properly
-2. understand how it behaves through scenario analysis
-3. describe a credible exit path
-
-If any of those fail, the exposure is not flagship-eligible.
-
-In practice, flagship-eligible exposure should usually come from reputable, audited protocols with meaningful production history and operating scale. Morpho markets are the clearest flagship example. Comparable venues can qualify, but only if they meet the same standard for smart contract quality, governance quality, oracle design, liquidity, and live monitoring.
-
-| Sleeve | Eligible exposure set | Policy treatment |
-| --- | --- | --- |
-| Anchor sleeve | Aave, Morpho vaults curated by Gauntlet, Steakhouse, and Karpatkey | Core allocation sleeve |
-| Tactical sleeve | Fluid, Gearbox, and other non-anchor exposures that satisfy the flagship standard | Additive yield sleeve, not load-bearing |
-| PT sleeve | Vanilla PT exposure | Capped satellite sleeve |
+The mandate is built to compound through changing conditions while preserving withdrawal confidence and underwriting discipline.
 
 ## Allowed actions
-
-The action surface should be explicit.
 
 Within this policy, the curator may:
 
@@ -147,9 +129,9 @@ Every position should be tagged by current liquidity state.
 | Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |
 | Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | Hard cap 20% |
 
-A flagship mandate should maintain a meaningful instant redemption buffer and keep weighted average withdrawal latency short under normal conditions. If conditions deteriorate, reduce tactical and PT first. Restore liquidity before reaching for additional yield.
+Maintain a meaningful instant redemption buffer and keep weighted average withdrawal latency short under normal conditions. If conditions deteriorate, cut tactical and PT first. Restore liquidity before reaching for yield.
 
-Flagship policy should never imply guaranteed instant redemption in all market states. It should state the liquidity profile the mandate is built to support, the stressed conditions that can delay exits, and the actions the curator is authorized to take when prompt withdrawals come under pressure.
+This policy does not promise instant redemption in all market states. It states the liquidity profile the mandate is built to support, the stressed conditions that can delay exits, and the actions the curator is authorized to take when prompt withdrawals come under pressure.
 
 ## Portfolio limits
 
@@ -182,7 +164,7 @@ Flagship reporting should distinguish among:
 
 In practice, that usually means a **20% to 80% haircut**, and in many cases the correct value is **zero**.
 
-Rewards matter only if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
+Rewards count only if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
 
 ## Operating controls
 
@@ -238,8 +220,8 @@ By design, this flagship mandate excludes:
 
 ## Bottom line
 
-A flagship SuperVault should be conservative in structure even when efficient in yield.
+A flagship SuperVault should be conservative in structure and disciplined in yield capture.
 
-The core belongs in the anchor sleeve. Tactical exists to improve the book without redefining it. PT is allowed, but capped and monitored. Liquidity is managed as a live constraint, not a loose aspiration.
+The core belongs in anchor. Tactical improves the book without redefining it. PT is allowed, but capped and monitored. Liquidity is a live constraint.
 
 If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the flagship mandate.

@@ -168,11 +168,7 @@
           {
             "group": "References",
             "pages": [
-              "curate/flagship-investment-policy",
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms"
+              "curate/flagship-investment-policy"
             ]
           }
         ]

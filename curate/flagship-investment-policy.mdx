@@ -1,0 +1,162 @@
+---
+title: "Flagship Investment Policy"
+description: "A docs-native example mandate for flagship SuperVault construction, risk limits, liquidity policy, and yield underwriting."
+---
+
+This page outlines an example flagship mandate for curators running SuperVaults on Superform.
+
+The goal is not to maximize quoted APY in any single week. The goal is to compound durable, realizable onchain yield from exposures that can be sized, monitored, explained, and exited under pressure.
+
+Use this framework as a model for conservative flagship construction, then adapt limits and workflows to your own mandate.
+
+## Scope
+
+This example policy applies to flagship SuperUSDC and SuperWETH mandates on Ethereum and Base.
+
+Each chain is managed independently. There is no cross-chain allocation inside a flagship mandate, no reliance on cross-chain liquidity, and no blended construction across chains.
+
+## Portfolio construction
+
+Flagship construction starts from a simple principle: most capital should sit in exposures with legible risk, repeatable monitoring, and well-understood exit paths.
+
+Higher-yielding sleeves can exist, but only around that core and only inside hard limits.
+
+The portfolio is divided into three sleeves.
+
+### Anchor
+
+Anchor is the core sleeve for flagship capital. Anchor is a risk label, not a liquidity guarantee.
+
+Only the following qualify as anchor:
+
+- Aave
+- Morpho vaults curated by Gauntlet
+- Morpho vaults curated by Steakhouse
+- Morpho vaults curated by Karpatkey
+
+Nothing else qualifies as anchor. If an exposure sits outside that set, it is not core by definition.
+
+### Tactical
+
+The tactical sleeve exists to improve portfolio yield where the opportunity is understandable, measurable, and reducible.
+
+Clearstar and Hyperithm are tactical examples. Other non-anchor exposures may enter the mandate only if they satisfy the same flagship eligibility standard, but they do not become anchor by behaving well for a period of time.
+
+Tactical is additive, not load-bearing. If a position materially complicates monitoring, weakens exit confidence, or becomes difficult to defend in size, it does not belong here.
+
+### PT
+
+PT exposure is permitted, but only as a capped satellite sleeve.
+
+Vanilla PT is allowed but capped. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
+
+PT can improve carry, but it should not become the dominant driver of flagship yield or the part of the book that determines whether the mandate still feels liquid.
+
+## Eligibility standard
+
+An exposure is only eligible for flagship capital if it clears a higher bar than simple yield attractiveness.
+
+Monitoring, simulation, and exit clarity are hard requirements.
+
+Before sizing a position, the curator should be able to:
+
+1. Observe it properly
+2. Understand how it behaves through scenario analysis
+3. Describe a credible exit path
+
+If any of those fail, the exposure is not flagship-eligible.
+
+## Liquidity policy
+
+Sleeve classification and liquidity classification are separate. A position can sit in the anchor sleeve and still not offer prompt liquidity.
+
+Every position should be tagged by current liquidity state.
+
+### Idle liquidity
+
+Idle liquidity is free assets sitting idle.
+
+**Minimum:** 50 bps of total vault assets at all times.
+
+### Warm liquidity
+
+Warm liquidity is capital that can be withdrawn with action, with high confidence that access is available in the near term.
+
+**Minimum:** 10%.
+
+### Portfolio target
+
+The combined **idle + warm** liquidity target is **60% to 80%**.
+
+### Lukewarm liquidity
+
+Lukewarm liquidity is withdrawable, but likely requires waiting for market conditions or other users unwinding.
+
+### Term liquidity
+
+Term liquidity is capital that is week-scale, or likely to require weeks to make liquid.
+
+**Hard cap:** 20%.
+
+If liquidity compresses, reduce tactical and PT first.
+
+## Hard portfolio limits
+
+These caps apply at all times within each flagship mandate:
+
+- **Max per market:** 20%
+- **Max per curator:** 50%
+- **Max per smaller unique collateral asset:** 10%
+- **Tactical sleeve hard cap:** 20%
+- **PT sleeve hard cap:** 20%
+- **PT sleeve target:** 10%
+- **Term liquidity hard cap:** 20%
+
+These are construction limits, not suggestions.
+
+## Yield underwriting
+
+Displayed yield and underwritten yield are not the same thing.
+
+**MORPHO rewards count at par.** All other rewards should be haircut based on realizable liquidity and execution certainty.
+
+In practice, that usually means **20% to 80% haircuts**, and in many cases the correct value is **zero**.
+
+Rewards only matter to flagship construction if they can be harvested, monetized, and defended as real return.
+
+## Operating standard
+
+This mandate assumes active portfolio control. It is not a passive basket.
+
+Curators should continuously monitor:
+
+- liquidity condition
+- reward composition
+- rate drift
+- concentration by market, curator, and collateral type
+
+At any point, the curator should be able to explain:
+
+- how a position exits
+- what the likely frictions are
+- what has to go right for current yield to be realized
+
+If monitoring quality deteriorates, simulation stops being decision-useful, or exit mechanics become unclear, the position has failed the flagship standard even if headline APY still looks attractive.
+
+## Explicit exclusions
+
+By design, this flagship mandate excludes:
+
+- cross-chain allocation inside a flagship mandate
+- any anchor designation beyond Aave and Morpho curators Gauntlet, Steakhouse, and Karpatkey
+- bespoke or synthetic PT as core allocation
+- exposures whose reward economics rely on aggressive valuation of illiquid incentives
+- exposures without clear monitoring, simulation, and exit discipline
+
+## Bottom line
+
+A flagship SuperVault should feel conservative in structure even when it is efficient in yield.
+
+The core belongs in anchor. Tactical belongs in a controlled satellite sleeve. PT is allowed, but capped and watched. Liquidity is managed as a live constraint, not a marketing phrase.
+
+If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the flagship mandate.

@@ -107,7 +107,8 @@
             "root": "curate",
             "pages": [
               "curate",
-              "curate/concepts"
+              "curate/concepts",
+              "curate/flagship-investment-policy"
             ]
           },
           {
@@ -158,20 +159,20 @@
             ]
           },
           {
-            "group": "API Reference",
-            "pages": [
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms"
-            ]
-          },
-          {
             "group": "Automation",
             "pages": [
               "curate/automation/overview",
               "curate/automation/monitoring",
               "curate/automation/webhooks"
+            ]
+          },
+          {
+            "group": "References",
+            "pages": [
+              "curate/api/overview",
+              "curate/api/erebor",
+              "curate/api/strategy",
+              "curate/api/oms"
             ]
           }
         ]

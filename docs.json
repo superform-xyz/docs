@@ -158,20 +158,21 @@
             ]
           },
           {
-            "group": "API Reference",
-            "pages": [
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms"
-            ]
-          },
-          {
             "group": "Automation",
             "pages": [
               "curate/automation/overview",
               "curate/automation/monitoring",
               "curate/automation/webhooks"
+            ]
+          },
+          {
+            "group": "References",
+            "pages": [
+              "curate/flagship-investment-policy",
+              "curate/api/overview",
+              "curate/api/erebor",
+              "curate/api/strategy",
+              "curate/api/oms"
             ]
           }
         ]

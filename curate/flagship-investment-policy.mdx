@@ -5,15 +5,11 @@ description: "Flagship SuperVault construction standard covering mandate design,
 
 ## Overview
 
-This policy sets the construction standard for a flagship SuperVault.
+This policy sets the construction standard for a flagship SuperVault. The mandate is to preserve capital, preserve redemption reliability, and earn durable onchain yield, in that order. It is intended for flagship capital, not for experimental strategies, opportunistic yield chasing, or discretionary style drift.
 
-The mandate is simple. Preserve capital. Preserve redemption reliability. Earn durable onchain yield. In that order.
+Every position included in the mandate should be defensible before entry, monitorable while live, and exitable under stress. If an exposure cannot satisfy those requirements, it does not belong in the portfolio, regardless of quoted APY, incentive support, or recent performance.
 
-This is not a yield leaderboard, strategy sandbox, or curator playground.
-
-Every position must be defensible before entry, monitorable while live, and exitable under stress. If it fails that test, it does not belong in flagship capital, regardless of quoted APY, incentive support, or recent performance.
-
-This page sets out Superform's example flagship policy. Curators may adapt it, but the standard should remain conservative, explicit, and enforceable.
+This page sets out Superform's example flagship policy. Curators may adapt it to their mandate, but the governing standard should remain conservative, explicit, and enforceable.
 
 ## Investment objective and risk profile
 
@@ -63,7 +59,7 @@ If a position weakens monitoring quality, complicates withdrawals, or becomes di
 
 ### PT sleeve
 
-The PT sleeve is tolerated, not relied on.
+The PT sleeve is permitted as a limited satellite allocation and should not be relied on to support the mandate.
 
 Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
 
@@ -139,14 +135,14 @@ These caps apply at all times within each flagship mandate:
 
 | Constraint | Limit | Notes |
 | --- | --- | --- |
+| Tactical sleeve hard cap | 20% | Tactical sleeve is additive, not core |
+| PT sleeve target | 10% | Target allocation, not required utilization |
+| PT sleeve hard cap | 20% | PT sleeve must remain capped |
+| Term liquidity hard cap | 20% | Liquidity policy overrides yield chasing |
 | Max per market | 20% | Applies regardless of sleeve |
-| Max per curator | 50% | Concentration control across the full mandate |
 | Max per smaller unique collateral asset | 10% | Applies even inside otherwise eligible venues |
 | Max per protocol or counterparty | 35% | Aggregate exposure cap across the full mandate |
-| Tactical sleeve hard cap | 20% | Tactical sleeve is additive, not core |
-| PT sleeve hard cap | 20% | PT sleeve must remain capped |
-| PT sleeve target | 10% | Target allocation, not required utilization |
-| Term liquidity hard cap | 20% | Liquidity policy overrides yield chasing |
+| Max per curator | 50% | Concentration control across the full mandate |
 
 These are construction limits, not suggestions.
 
@@ -160,9 +156,9 @@ Flagship reporting should distinguish among:
 - incentivized yield that depends on token emissions or temporary programs
 - speculative upside such as points or uncertain future distributions
 
-**MORPHO rewards may be counted at par when liquidity, execution path, and realization history support that treatment.** Otherwise, they should be haircut like other rewards based on realizable liquidity and execution certainty.
+Morpho rewards may be counted at par when liquidity, execution path, and realization history support that treatment. Otherwise, they should be haircut like other rewards based on realizable liquidity and execution certainty.
 
-In practice, that usually means a **20% to 80% haircut**, and in many cases the correct value is **zero**.
+In practice, that usually means a 20% to 80% haircut, and in many cases the correct value is zero.
 
 Rewards count only if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
 
@@ -222,6 +218,6 @@ By design, this flagship mandate excludes:
 
 A flagship SuperVault should be conservative in structure and disciplined in yield capture.
 
-The core belongs in anchor. Tactical improves the book without redefining it. PT is allowed, but capped and monitored. Liquidity is a live constraint.
+The core belongs in the anchor sleeve. Tactical allocation may improve portfolio yield without redefining the mandate. PT is permitted, but it should remain capped and actively monitored. Liquidity remains a live operating constraint.
 
 If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the flagship mandate.

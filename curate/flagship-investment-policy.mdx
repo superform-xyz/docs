@@ -69,7 +69,7 @@ Nothing else qualifies as anchor.
 
 ##### Anchor qualification and disqualification
 
-An anchor venue has to satisfy all of the following on an ongoing basis:
+**To qualify for anchor treatment,** a venue has to satisfy all of the following on an ongoing basis:
 
 - contract, market, and operational risks remain within Superform's flagship underwriting standard
 - oracle inputs remain observable, bounded, and robust to stale, manipulated, or thin-market pricing
@@ -77,7 +77,7 @@ An anchor venue has to satisfy all of the following on an ongoing basis:
 - collateral composition and correlated exposure remain within concentration limits and do not create a single shared failure mode across the sleeve
 - withdrawal mechanics remain reliable enough for anchor sizing
 
-An anchor venue must be removed from anchor treatment, and may remain only as tactical if still otherwise eligible, when any of the following occurs:
+**To be removed from anchor treatment,** and remain only as tactical if still otherwise eligible, any of the following is sufficient:
 
 - a material contract, oracle, governance, or market-structure change invalidates prior underwriting
 - a change in collateral mix materially increases correlation, tail-risk concentration, or wrong-way exposure
@@ -152,9 +152,9 @@ These are construction limits, not suggestions.
 
 In addition to the portfolio limits above, Superform applies the following controls:
 
-- **Oracle control:** a position must use price sources and update mechanics that Superform can observe and explain. If valuation depends on opaque, stale, thin-market, or governance-adjustable inputs that cannot be monitored in practice, the position is not flagship-eligible.
-- **Governance control:** a position must have governance, admin, and upgrade surfaces that Superform can map and monitor. If a single governance action can materially alter collateral rules, liquidation behavior, withdrawal access, or oracle configuration without adequate notice or response time, sizing must reflect that risk or the position must be excluded.
-- **Correlation control:** anchor and tactical sizing must account for correlated collateral, shared oracle dependencies, shared governance surfaces, and shared liquidation regimes. Separate wrappers or venues do not count as diversification when failure modes are materially the same.
+- **Oracle control:** A position must use price sources and update mechanics that Superform can observe and explain. If valuation depends on opaque, stale, thin-market, or governance-adjustable inputs that cannot be monitored in practice, the position is not flagship-eligible.
+- **Governance control:** A position must have governance, admin, and upgrade surfaces that Superform can map and monitor. If a single governance action can materially alter collateral rules, liquidation behavior, withdrawal access, or oracle configuration without adequate notice or response time, sizing must reflect that risk or the position must be excluded.
+- **Correlation control:** Anchor and tactical sizing must account for correlated collateral, shared oracle dependencies, shared governance surfaces, and shared liquidation regimes. Separate wrappers or venues do not count as diversification when failure modes are materially the same.
 
 ## Operating Rules
 
@@ -220,14 +220,14 @@ If monitoring quality deteriorates, simulation stops being decision-useful, or e
 
 ### Amendment rules
 
-Formal amendment is required for:
+**Formal amendment is required for:**
 
 - adding a new venue to the policy
 - changing the definition of the anchor sleeve or tactical sleeve
 - changing the scope of assets or chains in policy scope
 - changing hard caps, sleeve targets, or liquidity limits
 
-Formal amendment is not required for:
+**Formal amendment is not required for:**
 
 - adding new PT positions within the PT sleeve
 - changing reward treatment or haircut methodology

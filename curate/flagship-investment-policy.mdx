@@ -5,9 +5,9 @@ description: "Superform's Flagship SuperVault policy covering portfolio construc
 
 ## Overview
 
-Flagship SuperVaults are run to preserve capital, preserve redemption reliability, and earn durable onchain yield, in that order. They are built for Flagship capital, not for experimental strategies, opportunistic yield chasing, or discretionary style drift.
+Flagship SuperVaults are managed to preserve capital, preserve redemption reliability, and earn onchain yield, in that order. They are built for Flagship capital, not for experimental strategies, opportunistic yield chasing, or discretionary style drift.
 
-Every position included in the policy should be defensible before entry, monitorable while live, and exitable under stress. If an exposure cannot satisfy those requirements, it does not belong in the portfolio, regardless of quoted APY, incentive support, or recent performance.
+Every position included in the policy MUST be defensible before entry, monitorable while live, and exitable under stress. If an exposure cannot satisfy those requirements, it does not belong in the portfolio, regardless of quoted APY, incentive support, or recent performance.
 
 The governing standard remains conservative, explicit, and enforceable.
 
@@ -15,22 +15,23 @@ The governing standard remains conservative, explicit, and enforceable.
 
 The objective is repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization.
 
-Most capital should remain in exposures with durable economics, clear monitoring, and credible withdrawal paths. Organic yield from lending carry, fixed-rate carry, and similar legible sources should anchor the book. Incentives may contribute, but only as supplemental income. Speculative rewards, points, and unpriced optionality do not support the core policy.
+Most capital SHOULD remain in exposures with durable economics, clear monitoring, and credible withdrawal paths. Organic yield from lending carry, fixed-rate carry, and similar legible sources SHOULD anchor the book. Incentives MAY contribute, but only as supplemental income. Speculative rewards, points, and unpriced optionality do not support the core policy.
 
-Risk must be underwritten across the full stack:
+Risk MUST be underwritten across the full stack:
 
 - smart contract quality
 - oracle design and price-source dependence
 - governance and parameter risk
 - liquidity depth and withdrawal mechanics
 - concentration by protocol, curator, market, and collateral type
+- collateral correlation and shared failure modes
 - chain-level dependence and operational complexity
 
 ### Bottom line
 
-A Flagship SuperVault should be conservative in structure and disciplined in yield capture.
+A Flagship SuperVault MUST be conservative in structure and disciplined in yield capture.
 
-The core belongs in the anchor sleeve. Tactical allocation may improve portfolio yield without redefining the portfolio. PT is permitted, but it should remain capped and actively monitored. Liquidity remains a live operating constraint.
+The core belongs in the anchor sleeve. Tactical allocation MAY improve portfolio yield without redefining the portfolio. PT is permitted, but it MUST remain capped and actively monitored. Liquidity remains a live operating constraint.
 
 If an allocation cannot be monitored, simulated, and exited with confidence, it does not belong in the Flagship policy.
 
@@ -57,18 +58,32 @@ Flagship construction uses three sleeves. These are risk buckets, not product ca
 
 The anchor sleeve is the default home for capital. It holds the exposures that define the Flagship policy.
 
-Anchor capital belongs in battle-tested venues with strong monitoring, durable liquidity, and simple exit mechanics.
+Anchor capital belongs in venues with established production history, live monitoring, durable liquidity, and simple exit mechanics.
 
 Only the following qualify for anchor:
 
 - Aave
-- Morpho vaults curated by Gauntlet
-- Morpho vaults curated by Steakhouse
-- Morpho vaults curated by Karpatkey
-
-*These named Morpho curators reflect Superform's current Flagship policy, not a universal statement of curator quality across all market conditions.*
+- Morpho vaults that satisfy Superform's current anchor underwriting standard
 
 Nothing else qualifies as anchor.
+
+##### Anchor qualification and disqualification
+
+An anchor venue MUST satisfy all of the following on an ongoing basis:
+
+- contract, market, and operational risks remain within Superform's Flagship underwriting standard
+- oracle inputs remain observable, bounded, and robust to stale, manipulated, or thin-market pricing
+- governance rights, upgrade paths, and parameter controls remain legible and acceptable for Flagship capital
+- collateral composition and correlated exposure remain within concentration limits and do not create a single shared failure mode across the sleeve
+- withdrawal mechanics remain reliable enough for anchor sizing
+
+An anchor venue MUST be removed from anchor treatment, and MAY remain only as tactical if still otherwise eligible, when any of the following occurs:
+
+- a material contract, oracle, governance, or market-structure change invalidates prior underwriting
+- a change in collateral mix materially increases correlation, tail-risk concentration, or wrong-way exposure
+- withdrawals become gated, impaired, or operationally uncertain beyond normal market friction
+- monitoring becomes insufficient to explain current risk, valuation inputs, or exit mechanics at decision speed
+- a security incident, emergency action, or governance intervention changes the venue's risk profile before a formal policy amendment restores anchor eligibility
 
 #### Tactical sleeve
 
@@ -76,27 +91,27 @@ The tactical sleeve exists to improve portfolio yield without changing the chara
 
 Tactical capital is earned, capped, and removable. It is additive, not load-bearing.
 
-Fluid and Gearbox are the reference tactical venues in this policy. Other non-anchor exposures may enter only if they meet the same Flagship standard, including reputable audits, sufficient production history, clear oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
+Fluid and Gearbox are reference tactical venues in this policy. Other non-anchor exposures MAY enter only if they meet the same Flagship standard, including documented audits, sufficient production history, explicit oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor.
 
-If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, remove it.
+If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, it SHOULD be removed.
 
 #### PT sleeve
 
-The PT sleeve is permitted as a limited satellite allocation and should not be relied on to support the core portfolio.
+The PT sleeve is permitted as a limited satellite allocation and MUST NOT be relied on to support the core portfolio.
 
-Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is tactical only and must never be treated as core exposure.
+Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is tactical only and MUST NEVER be treated as core exposure.
 
-PT can improve carry. It must not determine whether the portfolio remains liquid, understandable, or defensible under pressure.
+PT can improve carry. It MUST NOT determine whether the portfolio remains liquid, understandable, or defensible under stress.
 
 ### Flagship standard and eligible exposures
 
 An exposure is Flagship-eligible only if it can be monitored, simulated, and exited with confidence. If any of those fail, the exposure is not eligible.
 
-In practice, Flagship-eligible exposure should usually come from reputable, audited protocols with meaningful production history and operating scale. Morpho markets are the clearest example. Comparable venues can qualify only if they meet the same standard for smart contract quality, governance quality, oracle design, liquidity, and live monitoring. That standard applies to Superform's Flagship product category, while other products may be institutional or partner-specific.
+In practice, Flagship-eligible exposure SHOULD usually come from audited protocols with meaningful production history and operating scale. Morpho markets are the clearest example. Comparable venues MAY qualify only if they meet the same standard for smart contract quality, governance quality, oracle design, correlation management, liquidity, and live monitoring. That standard applies to Superform's Flagship product category, while other products may be institutional or partner-specific.
 
 | Sleeve | Eligible exposure set | Policy treatment |
 | --- | --- | --- |
-| Anchor sleeve | Aave, Morpho vaults curated by Gauntlet, Steakhouse, and Karpatkey | Core allocation sleeve |
+| Anchor sleeve | Aave and Morpho vaults that satisfy Superform's anchor underwriting standard | Core allocation sleeve |
 | Tactical sleeve | Fluid, Gearbox, and other non-anchor exposures that satisfy the Flagship standard | Additive yield sleeve, not load-bearing |
 | PT sleeve | Vanilla PT exposure | Capped satellite sleeve |
 
@@ -104,7 +119,7 @@ In practice, Flagship-eligible exposure should usually come from reputable, audi
 
 Sleeve classification and liquidity classification are separate. A position can sit in the anchor sleeve and still fail prompt liquidity standards.
 
-Every position should be tagged by current liquidity state.
+Every position MUST be tagged by current liquidity state.
 
 | Liquidity state | Definition | Constraint |
 | --- | --- | --- |
@@ -114,7 +129,7 @@ Every position should be tagged by current liquidity state.
 | Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |
 | Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | Hard cap 20% |
 
-Maintain a meaningful instant redemption buffer and keep weighted average withdrawal latency short under normal conditions. If conditions deteriorate, cut tactical and PT first. Restore liquidity before reaching for yield.
+Superform MUST maintain an instant redemption buffer and keep weighted average withdrawal latency short under normal conditions. If conditions deteriorate, Superform MUST cut tactical and PT first. Superform SHOULD restore liquidity before reaching for yield.
 
 This policy does not promise instant redemption in all market states. It states the liquidity profile Flagship SuperVaults are built to support, the stressed conditions that can delay exits, and the actions available when prompt withdrawals come under pressure.
 
@@ -133,13 +148,21 @@ These caps apply at all times within each Flagship SuperVault:
 
 These are construction limits, not suggestions.
 
+### Risk controls
+
+In addition to the portfolio limits above, Superform MUST apply the following controls:
+
+- **Oracle control:** a position MUST use price sources and update mechanics that Superform can observe and explain. If valuation depends on opaque, stale, thin-market, or governance-adjustable inputs that cannot be monitored in practice, the position is not Flagship-eligible.
+- **Governance control:** a position MUST have governance, admin, and upgrade surfaces that Superform can map and monitor. If a single governance action can materially alter collateral rules, liquidation behavior, withdrawal access, or oracle configuration without adequate notice or response time, sizing MUST reflect that risk or the position MUST be excluded.
+- **Correlation control:** anchor and tactical sizing MUST account for correlated collateral, shared oracle dependencies, shared governance surfaces, and shared liquidation regimes. Separate wrappers or venues do not count as diversification when failure modes are materially the same.
+
 ## Operating Rules
 
 This policy assumes active portfolio control. It is not a passive basket.
 
 ### Allowed actions
 
-Within this policy, Superform may:
+Within this policy, Superform MAY:
 
 - allocate and rebalance across approved sleeves and eligible venues
 - enter and exit approved positions
@@ -150,47 +173,46 @@ Within this policy, Superform may:
 - realize rewards through approved swap paths, including standard routing venues such as DEX aggregators or routers used for execution quality
 - hold temporary idle balances as part of normal liquidity management
 
-Superform may not:
+Superform MAY NOT:
 
 - introduce cross-chain allocation within a Flagship SuperVault
 - add a new venue without a formal amendment
 - treat bespoke or synthetic PT as core exposure
-- rely on illiquid incentive marks as if they were fully realizable yield
-- use unmodeled or weakly monitored exposures simply because they screen well on APY
+- rely on incentive marks as if they were fully realizable yield
+- use unmodeled or weakly monitored exposures because they screen well on APY
 
 ### Reward treatment
 
 Displayed yield and underwritten yield are not the same.
 
-Flagship reporting should distinguish among:
+Flagship reporting SHOULD distinguish among:
 
 - organic yield from lending, fixed-rate carry, or other durable economic activity
 - incentivized yield that depends on token emissions or temporary programs
 - speculative upside such as points or uncertain future distributions
 
-Morpho rewards may be counted at par when liquidity, execution path, and realization history support that treatment. Otherwise, they should be haircut like other rewards based on realizable liquidity and execution certainty.
+Rewards MUST be haircut by default based on realizable liquidity, execution certainty, and observed monetization paths. Rewards count only if they can be harvested, monetized, and defended as realized return. If that standard is not met, the correct underwriting value is zero.
 
-In practice, that usually means a 20% to 80% haircut, and in many cases the correct value is zero.
-
-Rewards count only if they can be harvested, monetized, and defended as real return. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
+Reward realization MAY include swapping through approved routing venues as part of ordinary portfolio operations.
 
 ### Operating controls
 
-Superform should continuously monitor:
+Superform MUST continuously monitor:
 
 - liquidity condition
 - reward composition
 - rate drift
 - concentration by protocol, market, curator, and collateral type
 - oracle dependencies and price-source quality
+- collateral correlation and shared failure modes
 - material governance changes that can alter withdrawal, collateral, or parameter risk
 
-At any point, the portfolio should remain explainable across:
+At any point, the portfolio MUST remain explainable across:
 
 - how a position exits
 - what the likely frictions are
 - what has to go right for current yield to be realized
-- what smart contract, oracle, or governance assumptions the position depends on
+- what smart contract, oracle, governance, and correlation assumptions the position depends on
 
 If monitoring quality deteriorates, simulation stops being decision-useful, or exit mechanics become unclear, the position has failed the Flagship standard even if headline APY still looks attractive.
 
@@ -216,7 +238,7 @@ Formal amendment is not required for:
 By design, the Flagship policy excludes:
 
 - cross-chain allocation inside a Flagship SuperVault
-- any anchor designation beyond Aave and Morpho curators Gauntlet, Steakhouse, and Karpatkey
+- any anchor designation beyond Aave and Morpho vaults that satisfy Superform's anchor underwriting standard
 - peak APY chasing as a construction objective
 - dependence on aggressive valuation of illiquid incentives
 - unnecessary structural complexity

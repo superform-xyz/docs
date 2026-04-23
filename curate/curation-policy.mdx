@@ -1,0 +1,180 @@
+---
+title: "Curation Policy"
+description: "Superform's Flagship SuperVault policy covering portfolio construction, risk limits, liquidity, and yield underwriting."
+---
+
+## Overview
+
+Flagship SuperVaults are curated to preserve capital, preserve redemption reliability, and earn onchain yield, in that order. They are not for experimental strategies, opportunistic yield chasing, or discretionary style drift.
+
+Every position in the policy has to be defensible before entry, monitorable when live, and, depending on sleeve, exitable under stress. If an exposure cannot satisfy those requirements, it does not belong in the portfolio, regardless of quoted APY, incentive support, or recent performance.
+
+The governing standard remains conservative, explicit, and enforceable.
+
+### Curation objective and risk profile
+
+The objective is repeatable, risk-adjusted yield with capital preservation and redemption reliability ahead of yield maximization. Most capital should remain in exposures with durable economics, clear monitoring, and credible withdrawal paths.
+
+Organic yield from lending carry, fixed-rate carry, and similar legible sources should anchor the vault. PT is permitted, but it stays capped and actively monitored. Liquidity remains a live operating constraint. Incentives can contribute, but only as supplemental income. Speculative rewards, points, and unpriced optionality do not support the core policy.
+
+Risk has to be underwritten across the full stack:
+
+- smart contract quality
+- audit depth
+- oracle design and price-source dependence
+- governance and parameter risk
+- liquidity depth and withdrawal mechanics
+- concentration by protocol, curator, market, and collateral type
+- collateral correlation and shared failure modes
+- chain-level dependence and operational complexity
+- clear monitoring and simulation capability
+
+## Vault Construction
+
+The vault is composed of three risk sleeves. At all times, the majority of the vault is allocated to the anchor sleeve, which is the lowest-risk and most liquid sleeve. A minority of the vault is allocated to the tactical and PT sleeves, both of which are controlled supplements that can increase the headline yield profile without compromising overall redemption capacity or risk profile.
+
+An exposure is Flagship-eligible only if it can be monitored, simulated, and exited with confidence. If any of those fail, the exposure is not eligible. Flagship exposure should come from audited protocols with meaningful production history and operating scale.
+
+### Sleeve Composition
+
+| Sleeve | Eligible exposure set | Policy role | Target | Hard cap |
+| --- | --- | --- | --- | --- |
+| Anchor sleeve | Aave, Morpho, and Yearn vaults that satisfy Superform's anchor underwriting standard | Core allocation sleeve |  | 100% |
+| Tactical sleeve | Fluid, Gearbox, and other non-anchor exposures that satisfy the flagship standard | Additive yield sleeve, not core |  | 20% |
+| PT sleeve | Vanilla PT exposure | Capped satellite sleeve | 10% | 20% |
+| Free assets | Unallocated assets |  | 2% | 100% |
+
+**Collateral Constraints**
+
+| Constraint | Limit | Notes |
+| --- | --- | --- |
+| Max per smaller unique collateral asset | 10% | Applies even inside otherwise eligible venues |
+| Algorithmic stablecoin / fragile synthetic dollar | 0% |  |
+
+**Curator Constraints**
+
+| Constraint | Limit | Notes |
+| --- | --- | --- |
+| Max per curator | 50% | No curator should account for more than half the portfolio |
+
+**Vault / PT Constraints**
+
+| Constraint | Limit | Notes |
+| --- | --- | --- |
+| Cross-chain | 0% | Cannot bridge to other chains |
+| Recursive leverage or structurally amplified exposure | 0% |  |
+
+### Anchor Sleeve
+
+The anchor sleeve is the default home for capital. It holds the exposures that define the flagship policy. Anchor capital belongs in venues with established production history, live monitoring, durable liquidity, and simple exit mechanics.
+
+To qualify for anchor treatment, a venue has to satisfy all of the following requirements on an ongoing basis:
+
+- contract, market, and operational risks remain within Flagship Vault's underwriting standard
+- oracle inputs are observable, bounded, and robust to stale, manipulated, or thin-market pricing
+- governance rights, upgrade paths, and parameter controls are legible
+- collateral composition and correlated exposure remain within concentration limits and do not create a single shared failure mode across the sleeve
+- withdrawal mechanics are reliable enough for anchor sizing
+- proven history of handling volatile market conditions
+
+A venue can be removed from the anchor sleeve if any of the above requirements become unmet or are at risk of becoming unmet.
+
+As of the current version of this document, the following venues qualify for inclusion in the anchor sleeve:
+
+- Aave
+- Morpho vaults or Morpho Blue markets that satisfy Flagship Vault's current anchor underwriting standard
+- Yearn vaults that satisfy Flagship Vault's current anchor underwriting standard
+
+### Tactical Sleeve
+
+The tactical sleeve exists to improve portfolio yield without changing the character of the portfolio. Tactical capital is earned, capped, and removable. Fluid and Gearbox are reference tactical venues in this policy.
+
+Other non-anchor exposures can enter only if they meet the same flagship standard, including documented audits, sufficient production history, explicit oracle design, and a defensible exit path. Good behavior does not promote a tactical position into anchor. If a position weakens monitoring quality, complicates withdrawals, or becomes difficult to defend at size, it should be removed.
+
+### PT Sleeve
+
+The PT sleeve is permitted as a limited satellite allocation and cannot be relied on to support the core portfolio. Vanilla PT is permitted as a capped satellite sleeve. Bespoke or synthetic PT is never treated as core or tactical exposure due to liquidity concerns.
+
+It cannot determine whether the portfolio remains liquid, understandable, or defensible under stress.
+
+## Liquidity Policy
+
+Sleeve classification and liquidity classification are separate. A position can qualify for the anchor sleeve and still fail prompt liquidity standards. Every position is tagged by current liquidity state.
+
+| Liquidity state | Definition | Minimum | Target | Hard cap |
+| --- | --- | --- | --- | --- |
+| Idle liquidity | Free assets sitting idle | 0.5% | N/A | 100% |
+| Warm liquidity | Capital that can be withdrawn with action, with high confidence that access is available in the near term | 10% | 40%-60% | 100% |
+| Lukewarm liquidity | Withdrawable, but likely requires waiting for market conditions or other users unwinding | Monitor, no standalone cap |  |  |
+| Term liquidity | Capital that is week-scale, or likely to require weeks to make liquid | N/A | N/A | 20% |
+
+Superform maintains a redemption buffer and keeps weighted average withdrawal latency short (≤1 hour) under normal conditions. If conditions deteriorate, Superform cuts tactical sleeves first. The policy does not guarantee instant redemption in all market states; it states the general liquidity profile Flagship SuperVaults should support. Stressed conditions can delay exits.
+
+### Risk controls
+
+In addition to the portfolio limits above, Superform applies the following controls:
+
+- **Oracle control:** A position must use price sources and update mechanics that Superform can observe and explain. If valuation depends on opaque, stale, thin-market, or governance-adjustable inputs that cannot be monitored in practice, the position is not flagship-eligible.
+- **Governance control:** A position must have governance, admin, and upgrade surfaces that Superform can map and monitor. If a single governance action can materially alter collateral rules, liquidation behavior, withdrawal access, or oracle configuration without adequate notice or response time, sizing must reflect that risk or the position must be excluded.
+- **Correlation control:** Anchor and tactical sizing must account for correlated collateral, shared oracle dependencies, shared governance surfaces, and shared liquidation regimes. Separate wrappers or venues do not count as diversification when failure modes are materially the same.
+
+## Operating Rules
+
+Within the Flagship policy, curation actions can include:
+
+- allocate and rebalance across approved sleeves and eligible venues
+- enter and exit approved positions
+- rotate between approved anchor sleeve exposures
+- rotate among approved tactical sleeve opportunities within hard caps
+- add or remove individual vanilla PT positions within the PT sleeve cap
+- claim rewards
+- realize rewards through approved swap paths, including standard routing venues such as DEX aggregators or routers used for execution quality
+- hold temporary idle balances as part of normal liquidity management
+
+Curation actions may not include:
+
+- introduce cross-chain allocation within a Flagship SuperVault
+- add a new venue without a formal amendment
+- treat bespoke or synthetic PT as core exposure
+- rely on incentive marks as if they were fully realizable yield
+- use unmodeled or weakly monitored exposures because they screen well on APY
+
+### Reward treatment
+
+Displayed yield and underwritten yield are not the same. Reporting should distinguish:
+
+- organic yield from lending, fixed-rate carry, or other durable economic activity
+- incentivized yield that depends on token emissions or temporary programs
+- speculative upside such as points or uncertain future distributions
+
+Rewards are discounted by default based on realizable liquidity, execution certainty, and observed monetization paths. Rewards count only if they can be harvested, monetized, and defended as realized return. If that standard is not met, the correct underwriting value is zero. Reward realization may include swapping through approved routing venues as part of ordinary portfolio operations.
+
+### Operating controls
+
+At any point, the portfolio must remain explainable across:
+
+- how a position exits
+- what the likely frictions are
+- what has to go right for current yield to be realized
+- what smart contract, oracle, governance, and correlation assumptions the position depends on
+
+If monitoring quality deteriorates, simulation stops being decision-useful, or exit mechanics become unclear, the position has failed the flagship standard even if headline APY still looks attractive.
+
+## Amendments and Exclusions
+
+### Amendment rules
+
+**Formal amendment is required for:**
+
+- adding a new venue to the policy
+- changing the definition of the anchor sleeve or tactical sleeve
+- changing the scope of assets or chains in policy scope
+- changing hard caps, sleeve targets, or liquidity limits
+
+**Formal amendment is not required for:**
+
+- adding new PT positions within the PT sleeve
+- changing reward treatment or haircut methodology
+- routine portfolio rebalancing within the approved action surface
+
+Current Version: 1.0

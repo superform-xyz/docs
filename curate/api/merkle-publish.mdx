@@ -33,7 +33,7 @@ GET /api/v1/merkle/published/{chain_id}/{vault_address}
     "published": true,
     "published_at": "2026-04-28T08:47:56.558012Z",
     "root_hash": "0xfadbeed8d842eabf62ae6388506ca506f716ab5722c21af61899baf04b2ed6dc",
-    "s3_url": "https://erebor-merkle-trees-231862524346.s3.eu-north-1.amazonaws.com/vaults/1/0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c/e31ee747-c953-4a9d-ba28-0296c12397ec.json",
+    "s3_url": "https://erebor-merkle-trees-231862524346.s3.eu-north-1.amazonaws.com/vaults/8453/0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c/e31ee747-c953-4a9d-ba28-0296c12397ec.json",
     "total_leaves": 4,
     "tree_id": "e31ee747-c953-4a9d-ba28-0296c12397ec"
   }
@@ -64,7 +64,7 @@ GET /api/v1/merkle/published/{chain_id}/{vault_address}
 
 ## Understanding `is_stale`
 
-`is_stale: true` means the manager has created or activated a new hook configuration **after** the last publish. The published artifact at `s3_url` was generated from an older config version.
+`is_stale: true` when the published tree is not the vault's current active tree (including the case where no current active tree exists). The published artifact at `s3_url` was generated from a config version that no longer matches the vault's current state.
 
 When `is_stale` is `true`:
 

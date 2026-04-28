@@ -85,6 +85,32 @@ GET /api/v1/merkle/sync?vault_address={addr}&chain_id={id}
 Keepers cannot execute against yield sources until the merkle root is synced onchain. A pending timelock means your authorization changes are queued but not yet active.
 </Note>
 
+## Publishing the Tree
+
+Once a tree is generated, primary managers can publish it to make the full proof set available to integrators, keepers, and frontends without requiring Erebor authentication.
+
+Navigate to the **Merkle Trees** tab and locate the active tree — the one currently synced onchain. Click **Publish** on that tree to trigger an async publish job that uploads the complete proof artifact to a public S3 URL.
+
+Only the active tree can be published. Publishing a tree that is not the current active tree is not permitted.
+
+<Note>
+Publishing is separate from syncing. Sync updates the onchain root; publish makes the off-chain proof artifact publicly accessible. Both steps are needed before external consumers can verify and use the proofs.
+</Note>
+
+Erebor runs the upload asynchronously. Poll the job status until `completed`:
+
+```bash
+POST /api/v1/merkle/publish
+{ "vault_address": "0x...", "chain_id": 8453 }
+# Returns 202 + Location: /api/v1/merkle/publish/jobs/{id}
+# 409 if a publish is already in progress
+
+GET /api/v1/merkle/publish/jobs/{id}
+# status: pending → running → completed / failed
+```
+
+Once completed, the published artifact is accessible to anyone via the public endpoint — no authentication required. See [Getting SuperVaults Merkle Tree](/curate/api/merkle-publish) for how consumers fetch and use it.
+
 ## Merkle Proofs
 
 Proofs for each leaf are available via `GET /api/v1/merkle/proofs?vault_address={}&chain_id={}`. Use these for programmatic validation or custom keeper implementations.
@@ -104,3 +130,6 @@ Proofs for each leaf are available via `GET /api/v1/merkle/proofs?vault_address=
 | `/api/v1/merkle/jobs/{id}` | GET | Poll job status |
 | `/api/v1/merkle/jobs` | GET | Recent jobs list |
 | `/api/v1/merkle/sync` | GET | Sync status and required action |
+| `/api/v1/merkle/publish` | POST | Publish active tree (primary manager only) |
+| `/api/v1/merkle/publish/jobs/{id}` | GET | Poll publish job status |
+| `/api/v1/merkle/published/{chain_id}/{vault}` | GET | Public — get published tree metadata |

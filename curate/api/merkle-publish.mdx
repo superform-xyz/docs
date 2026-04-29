@@ -1,0 +1,178 @@
+---
+title: "Getting SuperVaults Merkle Tree"
+description: "Fetch the published merkle tree and proofs for a SuperVault. No authentication required."
+---
+
+The merkle publish endpoint returns the latest published merkle tree metadata for any vault. It is public — no authentication required. Use it to retrieve the proof artifact, verify the root hash, and check whether the published tree reflects the manager's current active configuration.
+
+## Endpoint
+
+```
+GET /api/v1/merkle/published/{chain_id}/{vault_address}
+```
+
+**Base URL:** `https://erebor.superform.xyz`  
+**Auth:** None
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `chain_id` | integer | Chain ID (e.g., `8453` for Base, `1` for Ethereum) |
+| `vault_address` | string | Vault contract address (checksummed or lowercase) |
+
+## Response
+
+### Published tree
+
+```json
+{
+  "success": true,
+  "data": {
+    "is_stale": false,
+    "published": true,
+    "published_at": "2026-04-28T08:47:56.558012Z",
+    "root_hash": "0xfadbeed8d842eabf62ae6388506ca506f716ab5722c21af61899baf04b2ed6dc",
+    "s3_url": "https://erebor-merkle-trees-231862524346.s3.eu-north-1.amazonaws.com/vaults/8453/0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c/e31ee747-c953-4a9d-ba28-0296c12397ec.json",
+    "total_leaves": 4,
+    "tree_id": "e31ee747-c953-4a9d-ba28-0296c12397ec"
+  }
+}
+```
+
+### Not yet published
+
+```json
+{
+  "success": false,
+  "published": false,
+  "message": "no published tree found for this vault"
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `published` | boolean | Whether the manager has published a tree for this vault |
+| `published_at` | string | ISO 8601 timestamp of the most recent publish |
+| `root_hash` | string | 32-byte merkle root. Verify this against the onchain root in `SuperVaultAggregator` before using any proof |
+| `s3_url` | string | Direct URL to the full proof JSON artifact |
+| `total_leaves` | integer | Number of authorized (hook, params) combinations in the tree |
+| `tree_id` | string | UUID of the published tree version |
+| `is_stale` | boolean | Whether the published tree is out of date — see below |
+
+## Understanding `is_stale`
+
+`is_stale: true` when the published tree is not the vault's current active tree (including the case where no current active tree exists). The published artifact at `s3_url` was generated from a config version that no longer matches the vault's current state.
+
+When `is_stale` is `true`:
+
+- The `root_hash` in this response may no longer match the current onchain root
+- The proof artifact may not cover all currently authorized operations
+- Wait for the manager to re-publish before relying on these proofs for execution
+
+When `is_stale` is `false`:
+
+- The published tree was generated from the manager's current active config
+- The artifact is current, but still verify `root_hash` against the onchain `SuperVaultAggregator` state — publishing updates the off-chain record; the onchain root is updated separately through the proposal-timelock-execute cycle
+
+<Note>
+Even when `is_stale: false`, always verify `root_hash` against the onchain SuperVaultAggregator before passing proofs to `executeHooks()`. The off-chain publish and the onchain root sync are independent operations.
+</Note>
+
+## Fetching the Proof Artifact
+
+The `s3_url` is a direct public URL to a JSON file containing the complete merkle tree with all leaf proofs.
+
+<CodeGroup>
+
+```bash cURL
+# 1. Get metadata
+curl https://erebor.superform.xyz/api/v1/merkle/published/8453/0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c
+
+# 2. Fetch the proof artifact (use s3_url from response)
+curl https://erebor-merkle-trees-231862524346.s3.eu-north-1.amazonaws.com/vaults/8453/0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c/e31ee747-c953-4a9d-ba28-0296c12397ec.json
+```
+
+```python Python
+import requests
+
+EREBOR_URL = "https://erebor.superform.xyz"
+CHAIN_ID = 8453
+VAULT_ADDRESS = "0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c"
+
+resp = requests.get(f"{EREBOR_URL}/api/v1/merkle/published/{CHAIN_ID}/{VAULT_ADDRESS}")
+resp.raise_for_status()
+body = resp.json()
+
+data = body.get("data")
+if not data or not data.get("published"):
+    raise RuntimeError("No published tree for this vault")
+
+if data["is_stale"]:
+    print("Warning: published tree is stale — manager has a newer config")
+
+# Fetch the full proof artifact
+tree = requests.get(data["s3_url"]).json()
+
+print(f"Root:   {data['root_hash']}")
+print(f"Leaves: {data['total_leaves']}")
+```
+
+```typescript TypeScript
+const EREBOR_URL = "https://erebor.superform.xyz";
+const CHAIN_ID = 8453;
+const VAULT_ADDRESS = "0x01c427580a2dfbdd894dabc4bff6c1dce7aab53c";
+
+const metaResp = await fetch(
+  `${EREBOR_URL}/api/v1/merkle/published/${CHAIN_ID}/${VAULT_ADDRESS}`
+);
+if (!metaResp.ok) throw new Error(`Request failed: ${metaResp.status}`);
+const body = await metaResp.json();
+const data = body.data;
+
+if (!data?.published) throw new Error("No published tree for this vault");
+if (data.is_stale) console.warn("Published tree is stale — manager has a newer config");
+
+const tree = await fetch(data.s3_url).then((r) => r.json());
+
+console.log(`Root:   ${data.root_hash}`);
+console.log(`Leaves: ${data.total_leaves}`);
+```
+
+</CodeGroup>
+
+## Proof Artifact Shape
+
+The JSON at `s3_url` matches the `MerkleTreeWithLeaves` shape returned by `GET /api/v1/merkle/proofs`. Each leaf contains the hook address and name, encoded argument values, leaf hash, index in the tree, and the merkle proof path.
+
+```json
+{
+  "root_hash": "0xfadbeed8d842eabf62ae6388506ca506f716ab5722c21af61899baf04b2ed6dc",
+  "leaves": [
+    {
+      "index": 0,
+      "leaf_hash": "0x...",
+      "hook_address": "0x...",
+      "hook_name": "depositHook",
+      "encoded_args": "0x...",
+      "proof": ["0x...", "0x..."]
+    }
+  ]
+}
+```
+
+Pass `leaf.proof` as `strategyProofs[i]` when calling `executeHooks()`.
+
+## Caching
+
+Responses are cached — 60 seconds on a successful hit, 30 seconds on a negative (unpublished) response. Build polling intervals of at least 60 seconds around this endpoint.
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `200` | Success — check `data.published` and `data.is_stale` |
+| `404` | Vault not registered in Erebor |
+| `500` | Internal error |

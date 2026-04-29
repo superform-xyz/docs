@@ -162,17 +162,7 @@
             "pages": [
               "curate/automation/overview",
               "curate/automation/monitoring",
-              "curate/automation/webhooks",
-              "curate/api/merkle-publish"
-            ]
-          },
-          {
-            "group": "API References",
-            "pages": [
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms"
+              "curate/automation/webhooks"
             ]
           },
           {

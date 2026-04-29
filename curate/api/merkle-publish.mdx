@@ -106,10 +106,9 @@ resp = requests.get(f"{EREBOR_URL}/api/v1/merkle/published/{CHAIN_ID}/{VAULT_ADD
 resp.raise_for_status()
 body = resp.json()
 
-if not body["data"]["published"]:
+data = body.get("data")
+if not data or not data.get("published"):
     raise RuntimeError("No published tree for this vault")
-
-data = body["data"]
 
 if data["is_stale"]:
     print("Warning: published tree is stale — manager has a newer config")
@@ -130,9 +129,10 @@ const metaResp = await fetch(
   `${EREBOR_URL}/api/v1/merkle/published/${CHAIN_ID}/${VAULT_ADDRESS}`
 );
 if (!metaResp.ok) throw new Error(`Request failed: ${metaResp.status}`);
-const { data } = await metaResp.json();
+const body = await metaResp.json();
+const data = body.data;
 
-if (!data.published) throw new Error("No published tree for this vault");
+if (!data?.published) throw new Error("No published tree for this vault");
 if (data.is_stale) console.warn("Published tree is stale — manager has a newer config");
 
 const tree = await fetch(data.s3_url).then((r) => r.json());

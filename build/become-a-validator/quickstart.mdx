@@ -1,0 +1,212 @@
+---
+title: "Quickstart"
+description: "Go from zero to a running validator node end-to-end."
+---
+
+This page is a single linear checklist. Follow each step in order — links point to the full reference pages when you need more detail.
+
+**Time required:** ~30 minutes (excluding wait for on-chain registration)
+**Prerequisites:** Linux or macOS server, Docker or Go 1.24+, PostgreSQL 15+
+
+---
+
+<Steps>
+
+<Step title="Verify connectivity to bootstrap peers">
+
+Before anything else, confirm your server can reach the Superform bootstrap nodes on TCP 6690:
+
+```bash
+nc -zv bootstrap-1.supervaults.superform.xyz 6690
+nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+
+Both should respond with `succeeded`. If they fail, open outbound TCP 6690 in your firewall before continuing.
+</Step>
+
+<Step title="Get the node binary">
+
+<Tabs>
+  <Tab title="Published image (recommended)">
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+docker pull ghcr.io/superform-xyz/validator-network:latest
+```
+  </Tab>
+  <Tab title="Build from source">
+```bash
+git clone https://github.com/superform-xyz/supervaults-validator-network.git
+cd supervaults-validator-network
+make deps
+make build
+```
+  </Tab>
+</Tabs>
+
+</Step>
+
+<Step title="Generate cryptographic keys">
+
+```bash
+./bin/oracle-node keys generate --keystore ./keystore
+```
+
+This creates your four keys (offchain Ed25519, P2P Ed25519, onchain ECDSA, and the derived X25519 config key). Copy the printed hex values — you will paste them into `config.toml` in the next step.
+
+<Note>
+Back up the `./keystore` directory immediately. These files are your validator identity — losing them means losing your place in the network.
+</Note>
+</Step>
+
+<Step title="Configure the node">
+
+```bash
+cp config.template.toml config.toml
+cp chains.template.yaml chains.yaml
+```
+
+In `config.toml`, fill in:
+
+```toml
+[keys]
+offchain_private_key = "<hex from keys generate>"
+
+[keys.onchain_private_key]
+private_key = "<hex from keys generate>"    # dev/testing
+# kms_key_id = "arn:aws:kms:..."            # production
+
+[p2p]
+bootstrap_peers = [
+    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
+    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
+]
+
+[database]
+url = "postgresql://oracle:password@localhost:5432/oracle_db?sslmode=disable"
+```
+
+In `chains.yaml`, add your RPC endpoints for each chain the Superform team has configured for the network. The Superform team will provide the `ecdsa_oracle_address` and `super_governor_address` values during onboarding:
+
+```yaml
+1:
+  name: ethereum
+  https_rpc: "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+  wss_rpc:   "wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+  block_time: 12s
+  supported_strategies:
+    - "0x..."
+  ecdsa_oracle_address:   "0x..."
+  super_governor_address: "0x..."
+```
+
+See [Configuration Reference](/build/become-a-validator/configuration-reference) for all fields.
+</Step>
+
+<Step title="Start the node">
+
+<Tabs>
+  <Tab title="Published image">
+```bash
+docker run -d \
+  --name oracle-node \
+  -v $(pwd)/config.toml:/app/config.toml:ro \
+  -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
+  -p 6690:6690 -p 9090:9090 -p 8080:8080 \
+  ghcr.io/superform-xyz/validator-network:latest
+docker logs -f oracle-node
+```
+  </Tab>
+  <Tab title="Local binary">
+```bash
+make setup-db
+make run-local
+```
+  </Tab>
+</Tabs>
+
+Confirm the node started cleanly:
+
+```bash
+curl -s localhost:8080/healthz   # should return 200 OK
+```
+
+You should see this in the logs:
+
+```
+INFO  Oracle node started successfully
+```
+
+</Step>
+
+<Step title="Export and submit your public keys">
+
+```bash
+./bin/oracle-node keys export
+```
+
+Send the output to the Superform team as a JSON bundle (via your onboarding contact or Discord). Include:
+
+```json
+{
+  "validator_name": "Your Organization",
+  "onchain_public_key": "04...",
+  "ethereum_address": "0x...",
+  "offchain_public_key": "...",
+  "config_encryption_public_key": "...",
+  "peer_id": "12D3KooW...",
+  "p2p_endpoint": "your-host.example.com:6690"
+}
+```
+
+See [Joining the Network](/build/become-a-validator/joining-the-network) for the full submission checklist and what each key is used for.
+</Step>
+
+<Step title="Verify registration">
+
+After the Superform team calls `SuperGovernor.setValidatorConfig()`, your node will log:
+
+```
+Received ValidatorConfigSet event  blockNumber=... chainID=1
+Config loaded successfully  configDigest=0x... signers=N F=...
+```
+
+Within the next OCR2 round (~30 minutes on the production config), you will see:
+
+```
+INFO  Starting PPS observation  epoch=1 round=1
+INFO  Observation complete  vaultsObserved=N
+```
+
+Confirm your Prometheus metrics are flowing:
+
+```bash
+curl -s localhost:9090/metrics | grep ocr2_up
+# ocr2_up 1
+```
+
+Your node is live.
+</Step>
+
+</Steps>
+
+---
+
+## Pre-Launch Checklist
+
+- [ ] Bootstrap peers reachable on TCP 6690
+- [ ] `config.toml` has valid keys, database URL, and bootstrap peers
+- [ ] `chains.yaml` has RPC endpoints for all required chains
+- [ ] `/healthz` returns 200
+- [ ] Public key bundle submitted to Superform team
+- [ ] `Config loaded successfully` seen in logs after registration
+- [ ] `ocr2_up 1` in Prometheus metrics
+- [ ] Keystore directory backed up securely
+
+<CardGroup cols={2}>
+  <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
+    Full config.toml and chains.yaml field reference.
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+    Health endpoints, metrics, and alert rules.
+  </Card>
+</CardGroup>

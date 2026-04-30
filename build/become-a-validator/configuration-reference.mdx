@@ -1,6 +1,6 @@
 ---
 title: "Configuration Reference"
-description: "Complete config.toml field reference and OCR2 protocol timing configurations."
+description: "Complete config.toml and chains.yaml field reference, plus OCR2 protocol timing configurations."
 ---
 
 ## config.toml
@@ -108,7 +108,52 @@ config_version = 3
 chain_config_path = "./chains.yaml"
 ```
 
-`chains.yaml` lists each chain with its RPC endpoint and the vaults to observe. Copy `chains.template.yaml` and add your provider URLs.
+Points to a YAML file that defines each chain the node observes. See the [`chains.yaml` reference](#chainsyaml) below.
+
+---
+
+## chains.yaml
+
+`chains.yaml` is a map of chain ID to chain configuration. Copy `chains.template.yaml` and fill in your RPC endpoints and the addresses provided by the Superform team during onboarding.
+
+```yaml
+1:                          # chain ID (top-level key)
+  name: ethereum            # human-readable label (used in logs and metrics)
+  chain_id: 1               # must match the top-level key
+  https_rpc: "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+  wss_rpc:   "wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+  block_time: 12s           # expected block time (Go duration format)
+  supported_strategies:     # vault contract addresses to observe on this chain
+    - "0xVault1Address"
+    - "0xVault2Address"
+  ecdsa_oracle_address:   "0x..."  # ECDSAPPSOracle contract — provided by Superform
+  super_governor_address: "0x..."  # SuperGovernor contract — provided by Superform
+```
+
+### Field reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Human-readable chain label. Used in logs and Prometheus `chain_id` labels. |
+| `chain_id` | integer | EVM chain ID. Must match the top-level map key. |
+| `https_rpc` | string | HTTPS RPC endpoint. Used for contract reads and transaction submission. |
+| `wss_rpc` | string | WebSocket RPC endpoint. Used for subscribing to `ValidatorConfigSet` and `PPSValidated` events. |
+| `block_time` | duration | Expected time between blocks (Go duration: `12s`, `2s`, `1s`). Used to calibrate event polling. |
+| `supported_strategies` | string[] | Vault contract addresses whose `pricePerShare()` your node will call each round. Provided by Superform during onboarding. |
+| `ecdsa_oracle_address` | string | Address of the `ECDSAPPSOracle` contract where PPS reports are submitted. Provided by Superform. |
+| `super_governor_address` | string | Address of the `SuperGovernor` contract that emits `ValidatorConfigSet` events. Provided by Superform. Only needs to be set on the config sync chain (Ethereum mainnet, chain ID 1). |
+
+### Supported chains
+
+The Superform team will tell you which chains to include and provide the contract addresses for each during onboarding. The template includes Ethereum (1), Base (8453), Arbitrum (42161), Optimism (10), and Polygon (137).
+
+Only include chains where you have a reliable RPC endpoint. A failing RPC on any configured chain causes observation errors for all vaults on that chain, which counts against your participation rate.
+
+### RPC provider requirements
+
+- **HTTPS** — required for all chains
+- **WebSocket (WSS)** — required for event subscriptions; the node will warn on startup if WSS is unavailable
+- Both endpoints should be from a reliable provider (Alchemy, QuikNode, or a self-hosted node). Public rate-limited endpoints are not suitable for production validators.
 
 ---
 

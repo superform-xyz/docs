@@ -32,6 +32,8 @@ offchain_private_key = "76918f97bfe8..."
 private_key = "ed6ca3d3ac17..."
 ```
 
+The config encryption key is derived automatically from your offchain key. Do not try to configure it separately in `config.toml`.
+
 **Option 2 — key file**
 
 ```toml
@@ -96,6 +98,8 @@ max_pps_deviation_ppb = 10000000
 config_version = 3
 # config_sync_chain_id = 1
 ```
+
+`config_sync_chain_id` defaults to Ethereum mainnet (`1`). This is the chain where `SuperGovernor` emits validator config updates, so every node must watch the same source chain.
 
 All nodes must use the same `config_version`. A mismatch produces a different config digest and prevents consensus.
 

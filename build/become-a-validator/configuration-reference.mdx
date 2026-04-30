@@ -163,7 +163,7 @@ Typical supported deployments include Ethereum, Base, Arbitrum, Optimism, and Po
 
 ## OCR2 timing presets
 
-The `config/v{N}.json` files define the OCR2 timing profile. Every validator in the network must use the same version.
+The versioned `config/vN.json` files define the OCR2 timing profile. Every validator in the network must use the same version.
 
 ### v2 — high-frequency testing
 
@@ -231,89 +231,86 @@ curl -s localhost:9090/metrics | grep ^ocr2_ | head -20
 
 If you only alert on a handful of metrics, start here:
 
-| Signal | Why it matters |
-|--------|----------------|
-| `ocr2_up` | Process liveness |
-| `ocr2_strategy_last_update_seconds` | Confirms PPS updates are still landing onchain |
-| `ocr2_strategy_update_stale` | Fastest signal that a strategy has stopped updating |
-| `ocr2_transmit_total{status}` | Shows whether transmit attempts are succeeding |
-| `ocr2_plugin_observations_total{result}` | Reveals RPC or observation failures |
-| `ocr2_config_version` / `ocr2_config_signers` | Confirms the node loaded the expected active network config |
+- `ocr2_up` — process liveness
+- `ocr2_strategy_last_update_seconds` — confirms PPS updates are still landing onchain
+- `ocr2_strategy_update_stale` — fastest signal that a strategy has stopped updating
+- `ocr2_transmit_total` labeled by `status` — shows whether transmit attempts are succeeding
+- `ocr2_plugin_observations_total` labeled by `result` — reveals RPC or observation failures
+- `ocr2_config_version` and `ocr2_config_signers` — confirm the node loaded the expected active network config
 
 ## Metrics reference
 
 ### Onchain transmission health
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_strategy_last_update_seconds{chain_id, strategy}` | Gauge | Unix timestamp of the latest observed `PPSValidated` event |
-| `ocr2_strategy_update_stale{chain_id, strategy}` | Gauge | `1` when no `PPSValidated` event arrives within `health_check_interval` |
+- `ocr2_strategy_last_update_seconds` (labels: `chain_id`, `strategy`) — gauge with the Unix timestamp of the latest observed `PPSValidated` event
+- `ocr2_strategy_update_stale` (labels: `chain_id`, `strategy`) — gauge set to `1` when no `PPSValidated` event arrives within `health_check_interval`
 
 ### Transmitter
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_transmit_total{chain_id, status}` | Counter | Transmission attempts by outcome |
-| `ocr2_transmit_strategies_total{chain_id}` | Counter | Strategies packed into submitted transactions |
-| `ocr2_transmit_pack_errors_total{chain_id}` | Counter | Report packing failures |
-| `ocr2_transmit_duration_seconds{result}` | Histogram | End-to-end transmit latency |
+- `ocr2_transmit_total` (labels: `chain_id`, `status`) — counter of transmission attempts by outcome
+- `ocr2_transmit_strategies_total` (label: `chain_id`) — counter of strategies packed into submitted transactions
+- `ocr2_transmit_pack_errors_total` (label: `chain_id`) — counter of report packing failures
+- `ocr2_transmit_duration_seconds` (label: `result`) — histogram of end-to-end transmit latency
 
 ### Plugin phases
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_plugin_phase_duration_seconds{phase, result}` | Histogram | Phase latency |
-| `ocr2_plugin_phase_total{phase, result}` | Counter | Phase invocation outcomes |
-| `ocr2_plugin_observations_total{chain_id, result}` | Counter | Per-strategy observation outcomes |
-| `ocr2_plugin_insufficient_observations_total{chain_id}` | Counter | Vaults dropped because quorum observations were not available |
-| `ocr2_plugin_stale_reports_total{phase}` | Counter | Reports rejected for staleness |
-| `ocr2_plugin_deviation_rejections_total` | Counter | Reports rejected by deviation guard |
-| `ocr2_plugin_nonce_mismatch_total` | Counter | Reports rejected after onchain nonce changes |
-| `ocr2_plugin_pps_deviation_ppb{chain_id, strategy}` | Gauge | Most recent deviation versus this node's local observation |
+- `ocr2_plugin_phase_duration_seconds` (labels: `phase`, `result`) — histogram of phase latency
+- `ocr2_plugin_phase_total` (labels: `phase`, `result`) — counter of phase invocation outcomes
+- `ocr2_plugin_observations_total` (labels: `chain_id`, `result`) — counter of per-strategy observation outcomes
+- `ocr2_plugin_insufficient_observations_total` (label: `chain_id`) — counter of vaults dropped because quorum observations were not available
+- `ocr2_plugin_stale_reports_total` (label: `phase`) — counter of reports rejected for staleness
+- `ocr2_plugin_deviation_rejections_total` — counter of reports rejected by deviation guard
+- `ocr2_plugin_nonce_mismatch_total` — counter of reports rejected after onchain nonce changes
+- `ocr2_plugin_pps_deviation_ppb` (labels: `chain_id`, `strategy`) — gauge of the most recent deviation versus this node's local observation
 
 ### Validator config tracking
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_config_changes_total` | Counter | Applied `ValidatorConfigSet` events |
-| `ocr2_config_reorgs_total` | Counter | Reorged or replayed config events rejected |
-| `ocr2_config_load_errors_total{stage}` | Counter | Config load failures |
-| `ocr2_config_version` | Gauge | Active config version |
-| `ocr2_config_f` | Gauge | Current fault tolerance parameter |
-| `ocr2_config_signers` | Gauge | Registered signer count |
+- `ocr2_config_changes_total` — counter of applied `ValidatorConfigSet` events
+- `ocr2_config_reorgs_total` — counter of reorged or replayed config events rejected
+- `ocr2_config_load_errors_total` (label: `stage`) — counter of config load failures
+- `ocr2_config_version` — gauge of the active config version
+- `ocr2_config_f` — gauge of the current fault tolerance parameter
+- `ocr2_config_signers` — gauge of registered signer count
 
 ### Keyring
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_sign_total{kind, result}` | Counter | Signing attempts |
-| `ocr2_sign_duration_seconds{kind}` | Histogram | Signing latency, especially useful for KMS-backed onchain keys |
+- `ocr2_sign_total` (labels: `kind`, `result`) — counter of signing attempts
+- `ocr2_sign_duration_seconds` (label: `kind`) — histogram of signing latency, especially useful for KMS-backed onchain keys
 
 ### Pricing service
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ocr2_pps_fetch_total{chain_id, result}` | Counter | PPS fetch outcomes |
-| `ocr2_pps_fetch_duration_seconds{chain_id}` | Histogram | RPC latency for PPS calls |
+- `ocr2_pps_fetch_total` (labels: `chain_id`, `result`) — counter of PPS fetch outcomes
+- `ocr2_pps_fetch_duration_seconds` (label: `chain_id`) — histogram of RPC latency for PPS calls
 
 ### Database and network
 
-| Metric family | Notes |
-|---------------|-------|
-| `ocr2_db_query_duration_seconds{op, result}` | Watch for slow or failing DB operations |
-| `go_sql_*` | Pool pressure and wait time |
-| `libocr_*`, `ragep2p_*`, `rageping_*` | Mesh health, reconnects, and peer latency |
+- `ocr2_db_query_duration_seconds` (labels: `op`, `result`) — watch for slow or failing DB operations
+- `go_sql_*` — watch pool pressure and wait time
+- `libocr_*`, `ragep2p_*`, `rageping_*` — watch mesh health, reconnects, and peer latency
 
 ## Recommended alerts
 
-| Alert | Query | Severity |
-|-------|-------|----------|
-| PPS update stale | `ocr2_strategy_update_stale == 1` for > 1 interval | Critical |
-| Node down | `ocr2_up == 0` | Critical |
-| Observation errors rising | `rate(ocr2_plugin_observations_total{result="error"}[15m]) > 0` | Warning |
-| Transmit failures | `rate(ocr2_transmit_total{status=~"failure|error"}[15m]) > 0` | Warning |
-| KMS signing latency | `histogram_quantile(0.99, ocr2_sign_duration_seconds{kind="onchain"}) > 2` | Warning |
-| DB pool exhaustion | sustained `go_sql_wait_count` growth | Warning |
+- **PPS update stale** — Critical
+  - Query: `ocr2_strategy_update_stale == 1` for longer than one `health_check_interval`
+- **Node down** — Critical
+  - Query: `ocr2_up == 0`
+- **Observation errors rising** — Warning
+  - Query:
+    ```promql
+    rate(ocr2_plugin_observations_total{result="error"}[15m]) > 0
+    ```
+- **Transmit failures** — Warning
+  - Query:
+    ```promql
+    rate(ocr2_transmit_total{status=~"failure|error"}[15m]) > 0
+    ```
+- **KMS signing latency** — Warning
+  - Query:
+    ```promql
+    histogram_quantile(0.99, ocr2_sign_duration_seconds{kind="onchain"}) > 2
+    ```
+- **DB pool exhaustion** — Warning
+  - Signal: sustained `go_sql_wait_count` growth
 
 ## Recommended operating habit
 

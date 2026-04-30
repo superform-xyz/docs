@@ -230,6 +230,12 @@ Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Yo
 
 Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
 
+Networking rule that matters in production:
+
+- outbound TCP `6690` is mandatory so your node can reach the Superform bootstrap peers and the wider mesh
+- inbound TCP `6690` is required when other validators must dial the endpoint you advertise directly
+- outbound-only can work in some NATed topologies if your announced endpoint is still reachable through another path, but do not treat that as the default production assumption
+
 If you are behind NAT or a load balancer, set `announce_addresses` so other validators can dial you back correctly.
 
 Verify connectivity before startup:

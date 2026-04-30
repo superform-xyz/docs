@@ -73,7 +73,24 @@ Mapping reminder:
 
 ### 4. Wait for onchain registration
 
-During Phase 1, Superform calls `SuperGovernor.setValidatorConfig()` on your behalf. Once the transaction confirms, your node should pick up the new validator set automatically.
+During Phase 1, Superform calls `SuperGovernor.setValidatorConfig()` on your behalf. That payload has five parts:
+
+- `version` — must be strictly newer than the previous config
+- `validators[]` — one Ethereum address per validator
+- `validatorPublicKeys[]` — the matching 65-byte uncompressed ECDSA public keys
+- `quorum` — the report threshold for the validator set size
+- `offchainConfig` — the ABI-encoded `OracleIdentity[]` entries for the same validators
+
+For each validator, `validators[i]`, `validatorPublicKeys[i]`, and `OracleIdentity[i]` all have to describe the same operator identity. In practice, the config only loads cleanly when:
+
+- all three arrays have the same length
+- `validators[i]` is the Ethereum address derived from `validatorPublicKeys[i]`
+- `OracleIdentity.validatorPublicKey` byte-matches the same `validatorPublicKeys[i]`
+- the offchain and config encryption keys are both 32 bytes
+
+Most registration failures reduce to one of three things: array misalignment, address/public-key mismatch, or malformed `offchainConfig` bytes. If your node sees the event but refuses to load the config, reason about the failure in that order first.
+
+Once the transaction confirms, your node should pick up the new validator set automatically.
 
 ### 5. Confirm the node joined the active config
 
@@ -208,6 +225,7 @@ If your `configDigest` differs from the rest of the network, check:
 - `config_version` in `config.toml`
 - whether you observed the same `ValidatorConfigSet` event as the rest of the network
 - whether Superform submitted aligned `validators[]`, `validatorPublicKeys[]`, and `OracleIdentity[]` arrays
+- whether `validators[i]` still derives from the paired `validatorPublicKeys[i]` and byte-matches the paired `OracleIdentity.validatorPublicKey`
 - whether your local binary matches the expected network release
 
 ### Observations succeed but no onchain transmissions land

@@ -127,7 +127,7 @@ Send Superform the public values only:
   "p2p_endpoint": "your-host.example.com:6690"
 }
 ```
-`keys export` gives Superform exactly what they need to build the onchain config: `validatorPublicKeys[]` gets your onchain public key, `validators[]` gets the derived Ethereum address, and `OracleIdentity[]` gets your `peer_id`, `offchain_public_key`, and `config_encryption_public_key`. Never send private keys.
+`keys export` gives Superform exactly what they need to build the onchain config: `validatorPublicKeys[]` gets your onchain public key, `validators[]` gets the derived Ethereum address, and `OracleIdentity[]` gets your `peer_id`, `offchain_public_key`, and `config_encryption_public_key`. Never send private keys. For the full registration payload shape, validation invariants, and failure-mode debugging, use [Operations](/build/become-a-validator/operations).
 </Step>
 
 <Step title="Verify onchain registration and first participation">

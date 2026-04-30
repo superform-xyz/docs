@@ -43,16 +43,19 @@ The config encryption key is derived automatically from your offchain key. Do no
 key_file_path = "./keystore/ocr2_<id>.json"
 ```
 
-The companion P2P identity lives beside it as `./keystore/p2p_<peerID>.json`. If you use file-backed keys, keep both files at `0600` permissions.
+Use this when you want the node to read the OCR2/offchain bundle from disk. The companion P2P identity must live beside it as `./keystore/p2p_<peerID>.json`, so mount the whole `./keystore` directory into the container if you run Docker. Keep both files at `0600` permissions.
 
 **Option 3 — AWS KMS for the onchain key**
 
 ```toml
+[keys]
+offchain_private_key = "76918f97bfe8..."
+
 [keys.onchain_private_key]
 kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
 ```
 
-Supported KMS identifiers: full ARN, alias, or UUID.
+Use this when you want the offchain/OCR2 identity managed separately from the production onchain signer. Supported KMS identifiers: full ARN, alias, or UUID.
 
 The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`.
 
@@ -206,7 +209,7 @@ Update `config_version` on all nodes and restart them in a coordinated window. M
 
 ## Monitoring and alerting
 
-## Health endpoints
+### Health endpoints
 
 Both ports are configured under `[monitoring]` in `config.toml`.
 

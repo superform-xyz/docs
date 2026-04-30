@@ -1,21 +1,26 @@
 ---
 title: "Joining the Network"
-description: "Submit your public keys to the Superform team and verify your node is registered on-chain."
+description: "Export your public keys, submit them to Superform, and verify your node is registered on-chain."
 ---
 
 ## Overview
 
-Validators are registered by a call to `SuperGovernor.setValidatorConfig()` on Ethereum mainnet. Only the Superform team can call this function during Phase 1. Once your public keys are registered, your node automatically picks up the new configuration via the emitted `ValidatorConfigSet` event — no restart required.
+Validators are registered by a call to `SuperGovernor.setValidatorConfig()` on Ethereum mainnet. The `SuperGovernor` contract is the single source of truth for the active validator set — it stores your keys, peer ID, and Ethereum address, and emits a `ValidatorConfigSet` event that every running oracle node subscribes to.
+
+During Phase 1 only the Superform team can call `setValidatorConfig`. Once your keys are registered, your node picks up the configuration automatically via the event — no restart required.
+
+---
 
 ## Step 1: Export Your Public Keys
 
-Run `keys export` to get all the values the Superform team needs:
+After generating your keys, run `keys export` to display everything the Superform team needs for registration. This command never exposes private keys.
 
 ```bash
 ./bin/oracle-node keys export
 ```
 
 Output:
+
 ```
 OCR2 Key Bundle: a1b2c3d4e5f6
   Offchain Public Key (Ed25519):  a60c9e0032...
@@ -28,79 +33,123 @@ P2P Key:
   Bootstrap peer entry: 12D3KooWQze...@<host>:<port>
 ```
 
-## Step 2: Submit Your Key Bundle
+Here is what each value is used for and where it ends up on-chain:
 
-Send the following JSON to the Superform team (via your onboarding contact or Discord):
+| Value | Contract Parameter | Purpose |
+|-------|-------------------|---------|
+| Onchain Public Key (65 bytes, starts with `04`) | `validatorPublicKeys[]` in `setValidatorConfig()` | On-chain EIP-712 signature verification |
+| Derived Ethereum Address | `validators[]` in `setValidatorConfig()` | Transmitter identity — must be derived from the onchain public key |
+| Peer ID | `offchainConfig` → `OracleIdentity.peerID` | ragep2p peer discovery and mesh connectivity |
+| Offchain Public Key (32 bytes) | `offchainConfig` → `OracleIdentity.offchainPublicKey` | OCR2 protocol message signing between validators |
+| Config Public Key (32 bytes) | `offchainConfig` → `OracleIdentity.configEncryptionPublicKey` | Encrypted config distribution via Diffie-Hellman |
+
+---
+
+## Step 2: Self-Validate Before Submitting
+
+Check these before sending your key bundle to avoid a failed registration:
+
+- [ ] `onchain_public_key` is 130 hex characters (65 bytes) and starts with `04`
+- [ ] `offchain_public_key` is 64 hex characters (32 bytes)
+- [ ] `config_encryption_public_key` is 64 hex characters (32 bytes)
+- [ ] `ethereum_address` matches the address derived from your `onchain_public_key` — the `keys export` output prints both; confirm they correspond
+- [ ] `peer_id` is a valid base58 string, typically starts with `12D3Koo`
+- [ ] Your P2P port (6690) is reachable from the public internet, or you have `announce_addresses` set in `config.toml`
+
+---
+
+## Step 3: Submit Your Key Bundle
+
+Send the following JSON to the Superform team via your onboarding contact or [Discord](https://discord.gg/superform):
 
 ```json
 {
   "validator_name": "Your Organization",
-  "onchain_public_key": "04abcdef...",
-  "ethereum_address": "0x...",
-  "offchain_public_key": "abcdef...",
-  "config_encryption_public_key": "fedcba...",
-  "peer_id": "12D3KooW...",
+  "onchain_public_key": "04abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+  "ethereum_address": "0x1234567890AbCdEf1234567890AbCdEf12345678",
+  "offchain_public_key": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+  "config_encryption_public_key": "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+  "peer_id": "12D3KooWAbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
   "p2p_endpoint": "your-validator.example.com:6690"
 }
 ```
 
 <Warning>
-Never include your private keys (`offchain_private_key`, `onchain_private_key`, `p2p_private_key`) in this submission. Only public keys and the peer ID are required.
+Never include private keys (`offchain_private_key`, `onchain_private_key`, `p2p_private_key`) in this submission. Only public keys and the peer ID are needed.
 </Warning>
 
-Key sizes the team will validate:
+---
 
-| Field | Expected Size |
-|-------|--------------|
-| `onchain_public_key` | 130 hex chars (65 bytes), starts with `04` |
-| `offchain_public_key` | 64 hex chars (32 bytes) |
-| `config_encryption_public_key` | 64 hex chars (32 bytes) |
-| `ethereum_address` | Standard 20-byte Ethereum address |
-| `peer_id` | Base58 string, typically starts with `12D3Koo` |
+## Step 4: What Superform Does On-Chain
 
-## Step 3: What Happens On-Chain
-
-The Superform team assembles all validator key bundles and calls:
+The Superform team assembles all validator key bundles and calls `SuperGovernor.setValidatorConfig()` on Ethereum mainnet:
 
 ```solidity
 SuperGovernor.setValidatorConfig(
-    version,             // incremented from the last version
-    validators,          // your Ethereum address plus existing validators
-    validatorPublicKeys, // your 65-byte ECDSA public key plus existing validators
-    quorum,              // updated for the new validator count
-    offchainConfig       // ABI-encoded OracleIdentity[] including your P2P and offchain keys
+    version,             // strictly greater than the previous version
+    validators,          // Ethereum addresses — one per validator, derived from validatorPublicKeys
+    validatorPublicKeys, // 65-byte uncompressed ECDSA public keys — one per validator
+    quorum,              // minimum signatures for a valid report (odd; satisfies F*3 < N)
+    offchainConfig       // ABI-encoded OracleIdentity[] — one entry per validator
 )
 ```
 
-This emits a `ValidatorConfigSet` event. Every running oracle node subscribes to this event and reconfigures automatically.
+The `offchainConfig` parameter is an ABI-encoded array of `OracleIdentity` structs, one per validator, containing your peer ID, offchain public key, and config encryption public key:
 
-## Step 4: Verify Registration
+```solidity
+struct OracleIdentity {
+    bytes  validatorPublicKey;        // 65-byte ECDSA public key (matches validatorPublicKeys[])
+    string peerID;                    // ragep2p peer ID (e.g. "12D3KooW...")
+    bytes  offchainPublicKey;         // 32-byte Ed25519 public key
+    bytes  configEncryptionPublicKey; // 32-byte X25519 public key
+}
+```
 
-Watch your node logs after the Superform team confirms the transaction. Within a minute of the event being confirmed, you should see:
+The contract enforces several invariants on the submitted arrays. Any violation causes config loading to fail across all nodes:
+
+| Invariant | Rule |
+|-----------|------|
+| Array alignment | `len(validators) == len(validatorPublicKeys) == len(OracleIdentity[])` |
+| Address derivation | `validators[i]` must equal the Ethereum address derived from `validatorPublicKeys[i]` |
+| Identity matching | Every `validatorPublicKeys[i]` must have a matching `OracleIdentity.validatorPublicKey` (byte-equality) |
+| Byzantine fault tolerance | `F * 3 < N` where `F = (quorum - 1) / 2` and `N = len(validators)` |
+| Key sizes | Onchain public key: 65 bytes; offchain key: 32 bytes; config key: 32 bytes |
+
+Once the transaction confirms, every running oracle node receives the `ValidatorConfigSet` event and reconfigures automatically.
+
+---
+
+## Step 5: Verify Registration
+
+Watch your node logs after the Superform team confirms the transaction. Within a minute of the event being confirmed on-chain:
 
 ```
 Received ValidatorConfigSet event  blockNumber=... chainID=1
 Config loaded successfully  configDigest=0x... signers=N F=...
 ```
 
-Within the next OCR2 round (`delta_round` — 30 minutes on the production v3 config), you will see your node participating in consensus:
+Within the next OCR2 round (30 minutes on the production v3 config), your node will begin participating in consensus:
 
 ```
 INFO  Starting PPS observation  epoch=1 round=1
 INFO  Observed PPS  vault=0x... pps=1000000000000000000
+INFO  Observation complete  vaultsObserved=2
 ```
 
-**Verify your config digest matches other validators.** All nodes must report the same `configDigest`. If digests differ, check that your `config_version` in `config.toml` matches the network (see [Configuration Reference](/build/become-a-validator/configuration-reference)).
+**Check your config digest matches other validators.** All nodes must report the same `configDigest`. A mismatch means either your `config_version` in `config.toml` differs from the rest of the network, or your node observed a different `ValidatorConfigSet` event. See [Configuration Reference](/build/become-a-validator/configuration-reference).
+
+---
 
 ## Troubleshooting
 
-If the `ValidatorConfigSet` event arrives but config loading fails, the log will contain a specific error:
-
-| Error | Cause |
-|-------|-------|
-| `validator N (pubkey ...) not found in offchainConfig` | Your onchain public key was not matched in the offchain config — contact the Superform team |
-| `derived F=N from quorum=N is invalid` | Quorum was not updated correctly after adding your validator — contact the Superform team |
-| `no ValidatorConfigSet events found` | The transaction has not been submitted yet — wait for confirmation |
+| Log message | Cause | Action |
+|-------------|-------|--------|
+| `validator N (pubkey ...) not found in offchainConfig` | Your onchain public key has no matching `OracleIdentity` entry — key mismatch in the submission | Contact Superform to re-issue `setValidatorConfig` with corrected offchain config |
+| `derived F=N from quorum=N is invalid: F*3=N must be < N` | Quorum value does not satisfy Byzantine constraint for the new validator count | Contact Superform to adjust quorum |
+| `validator N has invalid config encryption key (len=N, want 32)` | Config encryption public key is wrong size | Re-export keys and resubmit — ensure you are using output from `keys export`, not a manually constructed value |
+| `failed to unpack offchain config` | `offchainConfig` bytes are malformed | Contact Superform |
+| `no ValidatorConfigSet events found` | `setValidatorConfig()` has not been called yet | Wait for Superform to confirm the transaction |
+| Nodes report different `configDigest` | `config_version` mismatch between nodes | Ensure your `config_version` in `config.toml` matches the rest of the network |
 
 <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
   Full config.toml reference and OCR2 timing options.

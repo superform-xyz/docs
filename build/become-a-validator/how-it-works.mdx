@@ -1,9 +1,9 @@
 ---
-title: "How It Works + Economics"
-description: "How the Superform validator network reaches OCR2 consensus, how failures behave, and how validator economics are expected to work."
+title: "How It Works"
+description: "How the Superform validator network reaches OCR2 consensus and what your node does in each round."
 ---
 
-This page explains the protocol and the expected validator economic model. It does not repeat setup or runbook instructions.
+This page explains the protocol. It does not repeat setup or runbook instructions. For the rollout model and validator incentives, use [Economics](/build/become-a-validator/economics).
 
 ## The problem validators solve
 
@@ -117,69 +117,3 @@ If your digest differs from the rest of the network, the usual causes are:
 - running against the wrong deployment inputs
 
 That is an operational issue, not a protocol mystery. Fix the inputs and the digest should converge.
-
-
----
-
-## Economics
-
-<Warning>
-Validator economics are not final yet. Phase 1 is permissioned and does not include the full staking and slashing model described here.
-</Warning>
-
-## Why validators get paid
-
-Validators provide the PPS updates SuperVaults need to function safely. If updates stop or become dishonest, vault operations degrade quickly. Rewards exist to keep high-quality operators online and aligned with the network.
-
-## Rewards
-
-Vault curators pay upkeep fees in **$UP** for active oracle coverage. Those fees are distributed to participating validators.
-
-The intended model is:
-
-- more stake increases reward weight
-- better participation preserves reward eligibility
-- missed rounds reduce your effective payout
-
-Exact thresholds and rates are governance parameters and have not been published yet.
-
-## Staking
-
-Phase 2 is expected to require validators to bond **$UP**.
-
-That bond is intended to:
-
-- serve as collateral for slashing
-- weight participation and rewards
-- enforce a minimum commitment to stay active
-
-## Slashing
-
-Slashing is designed to penalize two categories of failure:
-
-- **misreporting** — signing materially incorrect or invalid PPS data
-- **insufficient participation** — staying below required uptime / contribution thresholds
-
-Exact slash sizes and observation windows are still pending.
-
-## Insurance fund
-
-A portion of validator economics is expected to seed an insurance fund intended to backstop depositors if oracle failures cause verified harm.
-
-It is not meant to cover:
-
-- unrelated smart contract bugs
-- strategy market losses
-- immaterial losses below a governance-defined threshold
-
-## Rollout phases
-
-| Phase | Model | Status |
-|-------|-------|--------|
-| Phase 1 | Permissioned validator set | Live |
-| Phase 2 | Open bonding, slashing, insurance fund seeding | Planned |
-| Phase 3 | Governance-managed validator rotation | Planned |
-
-## Practical takeaway for operators
-
-Treat the current program as operationally serious even before the full economic model is live. Phase 1 may be permissioned, but uptime, correctness, and incident response still matter because the vaults depend on your node behaving like production infrastructure.

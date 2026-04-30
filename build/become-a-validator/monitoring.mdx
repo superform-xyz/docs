@@ -1,0 +1,64 @@
+---
+title: "Monitoring"
+description: "Health endpoints, Prometheus metrics, and alerting guidance for Superform validator operators."
+---
+
+Use this page when you need validator observability and alerting guidance. For config fields, use [Configuration Reference](/build/become-a-validator/configuration-reference). For operator procedures, use [Operations](/build/become-a-validator/operations).
+
+## Health endpoints
+
+Both ports are configured under `[monitoring]` in `config.toml`.
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `GET /metrics` | `metrics_port` | Prometheus scrape target |
+| `GET /healthz` | `health_port` | Process + DB liveness |
+| `GET /readyz` | `health_port` | Same checks today; reserved for future readiness gates |
+
+Quick check:
+
+```bash
+curl -s localhost:8080/healthz
+curl -s localhost:8080/readyz
+curl -s localhost:9090/metrics | grep ^ocr2_ | head -20
+```
+
+## Priority signals
+
+If you only alert on a handful of metrics, start here:
+
+- `ocr2_up` — process liveness
+- `ocr2_strategy_last_update_seconds` — confirms PPS updates are still landing onchain
+- `ocr2_strategy_update_stale` — fastest signal that a strategy has stopped updating
+- `ocr2_transmit_total` labeled by `status` — shows whether transmit attempts are succeeding
+- `ocr2_plugin_observations_total` labeled by `result` — reveals RPC or observation failures
+- `ocr2_config_version` and `ocr2_config_signers` — confirm the node loaded the expected active network config
+
+## Metrics reference
+
+### Onchain transmission health
+
+- `ocr2_strategy_last_update_seconds` (labels: `chain_id`, `strategy`) — gauge with the Unix timestamp of the latest observed `PPSValidated` event
+- `ocr2_strategy_update_stale` (labels: `chain_id`, `strategy`) — gauge set to `1` when no `PPSValidated` event arrives within `health_check_interval`
+
+### Transmitter
+
+- `ocr2_transmit_total` (labels: `chain_id`, `status`) — counter of transmission attempts by outcome
+- `ocr2_transmit_strategies_total` (label: `chain_id`) — counter of strategies packed into submitted transactions
+- `ocr2_transmit_pack_errors_total` (label: `chain_id`) — counter of report packing failures
+- `ocr2_transmit_duration_seconds` (label: `result`) — histogram of end-to-end transmit latency
+
+### Plugin phases
+
+- `ocr2_plugin_phase_duration_seconds` (labels: `phase`, `result`) — histogram of phase latency
+- `ocr2_plugin_phase_total` (labels: `phase`, `result`) — counter of phase invocation outcomes
+- `ocr2_plugin_observations_total` (labels: `chain_id`, `result`) — counter of per-strategy observation outcomes
+- `ocr2_plugin_insufficient_observations_total` (label: `chain_id`) — counter of vaults dropped because quorum observations were not available
+
+## Recommended operating habit
+
+After every config change, restart, or upgrade, verify three things in this order:
+
+1. `/healthz` is healthy
+2. `ocr2_config_version` and `ocr2_config_signers` match expectations
+3. `ocr2_strategy_last_update_seconds` continues advancing

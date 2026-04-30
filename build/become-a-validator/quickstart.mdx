@@ -1,37 +1,44 @@
 ---
 title: "Quickstart"
-description: "Go from zero to a running validator node end-to-end."
+description: "The shortest safe path from validator approval to a healthy Superform node."
 ---
 
-This page is a single linear checklist. Follow each step in order — links point to the full reference pages when you need more detail.
+Use this page when you want the fastest end-to-end path. It intentionally skips deep explanation. If you need full detail, jump to [Node Setup](/build/become-a-validator/node-setup), [Configuration Reference](/build/become-a-validator/configuration-reference), or [Operations](/build/become-a-validator/operations).
 
-**Time required:** ~30 minutes (excluding wait for on-chain registration)
-**Prerequisites:** Linux or macOS server, Docker or Go 1.24+, PostgreSQL 15+
+<Warning>
+Do not start here until Superform has confirmed you are approved to join and you have the required network inputs: bootstrap peers, chain-specific contract addresses, current config version, and a place to submit your public key bundle.
+</Warning>
 
----
+**Time required:** ~30 minutes for setup, plus registration wait time.
 
 <Steps>
+<Step title="Confirm prerequisites that actually block progress">
+Make sure you have:
 
-<Step title="Verify connectivity to bootstrap peers">
+- a Linux or macOS host
+- PostgreSQL 15+
+- Docker **or** Go 1.24+
+- reliable HTTPS and WSS RPC endpoints for every assigned chain
+- outbound TCP access to the Superform bootstrap peers on port `6690`
+- access to the validator runtime artifacts you plan to use
+</Step>
 
-Before anything else, confirm your server can reach the Superform bootstrap nodes on TCP 6690:
-
+<Step title="Verify network reachability">
 ```bash
 nc -zv bootstrap-1.supervaults.superform.xyz 6690
 nc -zv bootstrap-2.supervaults.superform.xyz 6690
 ```
-
-Both should respond with `succeeded`. If they fail, open outbound TCP 6690 in your firewall before continuing.
+If either check fails, fix firewall or routing before doing anything else.
 </Step>
 
-<Step title="Get the node binary">
-
+<Step title="Get the node runtime">
 <Tabs>
   <Tab title="Published image (recommended)">
 ```bash
 echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
 docker pull ghcr.io/superform-xyz/validator-network:latest
 ```
+Use a pinned release tag in production when one is available.
   </Tab>
   <Tab title="Build from source">
 ```bash
@@ -42,68 +49,32 @@ make build
 ```
   </Tab>
 </Tabs>
-
 </Step>
 
-<Step title="Generate cryptographic keys">
-
+<Step title="Generate keys and back them up immediately">
 ```bash
 ./bin/oracle-node keys generate --keystore ./keystore
 ```
-
-This creates your four keys (offchain Ed25519, P2P Ed25519, onchain ECDSA, and the derived X25519 config key). Copy the printed hex values — you will paste them into `config.toml` in the next step.
-
-<Note>
-Back up the `./keystore` directory immediately. These files are your validator identity — losing them means losing your place in the network.
-</Note>
+This creates your validator identity. Back up the keystore before continuing.
 </Step>
 
-<Step title="Configure the node">
-
+<Step title="Create config.toml and chains.yaml">
 ```bash
 cp config.template.toml config.toml
 cp chains.template.yaml chains.yaml
 ```
+Fill in:
 
-In `config.toml`, fill in:
+- your offchain and onchain keys
+- PostgreSQL connection string
+- Superform bootstrap peers
+- RPC endpoints for each assigned chain
+- the chain-specific `ecdsa_oracle_address` and `super_governor_address` values provided during onboarding
 
-```toml
-[keys]
-offchain_private_key = "<hex from keys generate>"
-
-[keys.onchain_private_key]
-private_key = "<hex from keys generate>"    # dev/testing
-# kms_key_id = "arn:aws:kms:..."            # production
-
-[p2p]
-bootstrap_peers = [
-    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
-    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
-]
-
-[database]
-url = "postgresql://oracle:password@localhost:5432/oracle_db?sslmode=disable"
-```
-
-In `chains.yaml`, add your RPC endpoints for each chain the Superform team has configured for the network. The Superform team will provide the `ecdsa_oracle_address` and `super_governor_address` values during onboarding:
-
-```yaml
-1:
-  name: ethereum
-  https_rpc: "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
-  wss_rpc:   "wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
-  block_time: 12s
-  supported_strategies:
-    - "0x..."
-  ecdsa_oracle_address:   "0x..."
-  super_governor_address: "0x..."
-```
-
-See [Configuration Reference](/build/become-a-validator/configuration-reference) for all fields.
+Use [Node Setup](/build/become-a-validator/node-setup) for the full install flow and [Configuration Reference](/build/become-a-validator/configuration-reference) for every field.
 </Step>
 
-<Step title="Start the node">
-
+<Step title="Start the node and check local health">
 <Tabs>
   <Tab title="Published image">
 ```bash
@@ -113,6 +84,7 @@ docker run -d \
   -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
   -p 6690:6690 -p 9090:9090 -p 8080:8080 \
   ghcr.io/superform-xyz/validator-network:latest
+
 docker logs -f oracle-node
 ```
   </Tab>
@@ -124,27 +96,19 @@ make run-local
   </Tab>
 </Tabs>
 
-Confirm the node started cleanly:
-
+Then verify:
 ```bash
-curl -s localhost:8080/healthz   # should return 200 OK
+curl -s localhost:8080/healthz
+curl -s localhost:9090/metrics | grep ocr2_up
 ```
-
-You should see this in the logs:
-
-```
-INFO  Oracle node started successfully
-```
-
+You want a healthy process before asking Superform to register it.
 </Step>
 
-<Step title="Export and submit your public keys">
-
+<Step title="Export and submit your public key bundle">
 ```bash
 ./bin/oracle-node keys export
 ```
-
-Send the output to the Superform team as a JSON bundle (via your onboarding contact or Discord). Include:
+Send Superform the public values only:
 
 ```json
 {
@@ -157,56 +121,32 @@ Send the output to the Superform team as a JSON bundle (via your onboarding cont
   "p2p_endpoint": "your-host.example.com:6690"
 }
 ```
-
-See [Joining the Network](/build/become-a-validator/joining-the-network) for the full submission checklist and what each key is used for.
+Never send private keys.
 </Step>
 
-<Step title="Verify registration">
+<Step title="Verify onchain registration and first participation">
+After Superform calls `SuperGovernor.setValidatorConfig()`, look for:
 
-After the Superform team calls `SuperGovernor.setValidatorConfig()`, your node will log:
-
-```
+```text
 Received ValidatorConfigSet event  blockNumber=... chainID=1
 Config loaded successfully  configDigest=0x... signers=N F=...
 ```
+Then, within the next round:
 
-Within the next OCR2 round (~30 minutes on the production config), you will see:
-
-```
+```text
 INFO  Starting PPS observation  epoch=1 round=1
 INFO  Observation complete  vaultsObserved=N
 ```
-
-Confirm your Prometheus metrics are flowing:
-
-```bash
-curl -s localhost:9090/metrics | grep ocr2_up
-# ocr2_up 1
-```
-
-Your node is live.
+If your node never reaches these logs, go straight to [Operations](/build/become-a-validator/operations).
 </Step>
-
 </Steps>
 
----
+## Exit criteria
 
-## Pre-Launch Checklist
-
-- [ ] Bootstrap peers reachable on TCP 6690
-- [ ] `config.toml` has valid keys, database URL, and bootstrap peers
-- [ ] `chains.yaml` has RPC endpoints for all required chains
-- [ ] `/healthz` returns 200
-- [ ] Public key bundle submitted to Superform team
-- [ ] `Config loaded successfully` seen in logs after registration
-- [ ] `ocr2_up 1` in Prometheus metrics
-- [ ] Keystore directory backed up securely
-
-<CardGroup cols={2}>
-  <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
-    Full config.toml and chains.yaml field reference.
-  </Card>
-  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
-    Health endpoints, metrics, and alert rules.
-  </Card>
-</CardGroup>
+- [ ] Bootstrap peers reachable on TCP `6690`
+- [ ] `config.toml` and `chains.yaml` filled with real values
+- [ ] `/healthz` returns healthy
+- [ ] `ocr2_up` is exposed in Prometheus metrics
+- [ ] Public key bundle submitted to Superform
+- [ ] `Config loaded successfully` appears after registration
+- [ ] First OCR2 observation logs appear

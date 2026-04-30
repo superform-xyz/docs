@@ -1,80 +1,83 @@
 ---
 title: "Become a Validator"
-description: "Join the Superform validator network: run an oracle node, attest to price-per-share updates, and earn protocol rewards."
+description: "Understand the validator program, operator requirements, and the fastest path to a live Superform validator node."
 ---
 
 <Note>
-The validator onboarding program is currently invite-only. If you are interested in becoming a validator, reach out to the Superform team via [Discord](https://discord.gg/superform).
+The validator program is currently permissioned. Before you start, confirm you have an onboarding contact at Superform and access to the validator artifacts you plan to run (published image or source repository), bootstrap peers, and the chain-specific contract addresses for your assigned deployment.
 </Note>
 
-## Overview
+## What this program is
 
-The Supervaults Validator Network is a decentralized oracle network that secures price-per-share (PPS) data for SuperVaults. Validators run oracle nodes that independently observe vault PPS values, reach consensus using the Chainlink OCR2 protocol, and submit signed attestations on-chain.
+The SuperVaults Validator Network is the oracle layer that keeps vault price-per-share (PPS) data fresh and tamper-resistant. Validators run an OCR2-based node that:
 
-The `ECDSAPPSOracle` contract accepts a PPS update only after at least two-thirds of weighted validator stake has signed the same value. No single validator can manipulate the reported price.
+- observes PPS on each configured chain
+- signs consensus reports with a dedicated onchain key
+- helps submit a single quorum-backed update onchain
+- earns validator rewards for reliable participation
 
-## What Validators Do
+## Who should run a validator
 
-- **Observe** — Fetch PPS values from vaults on each configured chain
-- **Attest** — Sign EIP-712 reports using a dedicated ECDSA key
-- **Transmit** — Submit aggregated, multi-validator reports to the oracle contract
-- **Earn** — Receive a share of $UP upkeep payments from vault curators
+This program is designed for operators who can run production infrastructure consistently, manage keys safely, and respond to incidents quickly. It is not a casual self-serve node today.
 
-## Network Architecture
+## Before you touch a server
 
-The network relies on four cryptographic keys per node, two infrastructure bootstrap peers, and a `SuperGovernor` contract that is the authoritative source for the active validator set.
+Have these inputs lined up first:
 
-| Key | Algorithm | Purpose |
-|-----|-----------|---------|
-| Offchain | Ed25519 | Signs OCR2 protocol messages between validators |
-| P2P | Ed25519 | Network identity for peer discovery |
-| Config | X25519 | Encrypted config distribution (derived from offchain key) |
-| Onchain | ECDSA secp256k1 | Signs PPS updates verified on-chain |
+- **Program access** — confirmation from Superform that your organization is approved to join
+- **Runtime artifacts** — access to the published container image or the source repository and templates
+- **Infrastructure** — a Linux or macOS host, PostgreSQL, stable outbound connectivity, and reliable RPC providers
+- **Network metadata** — bootstrap peers, the current config version, and the contract addresses Superform wants you to monitor
+- **Operator contact path** — a place to submit your public key bundle and coordinate registration
 
-Changes to the validator set take effect the moment a new `ValidatorConfigSet` event is emitted from `SuperGovernor` — no node restarts required.
+If any of those are missing, stop there. Most validator setup failures come from missing onboarding inputs, not from the software install itself.
 
-## Requirements
-
-- **$UP stake** — Validators must bond $UP tokens to join the validator set
-- **Infrastructure** — A server running the oracle node binary with PostgreSQL and stable network access
-- **Uptime** — Consistent participation is required; insufficient participation triggers slashing
-
-## Economics
-
-- Validators earn a share of $UP upkeep payments from vault curators
-- Misreporting is deterred through slashing of bonded $UP
-- An insurance fund backstops depositors against oracle failures
-
-## Roadmap
-
-| Phase | Status |
-|-------|--------|
-| Phase 1: Permissioned validator set | Live |
-| Phase 2: Open $UP bonding and slashing | Planned |
-| Phase 3: Fully decentralized validator rotation | Planned |
-
----
+## Read this section in order
 
 <CardGroup cols={2}>
-  <Card title="Prerequisites" icon="list-check" href="/build/become-a-validator/prerequisites">
-    System requirements, network configuration, and what you need before setting up a node.
-  </Card>
-  <Card title="Key Management" icon="key" href="/build/become-a-validator/key-management">
-    Generate and secure your four cryptographic keys, export public keys for registration.
+  <Card title="Quickstart" icon="rocket" href="/build/become-a-validator/quickstart">
+    The shortest safe path from approval to a running node.
   </Card>
   <Card title="Node Setup" icon="server" href="/build/become-a-validator/node-setup">
-    Build the binary, configure your node, and start it with local or Docker deployment.
-  </Card>
-  <Card title="Joining the Network" icon="network-wired" href="/build/become-a-validator/joining-the-network">
-    Submit your public keys to the network admin and verify you are registered on-chain.
+    Canonical install and runtime guide for Docker or source deployments.
   </Card>
   <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
-    Complete config.toml field reference and OCR2 protocol timing configurations.
-  </Card>
-  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
-    Health endpoints, Prometheus metrics, and recommended alert rules.
+    Pure reference for config.toml, chains.yaml, and OCR2 timing presets.
   </Card>
   <Card title="Operations" icon="wrench" href="/build/become-a-validator/operations">
-    Key rotation, upgrading the node, and troubleshooting common errors.
+    Registration, upgrades, key rotation, monitoring checks, and troubleshooting.
   </Card>
 </CardGroup>
+
+## Supporting context
+
+<CardGroup cols={3}>
+  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+    Metrics, health endpoints, and alert rules.
+  </Card>
+  <Card title="How It Works" icon="diagram-project" href="/build/become-a-validator/how-it-works">
+    OCR2 rounds, quorum, config digests, and failure modes.
+  </Card>
+  <Card title="Economics" icon="coins" href="/build/become-a-validator/economics">
+    Rewards, staking, slashing, and rollout phases.
+  </Card>
+</CardGroup>
+
+## Operator model at a glance
+
+| Topic | Current model |
+|-------|---------------|
+| Access | Permissioned onboarding through Superform |
+| Validator registration | Superform submits `setValidatorConfig()` |
+| Node reconfiguration | Automatic from `ValidatorConfigSet` events |
+| Key custody | Operator-managed; onchain key should use KMS in production |
+| Rewards and slashing | Phase 2 design, not live in Phase 1 |
+
+## Safe order of operations
+
+1. Confirm access and receive the required network metadata.
+2. Stand up the node and validate local health.
+3. Export and submit your public key bundle.
+4. Wait for Superform to register your validator onchain.
+5. Verify your node loads the new config and starts participating.
+6. Put monitoring and incident response in place before treating the node as production.

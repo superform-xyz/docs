@@ -1,115 +1,99 @@
 ---
 title: "How It Works"
-description: "A primer on OCR2 consensus, rounds, epochs, and how your validator node participates."
+description: "How the Superform validator network reaches OCR2 consensus and what your node does in each round."
 ---
 
-## The Problem Validators Solve
+This page explains the protocol. It does not repeat setup or runbook instructions.
 
-SuperVaults report a price-per-share (PPS) — the value of one vault share in the underlying asset — that depositors and on-chain logic depend on. If a single entity controlled this value, it could be manipulated. The Supervaults Validator Network solves this by requiring a supermajority of independent validators to independently observe and agree on the PPS before it can be posted on-chain.
+## The problem validators solve
 
----
+SuperVaults rely on price-per-share (PPS) updates to value positions correctly. A single trusted updater would be a central point of failure. The validator network replaces that with an OCR2 quorum: multiple operators observe PPS independently, agree offchain, and submit one signed report onchain.
 
-## OCR2: Offchain Reporting Protocol
+## Core components
 
-The network uses **Chainlink OCR2** (Offchain Reporting 2), a Byzantine fault-tolerant consensus protocol purpose-built for decentralized oracle networks. The key properties:
+- **Validator nodes** observe PPS values on assigned chains.
+- **OCR2** coordinates offchain consensus.
+- **`ECDSAPPSOracle`** accepts quorum-backed PPS reports onchain.
+- **`SuperGovernor`** is the source of truth for validator membership and network config.
 
-- **Offchain consensus** — Validators reach agreement off-chain and only submit one transaction per round, rather than each validator submitting separately. This reduces gas costs by roughly N×.
-- **Byzantine fault tolerance** — The network tolerates up to **F** faulty or malicious validators, where `F * 3 < N` (N = total validators). With 4 validators, F = 1: the network produces correct results even if one validator lies, crashes, or is unreachable.
-- **Cryptographic accountability** — Every validator signs their observation with their onchain ECDSA key. The oracle contract verifies these signatures and can attribute any misbehavior.
+## OCR2 round flow
 
----
+A production `v3` deployment attempts a round every 30 minutes.
 
-## Rounds and Epochs
-
-OCR2 organizes time into **rounds** and **epochs**.
-
-A **round** is one attempt to produce and transmit a PPS report. The production `v3` config runs a round every 30 minutes. A round proceeds through seven phases:
-
-```
+```text
 Leader selected
     │
-    ├─ Query      Leader fetches current block numbers, broadcasts to followers
-    ├─ Observation Each validator independently fetches PPS for all vaults
-    ├─ Report     Followers send signed observations to the leader
-    │             Leader aggregates (median per vault), constructs the report
-    ├─ Finalize   Leader broadcasts report + all collected signatures
-    ├─ Accept     Each validator checks the report (deviation guard, nonce check)
-    ├─ Sign       Validators sign the finalized report with their onchain ECDSA key
-    └─ Transmit   The designated transmitter sends the report on-chain
+    ├─ Query        Leader broadcasts round context
+    ├─ Observation  Validators fetch PPS independently
+    ├─ Report       Leader aggregates observations
+    ├─ Finalize     Leader shares the candidate report
+    ├─ Accept       Validators validate freshness and safety
+    ├─ Sign         Validators sign the finalized report
+    └─ Transmit     Designated transmitter posts onchain
 ```
 
-An **epoch** is a group of up to `r_max` rounds (5 in v3) led by the same leader. After `r_max` rounds or if the leader stalls for longer than `delta_progress`, a new epoch starts and a new leader is elected. Leader election is deterministic and round-robins across the validator set.
+## What your node does
 
----
+### Observation
 
-## The Quorum Requirement
+Your node calls `pricePerShare()` for each configured strategy, on each configured chain, using the RPC endpoints in `chains.yaml`.
 
-A report is valid only if it carries at least `quorum` valid ECDSA signatures. The quorum is set when the Superform team calls `SuperGovernor.setValidatorConfig()`.
+### Report assembly
 
-For a network of N validators, the quorum is chosen so that `F = (quorum - 1) / 2` satisfies `F * 3 < N`. Common configurations:
+If your node is the round leader, it:
 
-| N (validators) | Quorum | F (max faulty) |
+1. filters invalid or missing observations
+2. requires enough valid observations to satisfy quorum
+3. computes the median PPS per vault
+4. builds the ABI-encoded report payload
+
+### Acceptance checks
+
+Before signing, every validator checks:
+
+- report freshness against `max_stale_duration`
+- optional deviation guard versus its own observation
+- whether the onchain nonce changed before acceptance
+
+### Transmission
+
+The designated transmitter submits the report to `ECDSAPPSOracle.transmit()`. If quorum is valid, the contract updates PPS and emits `PPSValidated`.
+
+## Quorum and fault tolerance
+
+The network is configured so it can tolerate a bounded number of faulty validators while still producing correct results.
+
+| Validators (`N`) | Quorum | Max faulty (`F`) |
 |:-:|:-:|:-:|
 | 4 | 3 | 1 |
 | 7 | 5 | 2 |
 | 10 | 7 | 3 |
 | 13 | 9 | 4 |
 
-Your validator's onchain signature counts toward quorum. If fewer than `quorum` validators sign in a round, no report is submitted that round — the protocol waits for the next round.
+If fewer than `quorum` validators sign a round, that round does not produce an onchain report.
 
----
+## What happens when something breaks
 
-## What Your Node Does Each Round
+### One validator is offline
 
-### Observation phase
+Consensus still proceeds as long as the network remains within its fault-tolerance threshold.
 
-Your node calls `pricePerShare()` on each vault contract for each configured chain. If the on-chain call fails, the node falls back to any available cache. Only positive, non-zero values are included in the observation.
+### The leader is offline
 
-The observation is JSON-serialized and signed with your offchain Ed25519 key before being sent to the round leader over the P2P network.
+Other validators wait for `delta_progress`, then a new epoch starts with a new leader.
 
-### Report phase (if you are the leader)
+### Too many validators are unavailable
 
-The leader collects observations from all validators. For each vault, it:
-1. Filters out invalid or missing observations
-2. Checks that at least `quorum` valid observations are present
-3. Sorts the values and takes the **median**
-4. Builds an ABI-encoded report containing `(vaultAddress[], ppsValues[], timestamp)`
+The network cannot reach quorum. Rounds fail, `PPSValidated` stops advancing, monitoring turns stale, and strategies eventually hit onchain `maxStaleness` protections.
 
-If fewer than `quorum` validators submitted valid observations for a vault, that vault is excluded from this round's report.
+## Config digests
 
-### Accept phase
+Every node independently derives a config digest from the active validator set, their keys, quorum, and OCR2 timing parameters.
 
-Every validator independently validates the finalized report:
-- Checks the report is not too old (`max_stale_duration`)
-- If `max_pps_deviation_ppb` is set, checks that the leader's median is within tolerance of its own observation
-- Verifies the on-chain nonce has not advanced since the report was created
+If your digest differs from the rest of the network, the usual causes are:
 
-If the report passes, the validator signs it with its onchain ECDSA key.
+- mismatched `config_version`
+- observing a different `ValidatorConfigSet` event
+- running against the wrong deployment inputs
 
-### Transmit phase
-
-The designated transmitter (selected deterministically from the validator set) calls `ECDSAPPSOracle.transmit()` with the report and all collected signatures. The contract verifies each signature via `ECDSA.recover`, checks the quorum is met, and if so, updates the stored PPS for each vault and emits `PPSValidated` events.
-
----
-
-## What Happens When a Validator Is Offline
-
-**One validator offline (F = 1 network):** The remaining validators can still reach quorum. Rounds proceed normally. The offline validator's observations are simply absent from the report — it does not block consensus.
-
-**Leader offline:** Other validators wait for `delta_progress` (10 minutes in v3). If the leader makes no progress, the epoch ends and a new leader is elected. The first round of the new epoch resumes normally.
-
-**Multiple validators offline beyond F:** The network cannot reach quorum. Rounds produce no reports until enough validators come back online. The on-chain staleness monitor (`ocr2_strategy_update_stale`) will fire after `health_check_interval` and the strategy will auto-pause on-chain after `maxStaleness` (24 hours).
-
----
-
-## Config Digest
-
-The **config digest** is a hash derived deterministically from the active validator set, their keys, the quorum, and the OCR2 timing parameters. Every node computes this independently when processing a `ValidatorConfigSet` event.
-
-All nodes in the network must produce the same config digest to participate in the same protocol instance. If your node logs a different digest than the others, check:
-- Your `config_version` in `config.toml` matches the network
-- You are observing the same `ValidatorConfigSet` event (same block, same chain)
-
-<Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
-  OCR2 timing parameters and the full config.toml reference.
-</Card>
+That is an operational issue, not a protocol mystery. Fix the inputs and the digest should converge.

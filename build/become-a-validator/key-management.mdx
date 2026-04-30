@@ -1,0 +1,129 @@
+---
+title: "Key Management"
+description: "Generate and secure your four cryptographic keys, export public keys for network registration."
+---
+
+## Key Types
+
+Each validator node uses four cryptographic keys. They are independent — compromising one does not compromise the others, and each can be rotated without affecting the rest.
+
+| Key | Algorithm | Purpose | On-chain? |
+|-----|-----------|---------|-----------|
+| Offchain | Ed25519 | Signs OCR2 protocol messages between validators during consensus rounds | No |
+| P2P | Ed25519 | Network identity for peer discovery and TLS mutual auth | No |
+| Config | X25519 | Encrypted config distribution via Diffie-Hellman exchange | No |
+| Onchain | ECDSA secp256k1 | Signs EIP-712 PPS updates verified by the oracle contract | **Yes** |
+
+The Config key is derived automatically from the Offchain key — you never configure it directly.
+
+## Generating Keys
+
+Run `keys generate` once when setting up a new node. This creates all key files in the keystore directory.
+
+```bash
+# Build the binary first
+make build
+
+# Generate keys (saves to ./keystore/ by default)
+./bin/oracle-node keys generate
+
+# Or specify a custom path
+./bin/oracle-node keys generate --keystore /secure/path/keystore
+```
+
+This creates two files:
+- `ocr2_<id>.json` — Offchain Ed25519 keypair, Onchain ECDSA keypair, derived X25519 config public key
+- `p2p_<peerID>.json` — P2P Ed25519 keypair and derived ragep2p peer ID
+
+The command also prints the exact config.toml entries you need:
+
+```
+Keys saved to: ./keystore
+
+Add these to your config.toml:
+
+[keys]
+offchain_private_key = "76918f97bfe8..."
+
+[keys.onchain_private_key]
+private_key = "ed6ca3d3ac17..."
+
+[p2p]
+# This node's peer ID: 12D3KooWQze...
+```
+
+Copy these values into your `config.toml` before starting the node.
+
+## Exporting Public Keys for Registration
+
+Run `keys export` to display the public identifiers you need to share with the network admin. This never exposes private keys.
+
+```bash
+./bin/oracle-node keys export
+./bin/oracle-node keys export --keystore /secure/path/keystore
+```
+
+Output:
+
+```
+OCR2 Key Bundle: a1b2c3d4e5f6
+  Offchain Public Key (Ed25519):  a60c9e0032...
+  Onchain Public Key (ECDSA):     04f62c4a1a...
+  Config Public Key (X25519):     8b3f2a1c9d...
+  Derived Ethereum Address:       0x742d35Cc...
+
+P2P Key:
+  Peer ID: 12D3KooWQzePGqHw66cV1Qsm71eGZKiPEgALYYM3inPtFYibZ67e
+  Bootstrap peer entry: 12D3KooWQze...@<host>:<port>
+```
+
+What each value is used for:
+
+| Value | Used For |
+|-------|----------|
+| Onchain Public Key (65 bytes, starts with `04`) | Registered in `SuperGovernor.setValidatorConfig()` as `validatorPublicKeys[]` |
+| Derived Ethereum Address | Registered in `SuperGovernor.setValidatorConfig()` as `validators[]` |
+| Peer ID | Included in `offchainConfig` and bootstrap peer lists on other nodes |
+| Offchain Public Key (32 bytes) | Included in `offchainConfig` for OCR2 protocol signing |
+| Config Public Key (32 bytes) | Included in `offchainConfig` for encrypted config exchange |
+
+## AWS KMS for the Onchain Key (Production)
+
+In production, use AWS KMS to back the onchain ECDSA key. The private key never leaves KMS — signing happens via the AWS `Sign` API.
+
+```toml
+[keys.onchain_private_key]
+kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234-efgh-5678"
+```
+
+Supported key ID formats:
+- ARN: `arn:aws:kms:region:account:key/key-id`
+- Alias: `alias/my-key-alias`
+- UUID: `abcd1234-ef56-gh78-ij90-klmnopqrstuv`
+
+The KMS key must be an asymmetric `ECC_SECG_P256K1` key with signing enabled. KMS signing runs in parallel across all strategies to minimize latency.
+
+## Security Best Practices
+
+- **Back up the keystore directory** — it contains your private keys; losing it means losing your validator identity
+- **File permissions** — key files are created with `0600` (owner read/write only); do not loosen these
+- **Never commit** — add `keystore/` and `config.toml` to `.gitignore`; never push private key material
+- **Production** — use AWS KMS for the onchain key so the private key never touches disk
+- **Key isolation** — the offchain, P2P, and onchain keys are independent; rotating one does not affect the others
+
+## Key Rotation
+
+To rotate any key:
+
+1. Generate a new key bundle: `./bin/oracle-node keys generate --keystore ./keystore-new`
+2. Export the new public keys: `./bin/oracle-node keys export --keystore ./keystore-new`
+3. Submit the new public key bundle to the Superform team
+4. The team calls `SuperGovernor.setValidatorConfig()` with the updated keys
+5. Update your `config.toml` with the new private key values
+6. Restart your node
+
+Other nodes in the network reconfigure automatically when the new `ValidatorConfigSet` event is emitted — no action needed from them.
+
+<Card title="Node Setup" icon="server" href="/build/become-a-validator/node-setup">
+  Next: build the binary and configure your node.
+</Card>

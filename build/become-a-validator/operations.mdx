@@ -1,0 +1,254 @@
+---
+title: "Operations"
+description: "Runbook for registration, upgrades, key rotation, health checks, and troubleshooting validator nodes."
+---
+
+This page is the operator runbook. It covers what happens after installation: registration, steady-state checks, upgrades, key rotation, and incident response.
+
+## First production checklist
+
+Once the node is locally healthy, complete these steps in order.
+
+### 1. Export your public keys
+
+```bash
+./bin/oracle-node keys export
+```
+
+You need these public values:
+
+- onchain public key
+- derived Ethereum address
+- offchain public key
+- config encryption public key
+- peer ID
+- public P2P endpoint
+
+`keys export` is converting your local key material into the values Superform inserts into the live validator config: `validatorPublicKeys[]`, `validators[]`, and the ABI-encoded `OracleIdentity[]` entries inside `offchainConfig`.
+
+### 2. Self-validate the bundle
+
+Before sending anything to Superform, verify:
+
+- `onchain_public_key` is 65 bytes / 130 hex chars and starts with `04`
+- `offchain_public_key` is 32 bytes / 64 hex chars
+- `config_encryption_public_key` is 32 bytes / 64 hex chars
+- the exported Ethereum address matches the onchain public key
+- `peer_id` is a valid libp2p base58 string, typically starting with `12D3Koo`
+- `p2p_endpoint` resolves publicly to the host that is actually serving your node on TCP `6690`
+- your node is reachable on the endpoint you plan to advertise
+- if you are behind NAT or a load balancer, `announce_addresses` is set to the same public `host:port` you plan to submit
+
+Use the smallest real preflight instead of guessing:
+
+```bash
+nc -zv <your-public-hostname> 6690
+```
+
+From another machine or network if possible. Do not put Cloudflare or any other HTTP proxy in front of this port.
+
+### 3. Submit the public key bundle
+
+Send the bundle to your Superform onboarding contact. Never send private keys.
+
+```json
+{
+  "validator_name": "Your Organization",
+  "onchain_public_key": "04...",
+  "ethereum_address": "0x...",
+  "offchain_public_key": "...",
+  "config_encryption_public_key": "...",
+  "peer_id": "12D3KooW...",
+  "p2p_endpoint": "your-validator.example.com:6690"
+}
+```
+
+Mapping reminder:
+
+- `onchain_public_key` → `validatorPublicKeys[]`
+- `ethereum_address` → `validators[]`
+- `peer_id` → `OracleIdentity.peerID`
+- `offchain_public_key` → `OracleIdentity.offchainPublicKey`
+- `config_encryption_public_key` → `OracleIdentity.configEncryptionPublicKey`
+
+### 4. Wait for onchain registration
+
+During Phase 1, Superform calls `SuperGovernor.setValidatorConfig()` on your behalf. That payload has five parts:
+
+- `version` — must be strictly newer than the previous config
+- `validators[]` — one Ethereum address per validator
+- `validatorPublicKeys[]` — the matching 65-byte uncompressed ECDSA public keys
+- `quorum` — the report threshold for the validator set size
+- `offchainConfig` — the ABI-encoded `OracleIdentity[]` entries for the same validators
+
+For each validator, `validators[i]`, `validatorPublicKeys[i]`, and `OracleIdentity[i]` all have to describe the same operator identity. In practice, the config only loads cleanly when:
+
+- all three arrays have the same length
+- `validators[i]` is the Ethereum address derived from `validatorPublicKeys[i]`
+- `OracleIdentity.validatorPublicKey` byte-matches the same `validatorPublicKeys[i]`
+- the offchain and config encryption keys are both 32 bytes
+
+Most registration failures reduce to one of three things: array misalignment, address/public-key mismatch, or malformed `offchainConfig` bytes. If your node sees the event but refuses to load the config, reason about the failure in that order first.
+
+Once the transaction confirms, your node should pick up the new validator set automatically.
+
+### 5. Confirm the node joined the active config
+
+Look for logs like:
+
+```text
+Received ValidatorConfigSet event  blockNumber=... chainID=1
+Config loaded successfully  configDigest=0x... signers=N F=...
+```
+
+Within the next round, you should also see observation activity.
+
+Example healthy progression:
+
+```text
+INFO  Starting PPS observation  epoch=1 round=1
+INFO  Observation complete  vaultsObserved=N
+```
+
+---
+
+## Steady-state health checks
+
+These are the minimum checks worth automating.
+
+### Local endpoints
+
+```bash
+curl -s localhost:8080/healthz
+curl -s localhost:8080/readyz
+curl -s localhost:9090/metrics | grep ^ocr2_
+```
+
+### Metrics that matter most
+
+- `ocr2_up`
+- `ocr2_strategy_last_update_seconds`
+- `ocr2_strategy_update_stale`
+- `ocr2_transmit_total{status}`
+- `ocr2_plugin_observations_total{result}`
+- `ocr2_config_version`
+- `ocr2_config_signers`
+
+If `ocr2_strategy_last_update_seconds` stops advancing or `ocr2_strategy_update_stale` flips to `1`, treat it as a real incident.
+
+---
+
+## Key rotation
+
+Rotate keys when compromise is suspected, your custody model changes, or Superform asks you to re-register.
+
+<Steps>
+  <Step title="Generate a new bundle">
+    ```bash
+    ./bin/oracle-node keys generate --keystore ./keystore-new
+    ```
+  </Step>
+  <Step title="Export the new public values">
+    ```bash
+    ./bin/oracle-node keys export --keystore ./keystore-new
+    ```
+  </Step>
+  <Step title="Submit the new public bundle to Superform">
+    Superform must publish a new validator config onchain before the rotation is active.
+  </Step>
+  <Step title="Update local runtime config">
+    Replace the relevant private key values in `config.toml`, or update your KMS key reference.
+  </Step>
+  <Step title="Restart your node">
+    Restart only after the updated config is ready to use.
+  </Step>
+</Steps>
+
+## Upgrades
+
+### Source deployment
+
+```bash
+git pull origin main
+make build
+make run-local
+```
+
+### Docker deployment
+
+Pull the target image tag, then restart the container or compose stack.
+
+```bash
+docker pull ghcr.io/superform-xyz/validator-network:latest
+```
+
+After any upgrade, verify:
+
+- the process starts cleanly
+- `/healthz` and `/metrics` work
+- `ocr2_config_version` is unchanged unless the network intentionally rotated config
+- observations and transmissions resume
+
+---
+
+## Common failure modes
+
+### Database connection failure
+
+```text
+Error: failed to initialize database: failed to ping database
+```
+
+Check PostgreSQL availability and the `[database].url` value.
+
+### Keys not found
+
+```text
+Error: failed to load OCR2 key bundle
+```
+
+Generate keys or fix the configured path / embedded key material.
+
+### Bootstrap peers unreachable
+
+If the node never participates, verify:
+
+1. outbound TCP `6690` is open
+2. `bootstrap_peers` matches the current values from Superform
+3. `announce_addresses` is set correctly if you are behind NAT
+4. debug logs do not show repeated ragep2p dial failures
+
+### Config digest mismatch
+
+If your `configDigest` differs from the rest of the network, check:
+
+- `config_version` in `config.toml`
+- whether you observed the same `ValidatorConfigSet` event as the rest of the network
+- whether Superform submitted aligned `validators[]`, `validatorPublicKeys[]`, and `OracleIdentity[]` arrays
+- whether `validators[i]` still derives from the paired `validatorPublicKeys[i]` and byte-matches the paired `OracleIdentity.validatorPublicKey`
+- whether your local binary matches the expected network release
+
+### Observations succeed but no onchain transmissions land
+
+Check:
+
+1. `ocr2_transmit_total{status="failure"}` and `{status="error"}`
+2. whether the registered transmitter address matches your onchain key
+3. RPC health on the transmit chain
+4. debug logs for revert or nonce mismatch details
+
+---
+
+## Error reference
+
+| Error | Cause | Action |
+|-------|-------|--------|
+| `validator N (pubkey ...) not found in offchainConfig` | Onchain/offchain identity mismatch | Re-export keys and ask Superform to republish the config |
+| `derived F=N from quorum=N is invalid: F*3=N must be < N` | Invalid quorum for the validator count | Superform must adjust the config |
+| `failed to unpack offchain config` | Malformed `offchainConfig` bytes | Superform must republish the config |
+| `no ValidatorConfigSet events found` | Registration has not happened yet | Wait for Superform confirmation |
+| `could not import github.com/smartcontractkit/libocr` | Dependencies missing in source build | Run `make deps` |
+
+<Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+  Full metrics and alerting reference.
+</Card>

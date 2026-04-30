@@ -1,0 +1,111 @@
+---
+title: "How It Works"
+description: "How the Superform validator network reaches OCR2 consensus and what your node does in each round."
+---
+
+This page explains the protocol. It does not repeat setup or runbook instructions.
+
+## The problem validators solve
+
+SuperVaults rely on price-per-share (PPS) updates to value positions correctly. A single trusted updater would be a central point of failure. The validator network replaces that with an OCR2 quorum: multiple operators observe PPS independently, agree offchain, and submit one signed report onchain.
+
+## Core components
+
+- **Validator nodes** observe PPS values on assigned chains.
+- **OCR2** coordinates offchain consensus.
+- **`ECDSAPPSOracle`** accepts quorum-backed PPS reports onchain.
+- **`SuperGovernor`** is the source of truth for validator membership and network config.
+
+## OCR2 round flow
+
+A production `v3` deployment attempts a round every 30 minutes.
+
+```text
+Leader selected
+    │
+    ├─ Query        Leader broadcasts round context
+    ├─ Observation  Validators fetch PPS independently
+    ├─ Report       Leader aggregates observations
+    ├─ Finalize     Leader shares the candidate report
+    ├─ Accept       Validators validate freshness and safety
+    ├─ Sign         Validators sign the finalized report
+    └─ Transmit     Designated transmitter posts onchain
+```
+
+## What your node does
+
+### Observation
+
+Your node calls `pricePerShare()` for each configured strategy, on each configured chain, using the RPC endpoints in `chains.yaml`.
+
+### Report assembly
+
+If your node is the round leader, it:
+
+1. filters invalid or missing observations
+2. requires enough valid observations to satisfy quorum
+3. computes the median PPS per vault
+4. builds the ABI-encoded report payload
+
+### Acceptance checks
+
+Before signing, every validator checks:
+
+- report freshness against `max_stale_duration`
+- optional deviation guard versus its own observation
+- whether the onchain nonce changed before acceptance
+
+### Transmission
+
+The designated transmitter submits the report to `ECDSAPPSOracle.transmit()`. If quorum is valid, the contract updates PPS and emits `PPSValidated`.
+
+## Quorum and fault tolerance
+
+The network is configured so it can tolerate a bounded number of faulty validators while still producing correct results.
+
+For OCR2 this is the Byzantine constraint that matters: with `N` validators and fault tolerance `F`, the config must satisfy `F * 3 < N`. In practice Superform chooses an odd quorum so `F = (quorum - 1) / 2`, then builds the validator set around that limit.
+
+| Validators (`N`) | Quorum | Max faulty (`F`) |
+|:-:|:-:|:-:|
+| 4 | 3 | 1 |
+| 7 | 5 | 2 |
+| 10 | 7 | 3 |
+| 13 | 9 | 4 |
+
+If fewer than `quorum` validators sign a round, that round does not produce an onchain report.
+
+## How validator identity maps into the config
+
+Every validator contributes one aligned identity across three places in the active config:
+
+- `validators[i]` is the Ethereum address derived from that validator's onchain public key
+- `validatorPublicKeys[i]` is the 65-byte uncompressed ECDSA public key used for onchain signature verification
+- `OracleIdentity[i]` carries the same validator's `validatorPublicKey`, `peerID`, `offchainPublicKey`, and `configEncryptionPublicKey`
+
+Those arrays are not loosely related metadata. They are positional invariants. If the same validator is not represented at the same index across all three, config loading breaks.
+
+## What happens when something breaks
+
+### One validator is offline
+
+Consensus still proceeds as long as the network remains within its fault-tolerance threshold.
+
+### The leader is offline
+
+Other validators wait for `delta_progress`, then a new epoch starts with a new leader.
+
+### Too many validators are unavailable
+
+The network cannot reach quorum. Rounds fail, `PPSValidated` stops advancing, monitoring turns stale, and strategies eventually hit onchain `maxStaleness` protections.
+
+## Config digests
+
+Every node independently derives a config digest from the active validator set, their keys, quorum, and OCR2 timing parameters.
+
+If your digest differs from the rest of the network, the usual causes are:
+
+- mismatched `config_version`
+- observing a different `ValidatorConfigSet` event
+- running against the wrong deployment inputs
+
+That is an operational issue, not a protocol mystery. Fix the inputs and the digest should converge.

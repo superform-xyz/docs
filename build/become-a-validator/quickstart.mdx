@@ -1,0 +1,158 @@
+---
+title: "Quickstart"
+description: "The shortest safe path from validator approval to a healthy Superform node."
+---
+
+Use this page when you want the fastest end-to-end path. It intentionally skips deep explanation. If you need full detail, jump to [Node Setup](/build/become-a-validator/node-setup), [Configuration Reference](/build/become-a-validator/configuration-reference), or [Operations](/build/become-a-validator/operations).
+
+<Warning>
+Do not start here until Superform has confirmed you are approved to join and you have the required network inputs: bootstrap peers, chain-specific contract addresses, current config version, and a place to submit your public key bundle.
+</Warning>
+
+**Time required:** ~30 minutes for setup, plus registration wait time.
+
+<Steps>
+<Step title="Confirm prerequisites that actually block progress">
+Make sure you have:
+
+- a Linux or macOS host
+- at least 2 vCPU, 2 GB RAM minimum / 4 GB recommended, and 20 GB disk
+- PostgreSQL 15+
+- Docker **or** Go 1.24+
+- reliable HTTPS and WSS RPC endpoints for every assigned chain
+- outbound TCP access to the Superform bootstrap peers on port `6690`
+- access to the validator runtime artifacts you plan to use
+</Step>
+
+<Step title="Verify network reachability">
+```bash
+nc -zv bootstrap-1.supervaults.superform.xyz 6690
+nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+If either check fails, fix firewall or routing before doing anything else.
+
+The P2P port is raw TCP ragep2p traffic. Do **not** put Cloudflare or any other HTTP proxy in front of port `6690`.
+</Step>
+
+<Step title="Get the node runtime">
+<Tabs>
+  <Tab title="Published image (recommended)">
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+docker pull ghcr.io/superform-xyz/validator-network:latest
+```
+Use a pinned release tag in production when one is available.
+  </Tab>
+  <Tab title="Build from source">
+```bash
+git clone https://github.com/superform-xyz/supervaults-validator-network.git
+cd supervaults-validator-network
+make deps
+make build
+```
+  </Tab>
+</Tabs>
+</Step>
+
+<Step title="Generate keys and back them up immediately">
+```bash
+./bin/oracle-node keys generate --keystore ./keystore
+```
+This creates your validator identity and writes two artifacts in `./keystore`: `ocr2_<id>.json` for the OCR2/offchain + onchain bundle and `p2p_<peerID>.json` for the ragep2p identity. Keep both files at `0600` permissions and back up the keystore before continuing.
+</Step>
+
+<Step title="Create config.toml and chains.yaml">
+```bash
+cp config.template.toml config.toml
+cp chains.template.yaml chains.yaml
+```
+If you are using the published image, fetch `config.template.toml` and `chains.template.yaml` from the validator repo or your onboarding bundle before running those copy commands.
+
+Fill in:
+
+- your offchain and onchain keys
+- the generated key file paths if you are loading from `./keystore/ocr2_<id>.json`
+- PostgreSQL connection string
+- Superform bootstrap peers
+- RPC endpoints for each assigned chain
+- the chain-specific `ecdsa_oracle_address` and `super_governor_address` values provided during onboarding
+
+Use [Node Setup](/build/become-a-validator/node-setup) for the full install flow and [Configuration Reference](/build/become-a-validator/configuration-reference) for every field.
+</Step>
+
+<Step title="Start the node and check local health">
+<Tabs>
+  <Tab title="Published image">
+```bash
+docker run -d \
+  --name oracle-node \
+  -v $(pwd)/config.toml:/app/config.toml:ro \
+  -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
+  -p 6690:6690 -p 9090:9090 -p 8080:8080 \
+  ghcr.io/superform-xyz/validator-network:latest
+
+docker logs -f oracle-node
+```
+  </Tab>
+  <Tab title="Local binary">
+```bash
+make setup-db
+make run-local
+```
+  </Tab>
+</Tabs>
+
+Then verify:
+```bash
+curl -s localhost:8080/healthz
+curl -s localhost:9090/metrics | grep ocr2_up
+```
+You want a healthy process before asking Superform to register it.
+</Step>
+
+<Step title="Export and submit your public key bundle">
+```bash
+./bin/oracle-node keys export
+```
+Send Superform the public values only:
+
+```json
+{
+  "validator_name": "Your Organization",
+  "onchain_public_key": "04...",
+  "ethereum_address": "0x...",
+  "offchain_public_key": "...",
+  "config_encryption_public_key": "...",
+  "peer_id": "12D3KooW...",
+  "p2p_endpoint": "your-host.example.com:6690"
+}
+```
+`keys export` gives Superform exactly what they need to build the onchain config: `validatorPublicKeys[]` gets your onchain public key, `validators[]` gets the derived Ethereum address, and `OracleIdentity[]` gets your `peer_id`, `offchain_public_key`, and `config_encryption_public_key`. Never send private keys. For the full registration payload shape, validation invariants, and failure-mode debugging, use [Operations](/build/become-a-validator/operations).
+</Step>
+
+<Step title="Verify onchain registration and first participation">
+After Superform calls `SuperGovernor.setValidatorConfig()`, look for:
+
+```text
+Received ValidatorConfigSet event  blockNumber=... chainID=1
+Config loaded successfully  configDigest=0x... signers=N F=...
+```
+Then, within the next round:
+
+```text
+INFO  Starting PPS observation  epoch=1 round=1
+INFO  Observation complete  vaultsObserved=N
+```
+If your node never reaches these logs, go straight to [Operations](/build/become-a-validator/operations).
+</Step>
+</Steps>
+
+## Exit criteria
+
+- [ ] Bootstrap peers reachable on TCP `6690`
+- [ ] `config.toml` and `chains.yaml` filled with real values
+- [ ] `/healthz` returns healthy
+- [ ] `ocr2_up` is exposed in Prometheus metrics
+- [ ] Public key bundle submitted to Superform
+- [ ] `Config loaded successfully` appears after registration
+- [ ] First OCR2 observation logs appear

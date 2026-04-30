@@ -1,0 +1,258 @@
+---
+title: "Node Setup"
+description: "Canonical install guide for running a Superform validator node with Docker or from source."
+---
+
+This is the canonical setup guide. Use it when you need the full install flow, not just the short checklist.
+
+## Before you install
+
+Make sure you already have:
+
+- approval to join the permissioned validator program
+- the bootstrap peer entries supplied by Superform
+- the chain-specific contract addresses and current config version for your deployment
+- reliable HTTPS and WSS RPC endpoints for each assigned chain
+- PostgreSQL 15+
+
+If you do not have those yet, stop and get them first. The software is the easy part.
+
+## System requirements
+
+| Requirement | Baseline |
+|------------|----------|
+| OS | Linux or macOS |
+| CPU | 2 vCPU minimum |
+| RAM | 2 GB minimum, 4 GB recommended |
+| Disk | 20 GB minimum |
+| Database | PostgreSQL 15+ |
+| Network | Stable outbound connectivity, direct TCP `6690`, and reliable uptime |
+
+## Choose a deployment method
+
+<CardGroup cols={3}>
+  <Card title="Published Image" icon="docker">
+    Recommended for most operators. No Go toolchain required.
+  </Card>
+  <Card title="Build from Source" icon="code">
+    Use this if you need direct source control over the runtime.
+  </Card>
+  <Card title="Docker (build locally)" icon="hammer">
+    Useful when validating local code changes before deployment.
+  </Card>
+</CardGroup>
+
+<Tabs>
+  <Tab title="Published Image (recommended)">
+
+## Published Image
+
+Images are published to GitHub Container Registry:
+
+```text
+ghcr.io/superform-xyz/validator-network
+```
+
+### 1. Authenticate to GHCR
+
+```bash
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+```
+
+You need a GitHub token with `read:packages`.
+
+### 2. Pull the image
+
+```bash
+docker pull ghcr.io/superform-xyz/validator-network:latest
+# or pin a versioned release tag when available
+docker pull ghcr.io/superform-xyz/validator-network:v1.2.3
+```
+
+Prefer pinned tags in production.
+
+### 3. Prepare local config files
+
+```bash
+cp config.template.toml config.toml
+cp chains.template.yaml chains.yaml
+cp .env.template .env
+```
+
+If you do not have the templates locally, get them from the validator repository or your onboarding bundle before continuing.
+
+### 4. Fill in the required values
+
+In `config.toml`, set:
+
+- `[keys]` offchain private key
+- `[keys.onchain_private_key]` dev private key or production `kms_key_id`
+- `[database].url`
+- `[p2p].bootstrap_peers`
+- optional `announce_addresses` if you are behind NAT
+- `chain_config_path`
+
+In `chains.yaml`, every assigned chain needs both a reliable HTTPS RPC endpoint for reads/tx submission and a WSS endpoint for event subscriptions. Do not treat WSS as optional.
+
+In `chains.yaml`, set the RPC endpoints and the contract addresses provided by Superform.
+
+### 5. Run the container
+
+```bash
+docker run -d \
+  --name oracle-node \
+  -v $(pwd)/config.toml:/app/config.toml:ro \
+  -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
+  -p 6690:6690 -p 9090:9090 -p 8080:8080 \
+  ghcr.io/superform-xyz/validator-network:latest
+```
+
+### 6. Verify basic health
+
+```bash
+docker logs -f oracle-node
+curl -s localhost:8080/healthz
+curl -s localhost:9090/metrics | grep ^ocr2_ | head -20
+```
+
+  </Tab>
+  <Tab title="Build from Source">
+
+## Build from Source
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/superform-xyz/supervaults-validator-network.git
+cd supervaults-validator-network
+```
+
+### 2. Install dependencies
+
+```bash
+make deps
+```
+
+### 3. Set up PostgreSQL
+
+```bash
+make setup-db
+```
+
+### 4. Generate your keys
+
+```bash
+./bin/oracle-node keys generate --keystore ./keystore
+```
+
+Back up the keystore immediately.
+
+### 5. Create configuration files
+
+```bash
+cp config.template.toml config.toml
+cp chains.template.yaml chains.yaml
+```
+
+Populate the same runtime values listed in the container workflow above.
+
+### 6. Build and run
+
+```bash
+make build
+make run-local
+```
+
+For more verbose logs:
+
+```bash
+./bin/oracle-node --config config.toml --log-level debug
+```
+
+  </Tab>
+  <Tab title="Docker (build locally)">
+
+## Docker (Build Locally)
+
+Use this when testing local code changes.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/superform-xyz/supervaults-validator-network.git
+cd supervaults-validator-network
+```
+
+### 2. Prepare the local Docker environment
+
+```bash
+make docker-setup-local
+```
+
+### 3. Configure secrets and runtime values
+
+```bash
+nano .env
+nano config.toml
+nano chains.yaml
+```
+
+### 4. Start services
+
+```bash
+make run-docker
+```
+
+### 5. Useful lifecycle commands
+
+```bash
+make docker-logs
+make docker-down
+make docker-clean
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Key management rules that matter during setup
+
+- Generate keys once per validator identity.
+- Back up the keystore before first production use.
+- Never commit `keystore/`, `.env`, or `config.toml`.
+- Use AWS KMS for the onchain signing key in production if supported by your environment.
+- If you use key files, keep `ocr2_<id>.json` and `p2p_<peerID>.json` at `0600` permissions.
+
+## Bootstrap peers
+
+Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Your node uses them to join the mesh and discover the rest of the validator set.
+
+Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
+
+Networking rule that matters in production:
+
+- outbound TCP `6690` is mandatory so your node can reach the Superform bootstrap peers and the wider mesh
+- inbound TCP `6690` is required when other validators must dial the endpoint you advertise directly
+- outbound-only can work in some NATed topologies if your announced endpoint is still reachable through another path, but do not treat that as the default production assumption
+
+If you are behind NAT or a load balancer, set `announce_addresses` so other validators can dial you back correctly.
+
+Verify connectivity before startup:
+
+```bash
+nc -zv bootstrap-1.supervaults.superform.xyz 6690
+nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+
+## What success looks like before registration
+
+Before Superform registers your node, you should already have:
+
+- a healthy process
+- successful database connectivity
+- working `/healthz` and `/metrics` endpoints
+- no local config parse errors
+- clean outbound connectivity to the bootstrap peers and your RPC providers
+
+Once that is true, move to [Operations](/build/become-a-validator/operations) for registration and production runbook tasks.

@@ -70,8 +70,9 @@ If you are using the published image, fetch `config.template.toml` and `chains.t
 
 Fill in:
 
-- your offchain and onchain keys
-- the generated key file paths if you are loading from `./keystore/ocr2_<id>.json`
+- your offchain and onchain keys if you are using direct hex
+- the generated key file path if you are loading from `./keystore/ocr2_<id>.json`
+- the `kms_key_id` if you are using AWS KMS for the onchain signer
 - PostgreSQL connection string
 - Superform bootstrap peers
 - RPC endpoints for each assigned chain
@@ -88,11 +89,14 @@ docker run -d \
   --name oracle-node \
   -v $(pwd)/config.toml:/app/config.toml:ro \
   -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
+  -v $(pwd)/keystore:/app/keystore:ro \
   -p 6690:6690 -p 9090:9090 -p 8080:8080 \
   ghcr.io/superform-xyz/validator-network:latest
 
 docker logs -f oracle-node
 ```
+
+Mount `./keystore` only when `config.toml` uses `key_file_path = "./keystore/ocr2_<id>.json"`. Direct-hex configs do not need the extra volume, and KMS-backed setups still need the local offchain/P2P identity available to the container.
   </Tab>
   <Tab title="Local binary">
 ```bash

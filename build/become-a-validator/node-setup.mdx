@@ -85,7 +85,7 @@ If you do not have the templates locally, get them from the validator repository
 
 In `config.toml`, set:
 
-- `[keys]` offchain private key
+- `[keys]` offchain private key for direct-hex or KMS-backed setups, or `key_file_path` if you are loading from `./keystore/ocr2_<id>.json`
 - `[keys.onchain_private_key]` dev private key or production `kms_key_id`
 - `[database].url`
 - `[p2p].bootstrap_peers`
@@ -103,9 +103,12 @@ docker run -d \
   --name oracle-node \
   -v $(pwd)/config.toml:/app/config.toml:ro \
   -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
+  -v $(pwd)/keystore:/app/keystore:ro \
   -p 6690:6690 -p 9090:9090 -p 8080:8080 \
   ghcr.io/superform-xyz/validator-network:latest
 ```
+
+If `config.toml` uses `key_file_path = "./keystore/ocr2_<id>.json"`, the `./keystore` mount is mandatory because the node also expects `./keystore/p2p_<peerID>.json` beside it. Direct-hex configs do not need the mount. KMS only replaces the onchain signer, so you still need either direct offchain hex or the local keystore/P2P files.
 
 ### 6. Verify basic health
 
@@ -222,6 +225,7 @@ make docker-clean
 - Back up the keystore before first production use.
 - Never commit `keystore/`, `.env`, or `config.toml`.
 - Use AWS KMS for the onchain signing key in production if supported by your environment.
+- KMS only covers the onchain signer; the OCR2/offchain key and P2P identity remain independently managed.
 - If you use key files, keep `ocr2_<id>.json` and `p2p_<peerID>.json` at `0600` permissions.
 
 ## Bootstrap peers
@@ -229,6 +233,8 @@ make docker-clean
 Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Your node uses them to join the mesh and discover the rest of the validator set.
 
 Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
+
+The peer IDs are expected to remain stable across normal infrastructure replacements. If Superform ever rotates one, treat that as a real config update and replace the entry before your next restart.
 
 Networking rule that matters in production:
 
@@ -243,6 +249,23 @@ Verify connectivity before startup:
 ```bash
 nc -zv bootstrap-1.supervaults.superform.xyz 6690
 nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+
+## Healthy startup sequence
+
+On a clean boot you should see a progression close to:
+
+```text
+INFO  Starting Supervaults PPS Oracle Node
+INFO  Connecting to database...
+INFO  Database connected
+INFO  Loading keystore...
+INFO  Keystore loaded
+INFO  Creating OCR2 oracle...
+INFO  OCR2 oracle instance created successfully
+INFO  Starting OCR2 oracle...
+INFO  OCR2 oracle started successfully
+INFO  Oracle node started successfully
 ```
 
 ## What success looks like before registration

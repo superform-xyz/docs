@@ -3,7 +3,7 @@ title: "Configuration Reference"
 description: "Reference for config.toml, chains.yaml, and OCR2 timing presets used by Superform validator nodes."
 ---
 
-This page is intentionally reference-only. For setup flow, use [Node Setup](/build/become-a-validator/node-setup). For troubleshooting and operator procedures, use [Operations](/build/become-a-validator/operations).
+Use this as the technical reference for validator configuration. For setup flow, use [Node Setup](/build/become-a-validator/node-setup). For troubleshooting and operator procedures, use [Operations](/build/become-a-validator/operations). For health endpoints and alerts, use [Monitoring](/build/become-a-validator/monitoring).
 
 ## config.toml
 
@@ -32,6 +32,8 @@ offchain_private_key = "76918f97bfe8..."
 private_key = "ed6ca3d3ac17..."
 ```
 
+Use this when you want explicit control over the key material. The offchain key is Ed25519 hex, while the dev/testing onchain key is a secp256k1 private key.
+
 The config encryption key is derived automatically from your offchain key. Do not try to configure it separately in `config.toml`.
 
 **Option 2 — key file**
@@ -41,16 +43,19 @@ The config encryption key is derived automatically from your offchain key. Do no
 key_file_path = "./keystore/ocr2_<id>.json"
 ```
 
-The companion P2P identity lives beside it as `./keystore/p2p_<peerID>.json`. If you use file-backed keys, keep both files at `0600` permissions.
+Use this when you want the node to read the OCR2/offchain bundle from disk. The companion P2P identity must live beside it as `./keystore/p2p_<peerID>.json`, so mount the whole `./keystore` directory into the container if you run Docker. Keep both files at `0600` permissions.
 
 **Option 3 — AWS KMS for the onchain key**
 
 ```toml
+[keys]
+offchain_private_key = "76918f97bfe8..."
+
 [keys.onchain_private_key]
 kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
 ```
 
-Supported KMS identifiers: full ARN, alias, or UUID.
+Use this when you want the offchain/OCR2 identity managed separately from the production onchain signer. Supported KMS identifiers: full ARN, alias, or UUID.
 
 The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`.
 
@@ -152,11 +157,13 @@ chain_config_path = "./chains.yaml"
 
 Only include chains that Superform assigned to your validator deployment and for which you have reliable RPC access. A broken chain config creates observation errors for every strategy on that chain.
 
+Typical supported deployments include Ethereum, Base, Arbitrum, Optimism, and Polygon, but only configure the chains Superform assigned to your validator.
+
 ---
 
 ## OCR2 timing presets
 
-The `config/v{N}.json` files define the OCR2 timing profile. Every validator in the network must use the same version.
+The versioned `config/vN.json` files define the OCR2 timing profile. Every validator in the network must use the same version.
 
 ### v2 — high-frequency testing
 
@@ -190,6 +197,8 @@ The `config/v{N}.json` files define the OCR2 timing profile. Every validator in 
 | Report freshness | `max_stale_duration` | Rejects reports that finalize too late |
 | Node health alerting | `health_check_interval` | Warns when no onchain confirmation arrives |
 | Contract enforcement | `maxStaleness` | Auto-pauses a strategy if updates stop |
+
+For the production `v3` profile, that contract-side `maxStaleness` window is designed around a 24-hour safety boundary even though rounds attempt far more frequently.
 
 ### Switching versions
 

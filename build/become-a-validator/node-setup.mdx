@@ -1,0 +1,167 @@
+---
+title: "Node Setup"
+description: "Build the oracle node binary, configure it, and start it using local or Docker deployment."
+---
+
+## Getting the Code
+
+```bash
+git clone https://github.com/superform-xyz/supervaults-validator-network.git
+cd supervaults-validator-network
+```
+
+<Tabs>
+  <Tab title="Local (Go binary)">
+
+## Local Setup
+
+### 1. Install dependencies
+
+```bash
+make deps
+```
+
+### 2. Set up the database
+
+```bash
+make setup-db
+```
+
+This creates a local PostgreSQL database named `oracle_db` with user `oracle`. If you prefer to manage PostgreSQL yourself, create the database manually and set the connection string in `config.toml`.
+
+### 3. Generate keys
+
+```bash
+make keys
+```
+
+See [Key Management](/build/become-a-validator/key-management) for details on the generated files.
+
+### 4. Configure the node
+
+```bash
+cp config.template.toml config.toml
+```
+
+Open `config.toml` and fill in:
+
+- `[keys]` — paste the `offchain_private_key` printed by `keys generate`
+- `[keys.onchain_private_key]` — paste your `private_key` (dev) or set `kms_key_id` (production)
+- `[database].url` — PostgreSQL connection string
+- `[p2p].bootstrap_peers` — the two Superform bootstrap peer addresses (provided during onboarding)
+- `chain_config_path` — path to `chains.yaml` (copy from `chains.template.yaml` and add your RPC endpoints)
+
+### 5. Build and run
+
+```bash
+make build
+make run-local
+```
+
+Or with debug logging:
+
+```bash
+./bin/oracle-node --config config.toml --log-level debug
+```
+
+  </Tab>
+  <Tab title="Docker">
+
+## Docker Setup
+
+### 1. Set up the Docker environment
+
+```bash
+make docker-setup-local
+```
+
+This generates a `.env` file from the template and a `config.toml` for the container.
+
+### 2. Configure environment
+
+```bash
+nano .env
+```
+
+Set at minimum:
+- `POSTGRES_PASSWORD` — strong password for the database
+- `GRAFANA_PASSWORD` — Grafana dashboard password
+
+### 3. Configure the node
+
+```bash
+nano config.toml
+```
+
+Fill in your keys, RPC endpoints, and bootstrap peers — same fields as the local setup.
+
+### 4. Start services
+
+```bash
+make run-docker
+```
+
+This starts the oracle node, PostgreSQL, and Grafana via Docker Compose.
+
+### 5. Useful commands
+
+```bash
+make docker-logs     # Stream logs
+make docker-down     # Stop all services
+make docker-clean    # Remove containers and volumes
+```
+
+  </Tab>
+</Tabs>
+
+## Bootstrap Peers
+
+Add both Superform bootstrap peers to `[p2p].bootstrap_peers` in `config.toml`. Both must be reachable for your node to discover the validator mesh.
+
+```toml
+[p2p]
+bootstrap_peers = [
+    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
+    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
+]
+```
+
+The bootstrap peer IDs are stable — they are backed by keys in AWS Secrets Manager and survive infrastructure replacements. If a peer ID ever changes, you will be notified and must update your config before restarting.
+
+If your node is behind NAT or a load balancer, set `announce_addresses` so other validators can dial back to you:
+
+```toml
+[p2p]
+announce_addresses = ["203.0.113.42:6690"]
+```
+
+## Verifying Startup
+
+A healthy startup produces this sequence in the logs:
+
+```
+INFO  Starting Supervaults PPS Oracle Node
+INFO  Connecting to database...
+INFO  Database connected
+INFO  Loading keystore...
+INFO  Keystore loaded
+INFO  Creating OCR2 oracle...
+INFO  OCR2 oracle instance created successfully
+INFO  Starting OCR2 oracle...
+INFO  OCR2 oracle started successfully
+INFO  Oracle node started successfully
+```
+
+Once the node is registered on-chain and consensus begins, you will see round-by-round observation logs:
+
+```
+INFO  Starting PPS observation  epoch=1 round=1
+INFO  Observed PPS  vault=0x... pps=1000000000000000000
+INFO  Observation complete  vaultsObserved=2
+```
+
+If the node starts but you do not see observation logs within a few minutes, the node is likely not yet registered on-chain. See [Joining the Network](/build/become-a-validator/joining-the-network).
+
+<Card title="Joining the Network" icon="network-wired" href="/build/become-a-validator/joining-the-network">
+  Next: submit your public keys and get registered on-chain.
+</Card>

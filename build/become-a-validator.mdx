@@ -1,21 +1,43 @@
 ---
 title: "Become a Validator"
-description: "Join the Superform validator network: stake $UP, attest to price-per-share updates, and earn protocol rewards."
+description: "Join the Superform validator network: run an oracle node, attest to price-per-share updates, and earn protocol rewards."
 ---
 
 <Note>
-The validator onboarding program is currently invite-only. This page will be updated with full documentation as the validator network decentralizes. If you are interested in becoming a validator, reach out to the Superform team via [Discord](https://discord.gg/superform).
+The validator onboarding program is currently invite-only. If you are interested in becoming a validator, reach out to the Superform team via [Discord](https://discord.gg/superform).
 </Note>
+
+## Overview
+
+The Supervaults Validator Network is a decentralized oracle network that secures price-per-share (PPS) data for SuperVaults. Validators run oracle nodes that independently observe vault PPS values, reach consensus using the Chainlink OCR2 protocol, and submit signed attestations on-chain.
+
+The `ECDSAPPSOracle` contract accepts a PPS update only after at least two-thirds of weighted validator stake has signed the same value. No single validator can manipulate the reported price.
 
 ## What Validators Do
 
-Validators secure SuperVault price-per-share (PPS) updates by independently computing PPS offchain, signing EIP-712 attestations, and submitting them to the `ECDSAPPSOracle` contract. The oracle accepts an update only after at least two-thirds of weighted validator stake reaches consensus.
+- **Observe** — Fetch PPS values from vaults on each configured chain
+- **Attest** — Sign EIP-712 reports using a dedicated ECDSA key
+- **Transmit** — Submit aggregated, multi-validator reports to the oracle contract
+- **Earn** — Receive a share of $UP upkeep payments from vault curators
+
+## Network Architecture
+
+The network relies on four cryptographic keys per node, two infrastructure bootstrap peers, and a `SuperGovernor` contract that is the authoritative source for the active validator set.
+
+| Key | Algorithm | Purpose |
+|-----|-----------|---------|
+| Offchain | Ed25519 | Signs OCR2 protocol messages between validators |
+| P2P | Ed25519 | Network identity for peer discovery |
+| Config | X25519 | Encrypted config distribution (derived from offchain key) |
+| Onchain | ECDSA secp256k1 | Signs PPS updates verified on-chain |
+
+Changes to the validator set take effect the moment a new `ValidatorConfigSet` event is emitted from `SuperGovernor` — no node restarts required.
 
 ## Requirements
 
-- **$UP stake** - Validators must bond $UP tokens to join the validator set
-- **Infrastructure** - Run a monitoring node that tracks vault positions and computes PPS
-- **Uptime** - Consistent participation is required; insufficient participation triggers slashing
+- **$UP stake** — Validators must bond $UP tokens to join the validator set
+- **Infrastructure** — A server running the oracle node binary with PostgreSQL and stable network access
+- **Uptime** — Consistent participation is required; insufficient participation triggers slashing
 
 ## Economics
 
@@ -27,6 +49,32 @@ Validators secure SuperVault price-per-share (PPS) updates by independently comp
 
 | Phase | Status |
 |-------|--------|
-| Phase 1: Permissioned validator set | ✅ Live |
+| Phase 1: Permissioned validator set | Live |
 | Phase 2: Open $UP bonding and slashing | Planned |
 | Phase 3: Fully decentralized validator rotation | Planned |
+
+---
+
+<CardGroup cols={2}>
+  <Card title="Prerequisites" icon="list-check" href="/build/become-a-validator/prerequisites">
+    System requirements, network configuration, and what you need before setting up a node.
+  </Card>
+  <Card title="Key Management" icon="key" href="/build/become-a-validator/key-management">
+    Generate and secure your four cryptographic keys, export public keys for registration.
+  </Card>
+  <Card title="Node Setup" icon="server" href="/build/become-a-validator/node-setup">
+    Build the binary, configure your node, and start it with local or Docker deployment.
+  </Card>
+  <Card title="Joining the Network" icon="network-wired" href="/build/become-a-validator/joining-the-network">
+    Submit your public keys to the network admin and verify you are registered on-chain.
+  </Card>
+  <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
+    Complete config.toml field reference and OCR2 protocol timing configurations.
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+    Health endpoints, Prometheus metrics, and recommended alert rules.
+  </Card>
+  <Card title="Operations" icon="wrench" href="/build/become-a-validator/operations">
+    Key rotation, upgrading the node, and troubleshooting common errors.
+  </Card>
+</CardGroup>

@@ -1,0 +1,164 @@
+---
+title: "Configuration Reference"
+description: "Complete config.toml field reference and OCR2 protocol timing configurations."
+---
+
+## config.toml
+
+Copy `config.template.toml` to `config.toml` and fill in your values. The file is structured into sections described below.
+
+### `[node]`
+
+```toml
+[node]
+node_id = "oracle-1"        # Unique identifier for this node (used in logs)
+p2p_listen_addr = "0.0.0.0" # Address to listen on for P2P connections
+p2p_port = 6690              # TCP port for ragep2p
+```
+
+### `[keys]`
+
+Choose one of three provisioning methods.
+
+**Option 1 — Direct hex (recommended for production)**
+
+```toml
+[keys]
+offchain_private_key = "76918f97bfe8..."  # Ed25519 private key, 128 hex chars
+
+[keys.onchain_private_key]
+# Use one of:
+private_key = "ed6ca3d3ac17..."           # ECDSA secp256k1, 64 hex chars (dev/testing)
+# kms_key_id = "arn:aws:kms:..."          # AWS KMS key ID (production)
+```
+
+**Option 2 — Key file (development only)**
+
+```toml
+[keys]
+key_file_path = "./keystore/ocr2_<id>.json"
+```
+
+**Option 3 — AWS KMS for onchain key**
+
+```toml
+[keys.onchain_private_key]
+kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
+```
+
+Supported KMS key ID formats: full ARN, alias (`alias/name`), or UUID.
+
+### `[p2p]`
+
+```toml
+[p2p]
+bootstrap_peers = [
+    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
+    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
+]
+# announce_addresses = ["203.0.113.42:6690"]  # Required if behind NAT
+```
+
+`announce_addresses` tells other validators what address to dial when connecting to you. Set this if your public IP differs from the address the node listens on (e.g., behind a load balancer or NAT gateway).
+
+### `[database]`
+
+```toml
+[database]
+url = "postgresql://oracle:password@localhost:5432/oracle_db?sslmode=disable"
+max_connections = 10
+max_idle_conns = 5
+conn_max_lifetime = 3600  # seconds
+```
+
+### `[monitoring]`
+
+```toml
+[monitoring]
+metrics_port = 9090         # Prometheus /metrics scrape target
+health_port = 8080          # /healthz and /readyz endpoints
+log_level = "info"          # debug | info | warn | error
+log_format = "json"         # json | console
+
+# Warn (via Prometheus gauge + logs) if no PPSValidated on-chain event
+# arrives within this window. Set lower for high-frequency deployments.
+health_check_interval = "1h"
+
+# Reject reports where the leader's PPS deviates more than this from
+# your own observation. 0 = disabled. 10_000_000 = 1% tolerance.
+max_pps_deviation_ppb = 10000000
+```
+
+### `[ocr2]`
+
+```toml
+[ocr2]
+# Selects config/v{N}.json for OCR2 timing parameters.
+# All nodes MUST use the same version — mismatched versions produce
+# different config digests and prevent consensus.
+config_version = 3
+
+# Chain ID where SuperGovernor is deployed (default: 1 = Ethereum mainnet)
+# config_sync_chain_id = 1
+```
+
+### `chain_config_path`
+
+```toml
+chain_config_path = "./chains.yaml"
+```
+
+`chains.yaml` lists each chain with its RPC endpoint and the vaults to observe. Copy `chains.template.yaml` and add your provider URLs.
+
+---
+
+## OCR2 Timing Configurations
+
+The `config/v{N}.json` files control OCR2 protocol timing. **All nodes must use the same version** — a mismatch produces different config digests and the node cannot participate in consensus.
+
+### v2 — High-Frequency (Testing / Sub-Minute Updates)
+
+2-second rounds. Use for testnets or when vault strategies require PPS updates more frequently than once per hour.
+
+| Parameter | Value | Meaning |
+|-----------|-------|---------|
+| `delta_round` | 2s | Round start interval |
+| `delta_progress` | 120s | Leader stuck timeout |
+| `delta_resend` | 30s | Unconfirmed message resend interval |
+| `delta_grace` | 5s | Grace period for late observations |
+| `delta_stage` | 10s | Time per protocol stage |
+| `r_max` | 3 | Rounds per epoch (6s epoch) |
+| `max_stale_duration` | 5m | Maximum report age before rejection |
+
+### v3 — Hourly Production (Default)
+
+30-minute rounds. Use for production SuperVaults with a ~1-hour minimum PPS update interval and 24-hour maximum staleness.
+
+| Parameter | Value | Meaning |
+|-----------|-------|---------|
+| `delta_round` | 30m | Round start interval |
+| `delta_progress` | 10m | Leader stuck timeout |
+| `delta_resend` | 5m | Unconfirmed message resend interval |
+| `delta_grace` | 1m | Grace period for slow multi-chain RPCs |
+| `delta_stage` | 2m | Time per protocol stage |
+| `r_max` | 5 | Rounds per epoch (2.5h epoch) |
+| `max_stale_duration` | 5m | Maximum report age before rejection |
+
+### How Staleness Works
+
+The system enforces freshness at four levels:
+
+| Tier | Config Location | v3 Default | Purpose |
+|------|----------------|------------|---------|
+| Attempt frequency | `delta_round` in `v{N}.json` | 30m | How often the protocol attempts a round |
+| Report freshness | `max_stale_duration` in `v{N}.json` | 5m | Rejects reports that took too long to finalize |
+| On-chain monitoring | `health_check_interval` in `config.toml` | 1h | Alerts when no on-chain confirmation arrives |
+| Contract enforcement | `maxStaleness` on SuperVaultAggregator | 24h | Auto-pauses the strategy if exceeded |
+
+### Switching Versions
+
+Update `config_version` in `config.toml` on all nodes and restart them simultaneously. Because all nodes derive the config digest from the same version file, mismatched restarts cause a split and stall consensus until all nodes are on the same version.
+
+<Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+  Health endpoints and Prometheus metrics reference.
+</Card>

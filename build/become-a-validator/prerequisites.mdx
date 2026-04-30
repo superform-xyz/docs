@@ -1,0 +1,59 @@
+---
+title: "Prerequisites"
+description: "System requirements, network configuration, and access requirements before setting up a validator node."
+---
+
+## Software Requirements
+
+| Dependency | Minimum Version | Notes |
+|------------|----------------|-------|
+| Go | 1.24 | Required to build the oracle node binary |
+| PostgreSQL | 15 | Stores OCR2 protocol state across restarts |
+| Docker & Docker Compose | Latest stable | Optional — required only for Docker deployment |
+| Git | Any recent | To clone the repository |
+
+Install Go from [go.dev/dl](https://go.dev/dl). PostgreSQL can be run locally or via Docker — the `docker-compose.yml` in the repository includes a pre-configured instance.
+
+## Hardware Requirements
+
+The oracle node is lightweight. A single validator node requires:
+
+- **CPU** — 2 vCPUs minimum
+- **RAM** — 2 GB minimum, 4 GB recommended
+- **Disk** — 20 GB minimum (PostgreSQL state grows slowly)
+- **Network** — Stable connection with reliable uptime; residential connections are not recommended for production
+
+## Network Requirements
+
+The ragep2p P2P stack communicates over raw TCP on port 6690.
+
+- **Outbound TCP 6690** — Must be open to reach the two Superform bootstrap peers
+- **Inbound TCP 6690** — Must be open if other validators need to dial your node directly; can be blocked if your node only dials out
+- No HTTP proxy is supported on the P2P port — Cloudflare or other proxies will break the connection
+
+To verify connectivity to the bootstrap peers once they are configured:
+
+```bash
+nc -zv bootstrap-1.supervaults.superform.xyz 6690
+nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+
+## RPC Endpoint
+
+Your node fetches PPS values from vault contracts on each configured chain. You need:
+
+- An **HTTPS RPC endpoint** for each chain your vaults are deployed on (Ethereum mainnet, Base)
+- A reliable provider such as Alchemy, QuikNode, or a self-hosted node
+- The endpoint goes into `chains.yaml` — see [Configuration Reference](/build/become-a-validator/configuration-reference)
+
+## Access Requirements
+
+The validator onboarding program is currently invite-only. Before proceeding:
+
+1. Reach out to the Superform team via [Discord](https://discord.gg/superform) to request access
+2. Once approved, you will receive the public bootstrap peer IDs and the `SuperGovernor` contract address
+3. After generating your keys, you will submit your public key bundle to the Superform team for on-chain registration
+
+<Card title="Key Management" icon="key" href="/build/become-a-validator/key-management">
+  Next: generate your four cryptographic keys.
+</Card>

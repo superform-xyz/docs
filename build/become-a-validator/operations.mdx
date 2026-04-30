@@ -1,0 +1,146 @@
+---
+title: "Operations"
+description: "Key rotation, node upgrades, and troubleshooting common errors."
+---
+
+## Key Rotation
+
+To rotate any of your cryptographic keys:
+
+<Steps>
+  <Step title="Generate new keys">
+    ```bash
+    ./bin/oracle-node keys generate --keystore ./keystore-new
+    ```
+  </Step>
+  <Step title="Export public keys">
+    ```bash
+    ./bin/oracle-node keys export --keystore ./keystore-new
+    ```
+  </Step>
+  <Step title="Submit to Superform team">
+    Send the new public key bundle (same format as initial onboarding) to the Superform team. They will call `SuperGovernor.setValidatorConfig()` with your updated keys.
+  </Step>
+  <Step title="Update config.toml">
+    Replace the private key values in your `config.toml` with the new ones printed during key generation.
+  </Step>
+  <Step title="Restart your node">
+    ```bash
+    # Local
+    make run-local
+
+    # Docker
+    make run-docker
+    ```
+    Other validators in the network reconfigure automatically when the `ValidatorConfigSet` event is emitted. Only your node needs to restart (because private keys are loaded at startup).
+  </Step>
+</Steps>
+
+---
+
+## Upgrading the Node
+
+Releases are published to the GitHub repository. To upgrade:
+
+```bash
+git pull origin main
+make build
+make run-local   # or make run-docker
+```
+
+For Docker deployments, the CI pipeline builds and pushes a new image on every merge to `main`. Restart the container to pull the latest image:
+
+```bash
+make docker-down
+make run-docker
+```
+
+---
+
+## Adding or Removing Validators (Admin)
+
+These operations are performed by the Superform team, not individual validator operators. They are documented here for reference.
+
+**Adding a validator:**
+1. New validator generates keys and submits public key bundle
+2. Admin appends the new validator to `validators[]`, `validatorPublicKeys[]`, and `offchainConfig` `OracleIdentity[]`
+3. Admin calls `SuperGovernor.setValidatorConfig()` with incremented version, updated arrays, and potentially adjusted quorum
+4. New validator starts their node — it picks up the config via the event
+5. Existing nodes reconfigure automatically (no restart needed)
+
+**Removing a validator:**
+1. Admin removes the validator from all three arrays
+2. Admin calls `SuperGovernor.setValidatorConfig()` with incremented version, reduced arrays, and adjusted quorum
+3. All remaining nodes reconfigure automatically
+
+---
+
+## Troubleshooting
+
+### Database Connection Error
+
+```
+Error: failed to initialize database: failed to ping database
+```
+
+Check that PostgreSQL is running and the connection string in `config.toml` is correct.
+
+```bash
+# Docker
+make docker-ps
+
+# Local
+psql -h localhost -U oracle -d oracle_db
+```
+
+### Keys Not Found
+
+```
+Error: failed to load OCR2 key bundle
+```
+
+You have not generated keys yet, or `config.toml` is pointing at the wrong path.
+
+```bash
+make keys
+```
+
+Then verify `config.toml` has the printed key values under `[keys]`.
+
+### P2P Peers Not Connecting
+
+If the node starts but never makes observations, it may not be reaching bootstrap peers.
+
+1. Verify TCP 6690 is open outbound: `nc -zv bootstrap-1.supervaults.superform.xyz 6690`
+2. Check `bootstrap_peers` in `config.toml` matches the values provided during onboarding
+3. If behind NAT, set `announce_addresses` to your public IP:port
+4. Run with `--log-level debug` and look for ragep2p dial errors
+
+### Config Digest Mismatch
+
+```
+Config loaded successfully  configDigest=0xAAA...
+# (another node shows 0xBBB...)
+```
+
+All nodes must use the same `config_version` in `config.toml`. Mismatched versions produce different digests and prevent consensus.
+
+Confirm your version matches the network, update if needed, and restart your node.
+
+### Observations Succeeding but No On-Chain Transmissions
+
+Check `ocr2_strategy_last_update_seconds` — if it stopped advancing, the transmit tx may be reverting silently.
+
+1. Check `ocr2_transmit_total{status="failure"}` and `ocr2_transmit_total{status="error"}`
+2. Run with `--log-level debug` and look for transmit errors
+3. Verify the `[keys.onchain_private_key]` address is registered in `SuperGovernor` and has the correct permissions
+
+### Common Error Messages
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `validator N (pubkey ...) not found in offchainConfig` | On-chain public key not matched in offchain config | Contact the Superform team to re-issue `setValidatorConfig` |
+| `derived F=N from quorum=N is invalid: F*3=N must be < N` | Quorum does not satisfy Byzantine constraint | Contact the Superform team |
+| `failed to unpack offchain config` | `offchainConfig` bytes malformed | Contact the Superform team |
+| `no ValidatorConfigSet events found` | `setValidatorConfig()` not yet called | Wait for the Superform team to submit the transaction |
+| `could not import github.com/smartcontractkit/libocr` | Go dependencies not downloaded | Run `make deps` |

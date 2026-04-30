@@ -93,8 +93,20 @@
           {
             "group": "SuperVaults",
             "pages": [
-              "build/manage-a-supervault",
-              "build/become-a-validator"
+              "build/manage-a-supervault"
+            ]
+          },
+          {
+            "group": "Validator Network",
+            "pages": [
+              "build/become-a-validator",
+              "build/become-a-validator/prerequisites",
+              "build/become-a-validator/key-management",
+              "build/become-a-validator/node-setup",
+              "build/become-a-validator/joining-the-network",
+              "build/become-a-validator/configuration-reference",
+              "build/become-a-validator/monitoring",
+              "build/become-a-validator/operations"
             ]
           }
         ]

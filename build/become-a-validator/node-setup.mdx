@@ -230,6 +230,8 @@ Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Yo
 
 Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
 
+The peer IDs are expected to remain stable across normal infrastructure replacements. If Superform ever rotates one, treat that as a real config update and replace the entry before your next restart.
+
 Networking rule that matters in production:
 
 - outbound TCP `6690` is mandatory so your node can reach the Superform bootstrap peers and the wider mesh
@@ -243,6 +245,23 @@ Verify connectivity before startup:
 ```bash
 nc -zv bootstrap-1.supervaults.superform.xyz 6690
 nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
+
+## Healthy startup sequence
+
+On a clean boot you should see a progression close to:
+
+```text
+INFO  Starting Supervaults PPS Oracle Node
+INFO  Connecting to database...
+INFO  Database connected
+INFO  Loading keystore...
+INFO  Keystore loaded
+INFO  Creating OCR2 oracle...
+INFO  OCR2 oracle instance created successfully
+INFO  Starting OCR2 oracle...
+INFO  OCR2 oracle started successfully
+INFO  Oracle node started successfully
 ```
 
 ## What success looks like before registration

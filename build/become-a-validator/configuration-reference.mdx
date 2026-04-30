@@ -32,6 +32,8 @@ offchain_private_key = "76918f97bfe8..."
 private_key = "ed6ca3d3ac17..."
 ```
 
+Use this when you want explicit control over the key material. The offchain key is Ed25519 hex, while the dev/testing onchain key is a secp256k1 private key.
+
 The config encryption key is derived automatically from your offchain key. Do not try to configure it separately in `config.toml`.
 
 **Option 2 — key file**
@@ -152,6 +154,8 @@ chain_config_path = "./chains.yaml"
 
 Only include chains that Superform assigned to your validator deployment and for which you have reliable RPC access. A broken chain config creates observation errors for every strategy on that chain.
 
+Typical supported deployments include Ethereum, Base, Arbitrum, Optimism, and Polygon, but only configure the chains Superform assigned to your validator.
+
 ---
 
 ## OCR2 timing presets
@@ -190,6 +194,8 @@ The `config/v{N}.json` files define the OCR2 timing profile. Every validator in 
 | Report freshness | `max_stale_duration` | Rejects reports that finalize too late |
 | Node health alerting | `health_check_interval` | Warns when no onchain confirmation arrives |
 | Contract enforcement | `maxStaleness` | Auto-pauses a strategy if updates stop |
+
+For the production `v3` profile, that contract-side `maxStaleness` window is designed around a 24-hour safety boundary even though rounds attempt far more frequently.
 
 ### Switching versions
 

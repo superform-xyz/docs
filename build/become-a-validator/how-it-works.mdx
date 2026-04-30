@@ -32,11 +32,15 @@ Leader selected
     └─ Transmit     Designated transmitter posts onchain
 ```
 
+An epoch is a group of rounds led by the same leader. After `r_max` rounds, or when the leader stalls for longer than `delta_progress`, OCR2 advances to a new epoch and deterministically rotates leadership.
+
 ## What your node does
 
 ### Observation
 
 Your node calls `pricePerShare()` for each configured strategy, on each configured chain, using the RPC endpoints in `chains.yaml`.
+
+That observation is packaged for OCR2 messaging and signed with your offchain identity before it is shared across the validator mesh.
 
 ### Report assembly
 
@@ -46,6 +50,8 @@ If your node is the round leader, it:
 2. requires enough valid observations to satisfy quorum
 3. computes the median PPS per vault
 4. builds the ABI-encoded report payload
+
+If a vault does not receive enough valid observations, it is dropped from that round instead of poisoning the whole report.
 
 ### Acceptance checks
 
@@ -58,6 +64,8 @@ Before signing, every validator checks:
 ### Transmission
 
 The designated transmitter submits the report to `ECDSAPPSOracle.transmit()`. If quorum is valid, the contract updates PPS and emits `PPSValidated`.
+
+Onchain verification checks the submitted validator signatures against the registered signer set before the PPS update is accepted.
 
 ## Quorum and fault tolerance
 

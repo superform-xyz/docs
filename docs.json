@@ -96,21 +96,9 @@
               "build/become-a-validator",
               "build/become-a-validator/quickstart",
               "build/become-a-validator/node-setup",
-              "build/become-a-validator/operations"
-            ]
-          },
-          {
-            "group": "Validator Reference",
-            "pages": [
+              "build/become-a-validator/operations",
               "build/become-a-validator/configuration-reference",
-              "build/become-a-validator/monitoring"
-            ]
-          },
-          {
-            "group": "Validator Concepts",
-            "pages": [
-              "build/become-a-validator/how-it-works",
-              "build/become-a-validator/economics"
+              "build/become-a-validator/how-it-works"
             ]
           }
         ]

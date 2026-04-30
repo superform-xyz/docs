@@ -39,6 +39,8 @@ private_key = "ed6ca3d3ac17..."
 key_file_path = "./keystore/ocr2_<id>.json"
 ```
 
+The companion P2P identity lives beside it as `./keystore/p2p_<peerID>.json`. If you use file-backed keys, keep both files at `0600` permissions.
+
 **Option 3 — AWS KMS for the onchain key**
 
 ```toml
@@ -47,6 +49,8 @@ kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
 ```
 
 Supported KMS identifiers: full ARN, alias, or UUID.
+
+The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`.
 
 ### `[p2p]`
 
@@ -60,6 +64,8 @@ bootstrap_peers = [
 ```
 
 Set `announce_addresses` if your node listens on one address but other validators must dial a different public endpoint.
+
+Do not front the P2P port with Cloudflare or any HTTP proxy. ragep2p expects direct TCP reachability.
 
 ### `[database]`
 

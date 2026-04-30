@@ -26,7 +26,7 @@ If you do not have those yet, stop and get them first. The software is the easy 
 | RAM | 2 GB minimum, 4 GB recommended |
 | Disk | 20 GB minimum |
 | Database | PostgreSQL 15+ |
-| Network | Stable outbound connectivity and reliable uptime |
+| Network | Stable outbound connectivity, direct TCP `6690`, and reliable uptime |
 
 ## Choose a deployment method
 
@@ -91,6 +91,8 @@ In `config.toml`, set:
 - `[p2p].bootstrap_peers`
 - optional `announce_addresses` if you are behind NAT
 - `chain_config_path`
+
+In `chains.yaml`, every assigned chain needs both a reliable HTTPS RPC endpoint for reads/tx submission and a WSS endpoint for event subscriptions. Do not treat WSS as optional.
 
 In `chains.yaml`, set the RPC endpoints and the contract addresses provided by Superform.
 
@@ -220,12 +222,22 @@ make docker-clean
 - Back up the keystore before first production use.
 - Never commit `keystore/`, `.env`, or `config.toml`.
 - Use AWS KMS for the onchain signing key in production if supported by your environment.
+- If you use key files, keep `ocr2_<id>.json` and `p2p_<peerID>.json` at `0600` permissions.
 
 ## Bootstrap peers
 
 Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Your node uses them to join the mesh and discover the rest of the validator set.
 
+Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
+
 If you are behind NAT or a load balancer, set `announce_addresses` so other validators can dial you back correctly.
+
+Verify connectivity before startup:
+
+```bash
+nc -zv bootstrap-1.supervaults.superform.xyz 6690
+nc -zv bootstrap-2.supervaults.superform.xyz 6690
+```
 
 ## What success looks like before registration
 

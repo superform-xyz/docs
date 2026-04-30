@@ -24,6 +24,8 @@ You need these public values:
 - peer ID
 - public P2P endpoint
 
+`keys export` is converting your local key material into the values Superform inserts into the live validator config: `validatorPublicKeys[]`, `validators[]`, and the ABI-encoded `OracleIdentity[]` entries inside `offchainConfig`.
+
 ### 2. Self-validate the bundle
 
 Before sending anything to Superform, verify:
@@ -32,7 +34,18 @@ Before sending anything to Superform, verify:
 - `offchain_public_key` is 32 bytes / 64 hex chars
 - `config_encryption_public_key` is 32 bytes / 64 hex chars
 - the exported Ethereum address matches the onchain public key
+- `peer_id` is a valid libp2p base58 string, typically starting with `12D3Koo`
+- `p2p_endpoint` resolves publicly to the host that is actually serving your node on TCP `6690`
 - your node is reachable on the endpoint you plan to advertise
+- if you are behind NAT or a load balancer, `announce_addresses` is set to the same public `host:port` you plan to submit
+
+Use the smallest real preflight instead of guessing:
+
+```bash
+nc -zv <your-public-hostname> 6690
+```
+
+From another machine or network if possible. Do not put Cloudflare or any other HTTP proxy in front of this port.
 
 ### 3. Submit the public key bundle
 
@@ -50,6 +63,14 @@ Send the bundle to your Superform onboarding contact. Never send private keys.
 }
 ```
 
+Mapping reminder:
+
+- `onchain_public_key` → `validatorPublicKeys[]`
+- `ethereum_address` → `validators[]`
+- `peer_id` → `OracleIdentity.peerID`
+- `offchain_public_key` → `OracleIdentity.offchainPublicKey`
+- `config_encryption_public_key` → `OracleIdentity.configEncryptionPublicKey`
+
 ### 4. Wait for onchain registration
 
 During Phase 1, Superform calls `SuperGovernor.setValidatorConfig()` on your behalf. Once the transaction confirms, your node should pick up the new validator set automatically.
@@ -64,6 +85,13 @@ Config loaded successfully  configDigest=0x... signers=N F=...
 ```
 
 Within the next round, you should also see observation activity.
+
+Example healthy progression:
+
+```text
+INFO  Starting PPS observation  epoch=1 round=1
+INFO  Observation complete  vaultsObserved=N
+```
 
 ---
 
@@ -179,6 +207,7 @@ If your `configDigest` differs from the rest of the network, check:
 
 - `config_version` in `config.toml`
 - whether you observed the same `ValidatorConfigSet` event as the rest of the network
+- whether Superform submitted aligned `validators[]`, `validatorPublicKeys[]`, and `OracleIdentity[]` arrays
 - whether your local binary matches the expected network release
 
 ### Observations succeed but no onchain transmissions land

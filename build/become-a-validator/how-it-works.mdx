@@ -63,6 +63,8 @@ The designated transmitter submits the report to `ECDSAPPSOracle.transmit()`. If
 
 The network is configured so it can tolerate a bounded number of faulty validators while still producing correct results.
 
+For OCR2 this is the Byzantine constraint that matters: with `N` validators and fault tolerance `F`, the config must satisfy `F * 3 < N`. In practice Superform chooses an odd quorum so `F = (quorum - 1) / 2`, then builds the validator set around that limit.
+
 | Validators (`N`) | Quorum | Max faulty (`F`) |
 |:-:|:-:|:-:|
 | 4 | 3 | 1 |
@@ -71,6 +73,16 @@ The network is configured so it can tolerate a bounded number of faulty validato
 | 13 | 9 | 4 |
 
 If fewer than `quorum` validators sign a round, that round does not produce an onchain report.
+
+## How validator identity maps into the config
+
+Every validator contributes one aligned identity across three places in the active config:
+
+- `validators[i]` is the Ethereum address derived from that validator's onchain public key
+- `validatorPublicKeys[i]` is the 65-byte uncompressed ECDSA public key used for onchain signature verification
+- `OracleIdentity[i]` carries the same validator's `validatorPublicKey`, `peerID`, `offchainPublicKey`, and `configEncryptionPublicKey`
+
+Those arrays are not loosely related metadata. They are positional invariants. If the same validator is not represented at the same index across all three, config loading breaks.
 
 ## What happens when something breaks
 

@@ -16,6 +16,7 @@ Do not start here until Superform has confirmed you are approved to join and you
 Make sure you have:
 
 - a Linux or macOS host
+- at least 2 vCPU, 2 GB RAM minimum / 4 GB recommended, and 20 GB disk
 - PostgreSQL 15+
 - Docker **or** Go 1.24+
 - reliable HTTPS and WSS RPC endpoints for every assigned chain
@@ -29,6 +30,8 @@ nc -zv bootstrap-1.supervaults.superform.xyz 6690
 nc -zv bootstrap-2.supervaults.superform.xyz 6690
 ```
 If either check fails, fix firewall or routing before doing anything else.
+
+The P2P port is raw TCP ragep2p traffic. Do **not** put Cloudflare or any other HTTP proxy in front of port `6690`.
 </Step>
 
 <Step title="Get the node runtime">
@@ -55,7 +58,7 @@ make build
 ```bash
 ./bin/oracle-node keys generate --keystore ./keystore
 ```
-This creates your validator identity. Back up the keystore before continuing.
+This creates your validator identity and writes two artifacts in `./keystore`: `ocr2_<id>.json` for the OCR2/offchain + onchain bundle and `p2p_<peerID>.json` for the ragep2p identity. Keep both files at `0600` permissions and back up the keystore before continuing.
 </Step>
 
 <Step title="Create config.toml and chains.yaml">
@@ -66,6 +69,7 @@ cp chains.template.yaml chains.yaml
 Fill in:
 
 - your offchain and onchain keys
+- the generated key file paths if you are loading from `./keystore/ocr2_<id>.json`
 - PostgreSQL connection string
 - Superform bootstrap peers
 - RPC endpoints for each assigned chain
@@ -121,7 +125,7 @@ Send Superform the public values only:
   "p2p_endpoint": "your-host.example.com:6690"
 }
 ```
-Never send private keys.
+`keys export` gives Superform exactly what they need to build the onchain config: `validatorPublicKeys[]` gets your onchain public key, `validators[]` gets the derived Ethereum address, and `OracleIdentity[]` gets your `peer_id`, `offchain_public_key`, and `config_encryption_public_key`. Never send private keys.
 </Step>
 
 <Step title="Verify onchain registration and first participation">

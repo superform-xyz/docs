@@ -1,97 +1,102 @@
 ---
 title: "Node Setup"
-description: "Build the oracle node binary or pull the published image, configure it, and start it."
+description: "Canonical install guide for running a Superform validator node with Docker or from source."
 ---
 
-## Choosing a Deployment Method
+This is the canonical setup guide. Use it when you need the full install flow, not just the short checklist.
+
+## Before you install
+
+Make sure you already have:
+
+- approval to join the permissioned validator program
+- the bootstrap peer entries supplied by Superform
+- the chain-specific contract addresses and current config version for your deployment
+- reliable HTTPS and WSS RPC endpoints for each assigned chain
+- PostgreSQL 15+
+
+If you do not have those yet, stop and get them first. The software is the easy part.
+
+## System requirements
+
+| Requirement | Baseline |
+|------------|----------|
+| OS | Linux or macOS |
+| CPU | 2 vCPU minimum |
+| RAM | 2 GB minimum, 4 GB recommended |
+| Disk | 20 GB minimum |
+| Database | PostgreSQL 15+ |
+| Network | Stable outbound connectivity, direct TCP `6690`, and reliable uptime |
+
+## Choose a deployment method
 
 <CardGroup cols={3}>
   <Card title="Published Image" icon="docker">
-    Pull the pre-built image from GitHub Container Registry. Recommended for most operators — no Go toolchain required.
+    Recommended for most operators. No Go toolchain required.
   </Card>
   <Card title="Build from Source" icon="code">
-    Clone the repository and build the binary with Go. Required if you need a custom build or want to run the binary directly without Docker.
+    Use this if you need direct source control over the runtime.
   </Card>
   <Card title="Docker (build locally)" icon="hammer">
-    Build the Docker image from source. Useful when testing local code changes before deploying.
+    Useful when validating local code changes before deployment.
   </Card>
 </CardGroup>
-
----
 
 <Tabs>
   <Tab title="Published Image (recommended)">
 
 ## Published Image
 
-Images are published to GitHub Container Registry on every merge to `main` and on every versioned release tag.
+Images are published to GitHub Container Registry:
 
-```
+```text
 ghcr.io/superform-xyz/validator-network
 ```
 
-### Available tags
-
-| Tag | When updated |
-|-----|-------------|
-| `latest` | Every merge to `main` |
-| `v1.2.3` | On release tags |
-| `v1.2`, `v1` | On release tags (partial semver) |
-| `<git-sha>` | Every build (7-char short SHA) |
-
-Use a versioned tag in production. The `latest` tag tracks `main` and may include pre-release changes.
-
-### 1. Authenticate with GHCR
+### 1. Authenticate to GHCR
 
 ```bash
 echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
 ```
 
-You need a GitHub personal access token with `read:packages` scope.
+You need a GitHub token with `read:packages`.
 
 ### 2. Pull the image
 
 ```bash
 docker pull ghcr.io/superform-xyz/validator-network:latest
-# or pin to a version:
+# or pin a versioned release tag when available
 docker pull ghcr.io/superform-xyz/validator-network:v1.2.3
 ```
 
-### 3. Prepare configuration
+Prefer pinned tags in production.
 
-You do not need to clone the repository, but you do need the config templates. Copy them from the repository or create them manually. The minimum files needed:
+### 3. Prepare local config files
 
 ```bash
-# Copy templates from the repository (or write them manually)
 cp config.template.toml config.toml
 cp chains.template.yaml chains.yaml
 cp .env.template .env
 ```
 
-Fill in `config.toml` with your keys, database URL, and bootstrap peers (see [Bootstrap Peers](#bootstrap-peers) below). Fill in `chains.yaml` with your RPC endpoints.
+If you do not have the templates locally, get them from the validator repository or your onboarding bundle before continuing.
 
-### 4. Run with Docker Compose
+### 4. Fill in the required values
 
-Use the `docker-compose.yml` from the repository (or write one pointing to your image tag):
+In `config.toml`, set:
 
-```yaml
-services:
-  oracle:
-    image: ghcr.io/superform-xyz/validator-network:latest
-    volumes:
-      - ./config.toml:/app/config.toml:ro
-      - ./chains.yaml:/app/chains.yaml:ro
-    env_file: .env
-    ports:
-      - "6690:6690"
-      - "9090:9090"
-      - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-```
+- `[keys]` offchain private key
+- `[keys.onchain_private_key]` dev private key or production `kms_key_id`
+- `[database].url`
+- `[p2p].bootstrap_peers`
+- optional `announce_addresses` if you are behind NAT
+- `chain_config_path`
 
-Or run the container directly:
+In `chains.yaml`, every assigned chain needs both a reliable HTTPS RPC endpoint for reads/tx submission and a WSS endpoint for event subscriptions. Do not treat WSS as optional.
+
+In `chains.yaml`, set the RPC endpoints and the contract addresses provided by Superform.
+
+### 5. Run the container
 
 ```bash
 docker run -d \
@@ -100,6 +105,14 @@ docker run -d \
   -v $(pwd)/chains.yaml:/app/chains.yaml:ro \
   -p 6690:6690 -p 9090:9090 -p 8080:8080 \
   ghcr.io/superform-xyz/validator-network:latest
+```
+
+### 6. Verify basic health
+
+```bash
+docker logs -f oracle-node
+curl -s localhost:8080/healthz
+curl -s localhost:9090/metrics | grep ^ocr2_ | head -20
 ```
 
   </Tab>
@@ -120,37 +133,28 @@ cd supervaults-validator-network
 make deps
 ```
 
-### 3. Set up the database
+### 3. Set up PostgreSQL
 
 ```bash
 make setup-db
 ```
 
-This creates a local PostgreSQL database named `oracle_db` with user `oracle`. If you manage PostgreSQL yourself, create the database manually and set the connection string in `config.toml`.
-
-### 4. Generate keys
+### 4. Generate your keys
 
 ```bash
-make keys
+./bin/oracle-node keys generate --keystore ./keystore
 ```
 
-See [Key Management](/build/become-a-validator/key-management) for details.
+Back up the keystore immediately.
 
-### 5. Configure the node
+### 5. Create configuration files
 
 ```bash
 cp config.template.toml config.toml
 cp chains.template.yaml chains.yaml
 ```
 
-Open `config.toml` and fill in:
-- `[keys]` — paste the `offchain_private_key` printed by `keys generate`
-- `[keys.onchain_private_key]` — paste your `private_key` (dev) or set `kms_key_id` (production)
-- `[database].url` — PostgreSQL connection string
-- `[p2p].bootstrap_peers` — see [Bootstrap Peers](#bootstrap-peers) below
-- `chain_config_path` — path to `chains.yaml`
-
-Open `chains.yaml` and add your RPC endpoint URLs for each chain.
+Populate the same runtime values listed in the container workflow above.
 
 ### 6. Build and run
 
@@ -159,7 +163,7 @@ make build
 make run-local
 ```
 
-Or with debug logging:
+For more verbose logs:
 
 ```bash
 ./bin/oracle-node --config config.toml --log-level debug
@@ -170,7 +174,7 @@ Or with debug logging:
 
 ## Docker (Build Locally)
 
-Use this when you are testing local code changes.
+Use this when testing local code changes.
 
 ### 1. Clone the repository
 
@@ -179,19 +183,18 @@ git clone https://github.com/superform-xyz/supervaults-validator-network.git
 cd supervaults-validator-network
 ```
 
-### 2. Set up the Docker environment
+### 2. Prepare the local Docker environment
 
 ```bash
 make docker-setup-local
 ```
 
-This generates `.env` and `config.toml` from the templates.
-
-### 3. Configure
+### 3. Configure secrets and runtime values
 
 ```bash
-nano .env        # set POSTGRES_PASSWORD and GRAFANA_PASSWORD
-nano config.toml # add your keys, RPC endpoints, and bootstrap peers
+nano .env
+nano config.toml
+nano chains.yaml
 ```
 
 ### 4. Start services
@@ -200,14 +203,12 @@ nano config.toml # add your keys, RPC endpoints, and bootstrap peers
 make run-docker
 ```
 
-This builds the image locally and starts the oracle node, PostgreSQL, and Grafana via Docker Compose.
-
-### Useful commands
+### 5. Useful lifecycle commands
 
 ```bash
-make docker-logs     # Stream logs
-make docker-down     # Stop all services
-make docker-clean    # Remove containers and volumes
+make docker-logs
+make docker-down
+make docker-clean
 ```
 
   </Tab>
@@ -215,65 +216,43 @@ make docker-clean    # Remove containers and volumes
 
 ---
 
-## Bootstrap Peers
+## Key management rules that matter during setup
 
-Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. They provide the initial peer discovery for the validator mesh — your node dials them on startup and uses the mesh to find the other validators.
+- Generate keys once per validator identity.
+- Back up the keystore before first production use.
+- Never commit `keystore/`, `.env`, or `config.toml`.
+- Use AWS KMS for the onchain signing key in production if supported by your environment.
+- If you use key files, keep `ocr2_<id>.json` and `p2p_<peerID>.json` at `0600` permissions.
 
-```toml
-[p2p]
-bootstrap_peers = [
-    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
-    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
-]
-```
+## Bootstrap peers
 
-Both endpoints listen on raw TCP port 6690 (ragep2p). Cloudflare proxy and other HTTP proxies will break this connection — DNS for these hostnames must resolve directly to the IP.
+Both Superform bootstrap peers must be configured in `[p2p].bootstrap_peers`. Your node uses them to join the mesh and discover the rest of the validator set.
 
-**Peer ID stability:** The peer IDs (`12D3KooW...`) are stable across infrastructure updates. They are backed by keys in AWS Secrets Manager and survive EC2 replacements. If a peer ID ever changes, you will be notified and must update `config.toml` before restarting.
+Those peer endpoints must resolve directly to the validator hosts. Cloudflare proxying or any other HTTP proxy on the P2P port will break ragep2p connectivity.
 
-Verify connectivity before starting your node:
+Networking rule that matters in production:
+
+- outbound TCP `6690` is mandatory so your node can reach the Superform bootstrap peers and the wider mesh
+- inbound TCP `6690` is required when other validators must dial the endpoint you advertise directly
+- outbound-only can work in some NATed topologies if your announced endpoint is still reachable through another path, but do not treat that as the default production assumption
+
+If you are behind NAT or a load balancer, set `announce_addresses` so other validators can dial you back correctly.
+
+Verify connectivity before startup:
 
 ```bash
 nc -zv bootstrap-1.supervaults.superform.xyz 6690
 nc -zv bootstrap-2.supervaults.superform.xyz 6690
 ```
 
-**Behind NAT?** If your validator's public IP differs from its listen address, set `announce_addresses` so other validators can dial back to you:
+## What success looks like before registration
 
-```toml
-[p2p]
-announce_addresses = ["203.0.113.42:6690"]
-```
+Before Superform registers your node, you should already have:
 
----
+- a healthy process
+- successful database connectivity
+- working `/healthz` and `/metrics` endpoints
+- no local config parse errors
+- clean outbound connectivity to the bootstrap peers and your RPC providers
 
-## Verifying Startup
-
-A healthy startup produces this sequence in the logs:
-
-```
-INFO  Starting Supervaults PPS Oracle Node
-INFO  Connecting to database...
-INFO  Database connected
-INFO  Loading keystore...
-INFO  Keystore loaded
-INFO  Creating OCR2 oracle...
-INFO  OCR2 oracle instance created successfully
-INFO  Starting OCR2 oracle...
-INFO  OCR2 oracle started successfully
-INFO  Oracle node started successfully
-```
-
-Once the node is registered on-chain and consensus begins, you will see round-by-round observation logs:
-
-```
-INFO  Starting PPS observation  epoch=1 round=1
-INFO  Observed PPS  vault=0x... pps=1000000000000000000
-INFO  Observation complete  vaultsObserved=2
-```
-
-If the node starts but you do not see observation logs, the node is likely not yet registered on-chain. See [Joining the Network](/build/become-a-validator/joining-the-network).
-
-<Card title="Joining the Network" icon="network-wired" href="/build/become-a-validator/joining-the-network">
-  Next: submit your public keys and get registered on-chain.
-</Card>
+Once that is true, move to [Operations](/build/become-a-validator/operations) for registration and production runbook tasks.

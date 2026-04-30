@@ -1,98 +1,65 @@
 ---
 title: "Economics"
-description: "How validator rewards, $UP staking, slashing, and the insurance fund work."
+description: "Validator rewards, staking, slashing, insurance, and rollout phases for the Superform validator network."
 ---
 
 <Warning>
-The validator economics model is still being finalized. The details on this page reflect the intended design but are subject to change before Phase 2 launches. Specific figures — staking minimums, reward rates, slashing percentages, participation thresholds — have not been published yet.
-
-If you are evaluating whether to run a validator or have questions about the economic terms, reach out to the Superform team directly via [Discord](https://discord.gg/superform)
+Validator economics are not final yet. Phase 1 is permissioned and does not include the full staking and slashing model described here.
 </Warning>
 
-## The Value Exchange
+## Why validators get paid
 
-SuperVault curators rely on validators to post accurate, timely PPS updates on-chain. Without these updates, vaults cannot compute NAV correctly and strategies are auto-paused after `maxStaleness` (24 hours). Validators are compensated for providing this service and bear economic risk if they fail to do so honestly.
-
----
+Validators provide the PPS updates SuperVaults need to function safely. If updates stop or become dishonest, vault operations degrade quickly. Rewards exist to keep high-quality operators online and aligned with the network.
 
 ## Rewards
 
-### Upkeep payments
+Vault curators pay upkeep fees in **$UP** for active oracle coverage. Those fees are distributed to participating validators.
 
-Vault curators pay **$UP upkeep fees** to maintain active PPS oracle coverage for their vaults. These fees are collected by the protocol and distributed to the active validator set.
+The intended model is:
 
-Reward distribution is proportional to **weighted validator stake** — validators with more $UP bonded receive a larger share of upkeep fees. All active validators that participated in a given epoch are eligible.
+- more stake increases reward weight
+- better participation preserves reward eligibility
+- missed rounds reduce your effective payout
 
-### Participation requirement
+Exact thresholds and rates are governance parameters and have not been published yet.
 
-Rewards are contingent on consistent participation. A validator that misses rounds — whether from downtime, misconfiguration, or network issues — earns proportionally less. The exact participation threshold is set by governance.
+## Staking
 
----
+Phase 2 is expected to require validators to bond **$UP**.
 
-## $UP Staking
+That bond is intended to:
 
-### Bonding
-
-To join the validator set in Phase 2, validators must bond $UP tokens. The bond:
-
-- Acts as collateral that can be slashed for misbehavior
-- Determines the validator's weight in both consensus and reward distribution
-- Must be maintained above a minimum threshold to remain in the active set
-
-### Unbonding
-
-Unbonding is subject to a lockup period. During unbonding, the validator remains eligible for slashing for any misbehavior that occurred while bonded. After the lockup period, $UP is returned to the validator's wallet.
-
----
+- serve as collateral for slashing
+- weight participation and rewards
+- enforce a minimum commitment to stay active
 
 ## Slashing
 
-Slashing reduces a validator's bonded $UP as a penalty for provable misbehavior. Two conditions trigger slashing:
+Slashing is designed to penalize two categories of failure:
 
-### Misreporting
+- **misreporting** — signing materially incorrect or invalid PPS data
+- **insufficient participation** — staying below required uptime / contribution thresholds
 
-If a validator signs a PPS report that deviates materially from the true value — or signs a report that was never agreed upon by the majority — their bond can be slashed. Slashing for misreporting requires an on-chain proof submitted by any party.
+Exact slash sizes and observation windows are still pending.
 
-### Insufficient participation
+## Insurance fund
 
-Validators that fall below the minimum participation threshold for a sustained period are subject to partial slashing. This incentivizes operators to maintain uptime and not coast on the network's fault tolerance.
+A portion of validator economics is expected to seed an insurance fund intended to backstop depositors if oracle failures cause verified harm.
 
-### Slashing amounts
+It is not meant to cover:
 
-Slashing parameters (percentage of bond, minimum participation threshold, observation period) are set by governance. The Superform team will publish these before Phase 2 launches.
+- unrelated smart contract bugs
+- strategy market losses
+- immaterial losses below a governance-defined threshold
 
----
+## Rollout phases
 
-## Insurance Fund
+| Phase | Model | Status |
+|-------|-------|--------|
+| Phase 1 | Permissioned validator set | Live |
+| Phase 2 | Open bonding, slashing, insurance fund seeding | Planned |
+| Phase 3 | Governance-managed validator rotation | Planned |
 
-The protocol maintains an **insurance fund** seeded from a share of upkeep fees. Its purpose is to backstop depositors in the event of an oracle failure that causes material loss — for example, if a coordinated validator misbehavior causes a vault to accept incorrect redemption pricing.
+## Practical takeaway for operators
 
-The insurance fund does not cover:
-- Smart contract bugs unrelated to the oracle
-- Market losses from underlying yield source performance
-- Losses below a minimum materiality threshold
-
-Details on fund size, claim conditions, and governance will be published before Phase 2.
-
----
-
-## Phase Rollout
-
-| Phase | Mechanism | Status |
-|-------|-----------|--------|
-| Phase 1 | Permissioned validator set, no staking or slashing | Live |
-| Phase 2 | Open $UP bonding, slashing, insurance fund seeding | Planned |
-| Phase 3 | Fully decentralized validator rotation via governance | Planned |
-
-During Phase 1, validators are invited and trusted by the Superform team. Economic incentives and penalties will be introduced in Phase 2 alongside the staking contracts.
-
----
-
-## Summary
-
-| Mechanism | Direction | Trigger |
-|-----------|-----------|---------|
-| Upkeep fee share | Validator receives $UP | Participation in active epochs |
-| Slashing — misreporting | Validator loses $UP | Provable false PPS signature |
-| Slashing — downtime | Validator loses $UP | Participation below threshold |
-| Insurance fund payout | Depositor receives compensation | Oracle failure causing verified loss |
+Treat the current program as operationally serious even before the full economic model is live. Phase 1 may be permissioned, but uptime, correctness, and incident response still matter because the vaults depend on your node behaving like production infrastructure.

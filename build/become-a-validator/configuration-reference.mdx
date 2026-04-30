@@ -1,65 +1,73 @@
 ---
 title: "Configuration Reference"
-description: "Complete config.toml and chains.yaml field reference, plus OCR2 protocol timing configurations."
+description: "Reference for config.toml, chains.yaml, and OCR2 timing presets used by Superform validator nodes."
 ---
+
+This page is intentionally reference-only. For setup flow, use [Node Setup](/build/become-a-validator/node-setup). For troubleshooting and operator procedures, use [Operations](/build/become-a-validator/operations).
 
 ## config.toml
 
-Copy `config.template.toml` to `config.toml` and fill in your values. The file is structured into sections described below.
+Copy `config.template.toml` to `config.toml` and fill in your values.
 
 ### `[node]`
 
 ```toml
 [node]
-node_id = "oracle-1"        # Unique identifier for this node (used in logs)
+node_id = "oracle-1"        # Unique identifier used in logs
 p2p_listen_addr = "0.0.0.0" # Address to listen on for P2P connections
 p2p_port = 6690              # TCP port for ragep2p
 ```
 
 ### `[keys]`
 
-Choose one of three provisioning methods.
+Choose one provisioning pattern.
 
-**Option 1 — Direct hex (recommended for production)**
+**Option 1 — direct hex**
 
 ```toml
 [keys]
-offchain_private_key = "76918f97bfe8..."  # Ed25519 private key, 128 hex chars
+offchain_private_key = "76918f97bfe8..."
 
 [keys.onchain_private_key]
-# Use one of:
-private_key = "ed6ca3d3ac17..."           # ECDSA secp256k1, 64 hex chars (dev/testing)
-# kms_key_id = "arn:aws:kms:..."          # AWS KMS key ID (production)
+private_key = "ed6ca3d3ac17..."
 ```
 
-**Option 2 — Key file (development only)**
+The config encryption key is derived automatically from your offchain key. Do not try to configure it separately in `config.toml`.
+
+**Option 2 — key file**
 
 ```toml
 [keys]
 key_file_path = "./keystore/ocr2_<id>.json"
 ```
 
-**Option 3 — AWS KMS for onchain key**
+The companion P2P identity lives beside it as `./keystore/p2p_<peerID>.json`. If you use file-backed keys, keep both files at `0600` permissions.
+
+**Option 3 — AWS KMS for the onchain key**
 
 ```toml
 [keys.onchain_private_key]
 kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
 ```
 
-Supported KMS key ID formats: full ARN, alias (`alias/name`), or UUID.
+Supported KMS identifiers: full ARN, alias, or UUID.
+
+The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`.
 
 ### `[p2p]`
 
 ```toml
 [p2p]
 bootstrap_peers = [
-    "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
-    "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
+  "12D3KooWGc9hJKBWks3oq9e7H4oZseoncbrxcZQfkW5NTBH473un@bootstrap-1.supervaults.superform.xyz:6690",
+  "12D3KooWCDXcCoE86B4dfMg5hXpoPr6xj4wGRaYqxHbkgPZW3yer@bootstrap-2.supervaults.superform.xyz:6690",
 ]
-# announce_addresses = ["203.0.113.42:6690"]  # Required if behind NAT
+# announce_addresses = ["203.0.113.42:6690"]
 ```
 
-`announce_addresses` tells other validators what address to dial when connecting to you. Set this if your public IP differs from the address the node listens on (e.g., behind a load balancer or NAT gateway).
+Set `announce_addresses` if your node listens on one address but other validators must dial a different public endpoint.
+
+Do not front the P2P port with Cloudflare or any HTTP proxy. ragep2p expects direct TCP reachability.
 
 ### `[database]`
 
@@ -68,24 +76,18 @@ bootstrap_peers = [
 url = "postgresql://oracle:password@localhost:5432/oracle_db?sslmode=disable"
 max_connections = 10
 max_idle_conns = 5
-conn_max_lifetime = 3600  # seconds
+conn_max_lifetime = 3600
 ```
 
 ### `[monitoring]`
 
 ```toml
 [monitoring]
-metrics_port = 9090         # Prometheus /metrics scrape target
-health_port = 8080          # /healthz and /readyz endpoints
-log_level = "info"          # debug | info | warn | error
-log_format = "json"         # json | console
-
-# Warn (via Prometheus gauge + logs) if no PPSValidated on-chain event
-# arrives within this window. Set lower for high-frequency deployments.
+metrics_port = 9090
+health_port = 8080
+log_level = "info"
+log_format = "json"
 health_check_interval = "1h"
-
-# Reject reports where the leader's PPS deviates more than this from
-# your own observation. 0 = disabled. 10_000_000 = 1% tolerance.
 max_pps_deviation_ppb = 10000000
 ```
 
@@ -93,14 +95,13 @@ max_pps_deviation_ppb = 10000000
 
 ```toml
 [ocr2]
-# Selects config/v{N}.json for OCR2 timing parameters.
-# All nodes MUST use the same version — mismatched versions produce
-# different config digests and prevent consensus.
 config_version = 3
-
-# Chain ID where SuperGovernor is deployed (default: 1 = Ethereum mainnet)
 # config_sync_chain_id = 1
 ```
+
+`config_sync_chain_id` defaults to Ethereum mainnet (`1`). This is the chain where `SuperGovernor` emits validator config updates, so every node must watch the same source chain.
+
+All nodes must use the same `config_version`. A mismatch produces a different config digest and prevents consensus.
 
 ### `chain_config_path`
 
@@ -108,102 +109,88 @@ config_version = 3
 chain_config_path = "./chains.yaml"
 ```
 
-Points to a YAML file that defines each chain the node observes. See the [`chains.yaml` reference](#chainsyaml) below.
-
 ---
 
 ## chains.yaml
 
-`chains.yaml` is a map of chain ID to chain configuration. Copy `chains.template.yaml` and fill in your RPC endpoints and the addresses provided by the Superform team during onboarding.
+`chains.yaml` maps chain ID to the chain configuration your node should observe.
 
 ```yaml
-1:                          # chain ID (top-level key)
-  name: ethereum            # human-readable label (used in logs and metrics)
-  chain_id: 1               # must match the top-level key
+1:
+  name: ethereum
+  chain_id: 1
   https_rpc: "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
   wss_rpc:   "wss://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
-  block_time: 12s           # expected block time (Go duration format)
-  supported_strategies:     # vault contract addresses to observe on this chain
+  block_time: 12s
+  supported_strategies:
     - "0xVault1Address"
     - "0xVault2Address"
-  ecdsa_oracle_address:   "0x..."  # ECDSAPPSOracle contract — provided by Superform
-  super_governor_address: "0x..."  # SuperGovernor contract — provided by Superform
+  ecdsa_oracle_address:   "0x..."
+  super_governor_address: "0x..."
 ```
 
 ### Field reference
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Human-readable chain label. Used in logs and Prometheus `chain_id` labels. |
-| `chain_id` | integer | EVM chain ID. Must match the top-level map key. |
-| `https_rpc` | string | HTTPS RPC endpoint. Used for contract reads and transaction submission. |
-| `wss_rpc` | string | WebSocket RPC endpoint. Used for subscribing to `ValidatorConfigSet` and `PPSValidated` events. |
-| `block_time` | duration | Expected time between blocks (Go duration: `12s`, `2s`, `1s`). Used to calibrate event polling. |
-| `supported_strategies` | string[] | Vault contract addresses whose `pricePerShare()` your node will call each round. Provided by Superform during onboarding. |
-| `ecdsa_oracle_address` | string | Address of the `ECDSAPPSOracle` contract where PPS reports are submitted. Provided by Superform. |
-| `super_governor_address` | string | Address of the `SuperGovernor` contract that emits `ValidatorConfigSet` events. Provided by Superform. Only needs to be set on the config sync chain (Ethereum mainnet, chain ID 1). |
+| `name` | string | Human-readable chain label used in logs and metrics. |
+| `chain_id` | integer | EVM chain ID; must match the top-level map key. |
+| `https_rpc` | string | HTTPS RPC endpoint for reads and tx submission. |
+| `wss_rpc` | string | WebSocket RPC endpoint for event subscriptions. |
+| `block_time` | duration | Expected block time in Go duration format. |
+| `supported_strategies` | string[] | Vault addresses this node will observe. |
+| `ecdsa_oracle_address` | string | `ECDSAPPSOracle` contract address supplied during onboarding. |
+| `super_governor_address` | string | `SuperGovernor` contract address supplied during onboarding. |
 
-### Supported chains
+### RPC requirements
 
-The Superform team will tell you which chains to include and provide the contract addresses for each during onboarding. The template includes Ethereum (1), Base (8453), Arbitrum (42161), Optimism (10), and Polygon (137).
+- HTTPS is required on every configured chain.
+- WSS is required for event subscriptions.
+- Public rate-limited endpoints are not suitable for production.
 
-Only include chains where you have a reliable RPC endpoint. A failing RPC on any configured chain causes observation errors for all vaults on that chain, which counts against your participation rate.
+### Scope rules
 
-### RPC provider requirements
-
-- **HTTPS** — required for all chains
-- **WebSocket (WSS)** — required for event subscriptions; the node will warn on startup if WSS is unavailable
-- Both endpoints should be from a reliable provider (Alchemy, QuikNode, or a self-hosted node). Public rate-limited endpoints are not suitable for production validators.
+Only include chains that Superform assigned to your validator deployment and for which you have reliable RPC access. A broken chain config creates observation errors for every strategy on that chain.
 
 ---
 
-## OCR2 Timing Configurations
+## OCR2 timing presets
 
-The `config/v{N}.json` files control OCR2 protocol timing. **All nodes must use the same version** — a mismatch produces different config digests and the node cannot participate in consensus.
+The `config/v{N}.json` files define the OCR2 timing profile. Every validator in the network must use the same version.
 
-### v2 — High-Frequency (Testing / Sub-Minute Updates)
+### v2 — high-frequency testing
 
-2-second rounds. Use for testnets or when vault strategies require PPS updates more frequently than once per hour.
+| Parameter | Value |
+|-----------|-------|
+| `delta_round` | 2s |
+| `delta_progress` | 120s |
+| `delta_resend` | 30s |
+| `delta_grace` | 5s |
+| `delta_stage` | 10s |
+| `r_max` | 3 |
+| `max_stale_duration` | 5m |
 
-| Parameter | Value | Meaning |
-|-----------|-------|---------|
-| `delta_round` | 2s | Round start interval |
-| `delta_progress` | 120s | Leader stuck timeout |
-| `delta_resend` | 30s | Unconfirmed message resend interval |
-| `delta_grace` | 5s | Grace period for late observations |
-| `delta_stage` | 10s | Time per protocol stage |
-| `r_max` | 3 | Rounds per epoch (6s epoch) |
-| `max_stale_duration` | 5m | Maximum report age before rejection |
+### v3 — hourly production default
 
-### v3 — Hourly Production (Default)
+| Parameter | Value |
+|-----------|-------|
+| `delta_round` | 30m |
+| `delta_progress` | 10m |
+| `delta_resend` | 5m |
+| `delta_grace` | 1m |
+| `delta_stage` | 2m |
+| `r_max` | 5 |
+| `max_stale_duration` | 5m |
 
-30-minute rounds. Use for production SuperVaults with a ~1-hour minimum PPS update interval and 24-hour maximum staleness.
+### Freshness controls
 
-| Parameter | Value | Meaning |
-|-----------|-------|---------|
-| `delta_round` | 30m | Round start interval |
-| `delta_progress` | 10m | Leader stuck timeout |
-| `delta_resend` | 5m | Unconfirmed message resend interval |
-| `delta_grace` | 1m | Grace period for slow multi-chain RPCs |
-| `delta_stage` | 2m | Time per protocol stage |
-| `r_max` | 5 | Rounds per epoch (2.5h epoch) |
-| `max_stale_duration` | 5m | Maximum report age before rejection |
+| Layer | Config location | Purpose |
+|------|------------------|---------|
+| Round cadence | `delta_round` | How often the protocol attempts a report |
+| Report freshness | `max_stale_duration` | Rejects reports that finalize too late |
+| Node health alerting | `health_check_interval` | Warns when no onchain confirmation arrives |
+| Contract enforcement | `maxStaleness` | Auto-pauses a strategy if updates stop |
 
-### How Staleness Works
+### Switching versions
 
-The system enforces freshness at four levels:
-
-| Tier | Config Location | v3 Default | Purpose |
-|------|----------------|------------|---------|
-| Attempt frequency | `delta_round` in `v{N}.json` | 30m | How often the protocol attempts a round |
-| Report freshness | `max_stale_duration` in `v{N}.json` | 5m | Rejects reports that took too long to finalize |
-| On-chain monitoring | `health_check_interval` in `config.toml` | 1h | Alerts when no on-chain confirmation arrives |
-| Contract enforcement | `maxStaleness` on SuperVaultAggregator | 24h | Auto-pauses the strategy if exceeded |
-
-### Switching Versions
-
-Update `config_version` in `config.toml` on all nodes and restart them simultaneously. Because all nodes derive the config digest from the same version file, mismatched restarts cause a split and stall consensus until all nodes are on the same version.
-
-<Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
-  Health endpoints and Prometheus metrics reference.
-</Card>
+Update `config_version` on all nodes and restart them in a coordinated window. Mixed versions split the network until every validator converges on the same config digest.

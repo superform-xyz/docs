@@ -75,18 +75,36 @@ Mapping reminder:
 
 During Phase 1, Superform calls `SuperGovernor.setValidatorConfig()` on your behalf. That payload has five parts:
 
-- `version` — must be strictly newer than the previous config
-- `validators[]` — one Ethereum address per validator
-- `validatorPublicKeys[]` — the matching 65-byte uncompressed ECDSA public keys
-- `quorum` — the report threshold for the validator set size
-- `offchainConfig` — the ABI-encoded `OracleIdentity[]` entries for the same validators
+```solidity
+SuperGovernor.setValidatorConfig(
+    version,             // strictly greater than the previous version
+    validators,          // Ethereum addresses — one per validator, derived from validatorPublicKeys
+    validatorPublicKeys, // 65-byte uncompressed ECDSA public keys — one per validator
+    quorum,              // minimum signatures for a valid report (odd; satisfies F*3 < N)
+    offchainConfig       // ABI-encoded OracleIdentity[] — one entry per validator
+)
+```
 
-For each validator, `validators[i]`, `validatorPublicKeys[i]`, and `OracleIdentity[i]` all have to describe the same operator identity. In practice, the config only loads cleanly when:
+The `offchainConfig` is an ABI-encoded array of `OracleIdentity` structs, one per validator:
 
-- all three arrays have the same length
-- `validators[i]` is the Ethereum address derived from `validatorPublicKeys[i]`
-- `OracleIdentity.validatorPublicKey` byte-matches the same `validatorPublicKeys[i]`
-- the offchain and config encryption keys are both 32 bytes
+```solidity
+struct OracleIdentity {
+    bytes  validatorPublicKey;        // 65-byte ECDSA public key (matches validatorPublicKeys[])
+    string peerID;                    // ragep2p peer ID (e.g. "12D3KooW...")
+    bytes  offchainPublicKey;         // 32-byte Ed25519 public key
+    bytes  configEncryptionPublicKey; // 32-byte X25519 public key
+}
+```
+
+For each validator, `validators[i]`, `validatorPublicKeys[i]`, and `OracleIdentity[i]` all have to describe the same operator identity. The contract enforces these invariants:
+
+| Invariant | Rule |
+|-----------|------|
+| Array alignment | `len(validators) == len(validatorPublicKeys) == len(OracleIdentity[])` |
+| Address derivation | `validators[i]` must equal the Ethereum address derived from `validatorPublicKeys[i]` |
+| Identity matching | Every `validatorPublicKeys[i]` must have a matching `OracleIdentity.validatorPublicKey` (byte-equality) |
+| Byzantine fault tolerance | `F * 3 < N` where `F = (quorum - 1) / 2` and `N = len(validators)` |
+| Key sizes | Onchain public key: 65 bytes; offchain key: 32 bytes; config key: 32 bytes |
 
 Most registration failures reduce to one of three things: array misalignment, address/public-key mismatch, or malformed `offchainConfig` bytes. If your node sees the event but refuses to load the config, reason about the failure in that order first.
 

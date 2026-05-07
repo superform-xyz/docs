@@ -7,10 +7,9 @@
     "light": "#A9D9D7",
     "dark": "#436C6A"
   },
-  "favicon": "/images/favicon(2).ico",
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/light.svg"
   },
   "navigation": {
     "global": {
@@ -227,7 +226,9 @@
   "seo": {
     "indexing": "all"
   },
+  "favicon": "/images/superform_square.svg",
   "thumbnails": {
-    "background": "/images/block.daddy_ben_franklin_in_USA_swim_trunks_swimming_in_a_pool__227dc90d-6aa5-48ec-b9e8-c281f0c993ed1(1).png"
+    "appearance": "light",
+    "background": "/images/docs_2_seo.png"
   }
 }

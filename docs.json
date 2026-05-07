@@ -109,6 +109,7 @@
             "pages": [
               "build/become-a-validator/quickstart",
               "build/become-a-validator/prerequisites",
+              "build/become-a-validator/infrastructure",
               "build/become-a-validator/key-management",
               "build/become-a-validator/node-setup",
               "build/become-a-validator/joining-the-network"

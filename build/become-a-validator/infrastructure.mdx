@@ -1,0 +1,127 @@
+---
+title: "Infrastructure Sizing"
+description: "Suggested hardware, managed-service tiers, and estimated monthly cost for running a Superform validator node."
+---
+
+The oracle node itself is lightweight — it observes vault PPS values, signs OCR2 messages, and persists round state. It is not chain-syncing software. Most of the cost of a production validator comes from the supporting services around it (managed Postgres, monitoring, signing key custody) rather than the node binary itself.
+
+This page lists three tiers — **Minimum**, **Recommended**, and **High-Availability** — and an estimate of what the Recommended tier costs on AWS today. Use it to size your own deployment whether you are on AWS, Hetzner, GCP, OVH, or bare metal.
+
+<Note>
+The "Recommended" column is what the Superform team runs for our reference full validator. It is sufficient for a single-validator workload observing the production set of SuperVaults across all currently configured chains.
+</Note>
+
+## Sizing Tiers
+
+| Component | Minimum | Recommended | High-Availability |
+|-----------|---------|-------------|-------------------|
+| **Node CPU** | 2 vCPU | 2 vCPU (ARM/Graviton) | 4 vCPU (ARM/Graviton) |
+| **Node RAM** | 2 GB | 2 GB | 4–8 GB |
+| **Node disk** | 20 GB SSD | 16–20 GB gp3 SSD | 20 GB gp3 SSD |
+| **Architecture** | x86_64 or arm64 | arm64 (Graviton / Ampere) | arm64 |
+| **Public IP** | Dynamic OK | Static / Elastic IP | Static / Elastic IP |
+| **Postgres** | Self-hosted on same VM | Managed, single-AZ, 20 GB | Managed, multi-AZ, 20–50 GB |
+| **Postgres class** | Default container | `db.t4g.micro` or equiv. | `db.t4g.small` multi-AZ + replica |
+| **Onchain key custody** | Encrypted file in keystore | Cloud KMS (AWS / GCP) | Cloud KMS or HSM (CloudHSM / YubiHSM) |
+| **Metrics** | Local Prometheus | Managed Prometheus + Grafana | Managed Prometheus + Grafana + on-call paging |
+| **Alerting** | None / manual | Email / Slack / SNS | PagerDuty / Opsgenie + runbooks |
+| **Backups** | None | 7-day Postgres backups | 7-day backups + cross-region snapshots |
+| **Network egress** | Residential discouraged | 100 Mbps+, datacenter | 1 Gbps, datacenter, 99.9% SLA |
+
+### Notes on each tier
+
+**Minimum** — Suitable for testnet, staging, or evaluation. Not appropriate for production: residential connections, single-VM databases, and on-disk private keys all increase the chance of slashing-relevant downtime or key compromise.
+
+**Recommended** — Single-AZ managed Postgres is fine because libOCR2 round state is recoverable from a backup or by waiting for the next config event. The validator is stateless beyond Postgres, so a 5–10 minute outage to fail over is acceptable.
+
+**High-Availability** — Use this tier if you operate validators professionally, run a large stake position, or need to meet an SLA. Multi-AZ Postgres and HSM-backed signing remove the two single points of failure in the Recommended tier.
+
+## What the Superform Team Runs
+
+For reference, our production reference full validator deployment in `eu-west-1` is:
+
+| Resource | Spec |
+|----------|------|
+| Compute | 1× AWS `t4g.small` (2 vCPU ARM, 2 GB RAM) |
+| Root disk | 16 GB gp3 EBS, encrypted |
+| Public IP | 1× Elastic IP (stable `announce_address`) |
+| Database | AWS RDS PostgreSQL 16, `db.t4g.micro`, single-AZ, 20 GB gp3, 7-day backups, deletion protection, TLS enforced |
+| Onchain key | AWS KMS secp256k1 CMK (validator EC2 IAM role authorized to `kms:Sign`; admin principals explicitly denied `Sign` in the key policy) |
+| Metrics | AWS Managed Prometheus (AMP) + ADOT collector sidecar + AWS Managed Grafana (shared workspace) |
+| Alerts | Grafana alert rules → SNS topic → on-call channel |
+| Optional: vault snapshot cache | AWS ElastiCache Redis `cache.t4g.micro`, single node, TLS + AUTH (only when running the snapshot service — see below) |
+
+The validator container, the snapshotd IPC sidecar (when enabled), and the ADOT metrics collector all run as separate containers on the same EC2 host, scraping localhost-only Prometheus endpoints. The instance hosts no other workload.
+
+## Estimated Monthly Cost (eu-west-1, on-demand list)
+
+Using AWS public on-demand prices and ignoring any Savings Plan / Reserved Instance discounts:
+
+| Item | Spec | $/month |
+|------|------|---------|
+| EC2 `t4g.small` | 730 h × $0.0168 | ~$12 |
+| EBS gp3 16 GB | $0.0952/GB-mo | ~$1.5 |
+| RDS `db.t4g.micro` single-AZ Postgres | 730 h × $0.018 | ~$13 |
+| RDS gp3 storage 20 GB + 7-day backups | | ~$3 |
+| AWS Managed Prometheus | ~10M samples/month, allowlisted metrics | ~$9 |
+| KMS CMK + signing API calls | | ~$1–3 |
+| Secrets Manager (~5 secrets) | $0.40 each | ~$2 |
+| ECR / SSM / CloudWatch logs | | ~$1–3 |
+| Data transfer (ragep2p + RPC client traffic) | | ~$2–5 |
+| **Total — single validator** | | **~$45–55/mo** |
+
+Adding the optional vault snapshot HTTP service on a second EC2 host (see below) adds roughly **$20–25/month** in marginal cost (a second `t4g.small` + EIP + extra metrics samples + a few more secrets). Redis and KMS are shared.
+
+These numbers are **operating cost only**, before any RPC provider fees. Plan separately for an Alchemy / QuikNode / self-hosted RPC bill — for most validators this is the largest line item, not the AWS bill.
+
+## Cloud and Bare-Metal Equivalents
+
+If you are not on AWS, here are roughly equivalent options for the Recommended tier:
+
+| Provider | Compute | Database |
+|----------|---------|----------|
+| AWS | `t4g.small` | RDS `db.t4g.micro` (single-AZ) |
+| GCP | `t2a-standard-1` (arm64) | Cloud SQL Postgres `db-f1-micro` |
+| Azure | `B2pls v2` (arm64) | Azure DB for PostgreSQL Burstable B1ms |
+| Hetzner Cloud | `CAX11` (arm64, 2 vCPU / 4 GB) | Self-hosted Postgres on a `CAX21` |
+| OVHcloud | Bare-metal `Eco-32G-ARM` or `B2-7` | Public Cloud Database for Postgres |
+| Bare metal | Any 2 vCPU / 2 GB ARM or x86 server with SSD | Self-hosted Postgres 15+ |
+
+Hetzner / OVH bare-metal deployments are typically 2–4× cheaper than equivalent AWS configs. The trade-off is that you take on backup, monitoring, key custody, and HA yourself.
+
+## Optional: Vault Snapshot Service
+
+Once vaults that require cross-asset PPS conversion are configured (Pendle, Spectra, staking-style vaults that report shares in a different unit than the deposit asset), validators need access to a price provider. The reference deployment runs **snapshotd**, a small sidecar service that serves PPS data over a Unix socket (IPC mode) or HTTPS+JWT (standalone mode).
+
+You can run snapshotd two ways:
+
+- **IPC sidecar** — same EC2 host as the validator, no extra compute cost, communicates over a Unix socket. This is what the Recommended tier uses.
+- **Standalone HTTP server** — separate host, JWT-gated HTTP endpoint, can be shared between multiple validators. Adds a second EC2 host (~$15/month all-in including disk and EIP) plus ~$5/month extra metric ingestion.
+
+Both modes share the same Redis cache (`cache.t4g.micro`, ~$15/month) for vault metadata so a validator restart does not have to re-fetch every vault's domain separator.
+
+Skip snapshotd entirely if your configured vaults are all standard ERC-4626 — the validator falls back to direct `vault.asset()` reads in that case and does not need Redis or the sidecar at all.
+
+## Sizing Guidance
+
+A few rules of thumb if you are tuning for cost or capacity:
+
+- **Memory is the lever, not CPU.** OCR2 round work is bursty but cheap; resident set size on the reference validator stays under 400 MB. 2 GB is sufficient for the foreseeable validator set.
+- **Don't undersize the database.** OCR2 round persistence is small (a few MB) but write-heavy during transmission rounds. `db.t4g.micro` is the floor — going smaller (e.g., burstable shared cores) risks IO credit exhaustion under load.
+- **Use ARM (Graviton / Ampere).** The published image is built for both `amd64` and `arm64`. ARM is ~20% cheaper at parity performance for this workload.
+- **Static IP matters.** Other validators dial your `announce_address` directly. A rotating public IP forces a config update each time it changes.
+
+<CardGroup cols={2}>
+  <Card title="Prerequisites" icon="list-check" href="/build/become-a-validator/prerequisites">
+    Software dependencies and network requirements.
+  </Card>
+  <Card title="Node Setup" icon="server" href="/build/become-a-validator/node-setup">
+    Pull the image and start the node.
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+    Health endpoints, Prometheus metrics, and alert rules.
+  </Card>
+  <Card title="Operations" icon="wrench" href="/build/become-a-validator/operations">
+    Day-2 operations and runbooks.
+  </Card>
+</CardGroup>

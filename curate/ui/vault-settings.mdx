@@ -1,129 +1,137 @@
 ---
 title: "Vault Settings"
-description: "Configure fees, PPS parameters, redeem timelock, banned hook leaves, and upkeep balance for your vault."
+description: "Configure fees, PPS parameters, redeem timelock, banned hook leaves, session keys, notifications, and upkeep activation."
 ---
 
-![SuperVaults Vault Settings — sidebar with Fee Config, PPS settings, Redeem Timelock, Banned Hook Leaves, and Upkeep sections](/curate/images/screenshots/vault-settings.jpg)
-
-Vault Settings is the configuration hub for vault-level parameters. The left sidebar organizes settings into five categories: **Fees**, **PPS**, **Timing**, **Security**, and **Balance**. Primary manager only — secondary managers receive `403 Forbidden`.
+Vault Settings is the configuration hub for vault-level controls. Most settings use the same pattern: Erebor prepares calldata, the manager wallet signs, and the protocol contract applies the change onchain.
 
 <Note>
-Settings changes (fees, PPS parameters, timelocks, banned hook leaves) are **onchain transactions**. The institutional dashboard constructs the calldata and your wallet signs and submits it directly to the vault contract. There are no Erebor REST endpoints for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (the `fee_config` and `upkeep_info` fields in the response).
+Prepare endpoints return transaction data. They do not mutate protocol state by themselves. The connected wallet must sign and submit the transaction.
 </Note>
 
----
+## Access Model
+
+Primary managers own sensitive vault settings. Secondary managers can operate the vault but do not control primary-only settings such as manager assignment and some security parameters.
+
+See [Permissions Model](/curate/permissions) for the full matrix.
 
 ## Fees
 
-### Fee Config
+Configure the vault's performance fee, management fee, and fee recipient.
 
-Configure the vault's fee structure: performance fee percentage, management fee percentage, and the fee recipient address.
+Fee changes protect depositors through the protocol's proposal/timelock rules. The dashboard displays current values and prepares the required transaction when a primary manager proposes a change.
 
-The current configuration is displayed as a read-only summary. To modify fees, click **Propose Change** — fee changes go through a proposal flow to protect depositors from unexpected fee increases.
+## PPS Parameters
 
-**Fields:**
+Price-per-share controls define how often PPS can update and when stale data blocks operations.
 
-| Field | Description |
-|-------|-------------|
-| Performance Fee (%) | Percentage of yield above the high-water mark taken as fees |
-| Management Fee (%) | Annualized percentage of TVL taken as fees |
-| Recipient Address | Wallet that receives accrued fees when skimmed |
+Common fields:
 
-These settings are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current fee values are read from `GET /api/v1/vaults/{chain_id}/{address}` (`fee_config` field in the response).
+- **Deviation threshold** — maximum allowed difference between calculated and current PPS.
+- **PPS expiration / staleness** — when vault operations should stop waiting for a fresh PPS update.
+- **Minimum update interval** — minimum time between PPS updates.
 
-<Warning>
-Fee changes are subject to an onchain timelock. Depositors can observe pending fee proposals and withdraw before they take effect.
-</Warning>
+These settings are read from vault detail data and changed through signed transactions.
 
----
+## Redeem Timelock
 
-## PPS
+Redeem timelock adds a delay between redemption request and fulfillment eligibility.
 
-Price-per-share parameters control how PPS updates are validated and when staleness triggers operational blocks.
+Use it for:
 
-### Deviation Threshold
+- Liquidity sourcing before fulfillment.
+- Fraud and risk review windows.
+- Regulatory or operational policy requirements.
 
-The maximum allowed deviation between the offchain calculated PPS and the current onchain PPS. If an update exceeds this threshold, it is rejected to prevent erroneous PPS values from being posted.
+Relevant APIs:
 
-A value of `100` means 1% — any PPS update differing by more than 1% from the current onchain value will be rejected.
-
-### PPS Expiration
-
-The staleness window (in hours) after which vault operations are blocked. If PPS has not been updated within this window, deposits, withdrawals, and strategy execution are halted until a fresh PPS is posted.
-
-### Min Update Interval
-
-The minimum time (in seconds) between consecutive PPS updates. Prevents excessive onchain updates that waste gas without meaningful price changes.
-
-PPS parameters are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract. Current PPS configuration values are read from `GET /api/v1/vaults/{chain_id}/{address}`.
-
----
-
-## Timing
-
-### Redeem Timelock
-
-A mandatory delay (in seconds) between redemption request submission and fulfillment eligibility. When set to 0 or not configured, redemptions execute as soon as liquidity is available.
-
-**Use cases:**
-- **Fraud prevention** — time for the primary manager to intervene on suspicious redemptions
-- **Liquidity management** — keepers source liquidity from yield sources before fulfillment
-- **Regulatory compliance** — some contexts require enforced redemption delays
-
-The redeem timelock is configured via an onchain transaction. The institutional dashboard constructs the calldata and your wallet signs and submits it directly to the vault contract.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/redeem-timelocks` | GET | List configured timelocks |
+| `/api/v1/redeem-timelocks/bulk` | GET | Bulk timelock lookup |
+| `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's timelock |
+| `/api/v1/settings/redeem-timelock` | POST | Prepare timelock update transaction |
 
 <Warning>
-Setting a timelock on a live vault affects all future redemption requests. Requests submitted before the change are not retroactively affected.
+Changing a redeem timelock affects future redemption requests. Existing requests are not retroactively changed.
 </Warning>
 
----
+## Banned Hook Leaves
 
-## Security
+A banned hook leaf is blocked even if it appears in an authorized merkle tree. Use this to quickly stop a specific hook + parameter combination while you prepare a cleaner merkle config update.
 
-### Banned Hook Leaves
+Banning a leaf is narrow: it blocks the exact leaf, not the entire hook category.
 
-Merkle leaves that have been explicitly banned from execution, even if they appear in an authorized merkle tree. Use this to emergency-block a specific hook+parameter combination without regenerating and resyncing the entire merkle tree.
+## Upkeep and Activation
 
-When a leaf is banned, keepers attempting to execute that leaf will receive a rejection even though the leaf's proof verifies against the onchain root.
+Upkeep funds vault automation. It is also the practical activation gate for a new vault.
 
-Banned hook leaves are configured via onchain transactions. The UI constructs the calldata and your wallet signs and submits it directly to the vault contract.
+The Upkeep panel shows:
 
-<Tip>
-Banning a leaf is an immediate control mechanism. Use it as a fast-response mechanism while you prepare a proper merkle tree update.
-</Tip>
+- Current upkeep balance.
+- Upkeep token.
+- Activation status.
+- Required balance.
+- Shortfall, when present.
+- Pending upkeep withdrawal proposal, if any.
 
----
+A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable.
 
-## Balance
+### Deposit Upkeep
 
-### Upkeep
-
-The $UP token balance required to pay keeper upkeep costs. The UI displays the current balance and warns when it drops below the minimum threshold.
-
-If the upkeep balance reaches zero, keeper services for the vault are suspended until the balance is replenished.
-
-Upkeep balance is included in the vault detail response:
+Managers deposit upkeep through the settings flow:
 
 ```bash
-GET /api/v1/vaults/{chain_id}/{vault_address}
-
-# Response includes upkeep_info:
-{
-  "upkeep_info": {
-    "balance": "1500.00",
-    "payment_enabled": true
-  }
-}
+POST /api/v1/settings/upkeep/deposit
 ```
 
-<Warning>
-Monitor upkeep balance regularly. When the balance is low, the UI displays a warning badge. If it reaches zero, all keeper operations (deposits, withdrawals, rebalancing, PPS updates) halt until $UP is deposited.
-</Warning>
+The dashboard handles token allowance checks first, then prepares the deposit transaction for wallet signature.
 
----
+### Withdraw Upkeep
+
+Withdrawals use a propose / execute pattern:
+
+```bash
+POST /api/v1/settings/upkeep/withdraw/propose
+POST /api/v1/settings/upkeep/withdraw/execute
+```
+
+Use withdrawals carefully on live vaults. Pulling the balance below threshold can make the vault inactive or undiscoverable.
+
+## Session Keys
+
+Session keys delegate limited execution authority for automation. They are used by the OMS / Strategy Engine path so strategies can publish and execute intents without asking the manager wallet for every tick.
+
+Erebor exposes vault-scoped session-key inventory and prepare endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/session-keys` | GET | List session keys visible to the manager |
+| `/api/v1/vaults/{chain_id}/{vault_address}/session-key` | GET | Read a vault session key |
+| `/api/v1/vaults/session-key/prepare` | POST | Prepare grant transaction |
+| `/api/v1/vaults/session-key/revoke/prepare` | POST | Prepare revoke transaction |
+
+OMS also exposes strategy-automation session-key readiness and rotation endpoints. See [OMS API](/curate/api/oms).
+
+## Notification Channels
+
+Notification channels attach Slack, webhook, or websocket destinations to a vault.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/notification-channels` | GET/POST | List or create manager-owned channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET/POST | Attach or list vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach channel |
+
+Use notification channels for operational alerts, monitoring, and downstream automation.
 
 ## API Reference
 
-| Endpoint | Method | Backend | Description |
-|----------|--------|---------|-------------|
-| `GET /api/v1/vaults/{chain_id}/{vault_address}` | GET | Erebor | Full vault detail including `fee_config` and `upkeep_info` fields |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/vaults/{chain_id}/{vault_address}` | GET | Full vault detail including fee, PPS, and upkeep data |
+| `/api/v1/settings/upkeep` | POST | Prepare upkeep settings update |
+| `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
+| `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
+| `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
+| `/api/v1/settings/redeem-timelock` | POST | Prepare redeem timelock update |

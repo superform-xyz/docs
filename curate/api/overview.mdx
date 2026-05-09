@@ -1,129 +1,62 @@
 ---
-title: "API Overview"
-description: "Three backends, one auth model. Route-to-backend matrix and common patterns for the SuperVaults API."
+title: "Curate API Overview"
+description: "How Erebor, Strategy Engine, OMS, and merkle publishing fit together for SuperVault operations."
 ---
 
-SuperVaults exposes ~113 endpoints across three backend services. All share a single JWT auth model issued by Dynamic.xyz.
+Curate is the institutional control plane for SuperVaults. Its APIs split by operational responsibility.
 
-## Backend Services
+## Services
 
-| Service | Language | Base URL | OpenAPI Spec |
-|---------|----------|----------|-------------|
-| **Erebor** | Go | `https://erebor.superform.xyz` | ✅ Available |
-| **Strategy Engine** | Go | `https://strategy.superform.xyz` | ✅ Available |
-| **OMS** | Go | `https://oms.superform.xyz` | ✅ Available |
+| Service | Owns | Docs |
+|---------|------|------|
+| Erebor | Vault reads, settings, registries, merkle config, upkeep, users, pause controls | [Erebor API](/curate/api/erebor) |
+| Strategy Engine | Strategy lifecycle, ordering, live shards, intent projections, emergency locks | [Strategy API](/curate/api/strategy) |
+| OMS | DeFiX intent execution, events, session-key readiness, hook transactions | [OMS API](/curate/api/oms) |
+| Public merkle artifact | Published proof data for keepers and integrators | [Merkle Publishing](/curate/api/merkle-publish) |
 
-## Authentication
+## Auth
 
-All endpoints except explicitly public ones require a Bearer JWT:
+Authenticated endpoints use Dynamic-issued bearer JWTs:
 
-```
+```bash
 Authorization: Bearer <jwt>
 ```
 
-The JWT is issued by Dynamic.xyz upon wallet connection. See [Authentication](/curate/authentication) for the full flow.
+Public endpoints, such as published merkle artifacts and public vault listings, do not require a manager JWT.
 
-### Public Endpoints
+## Prepare, Sign, Confirm
 
-| Endpoint | Backend |
-|----------|---------|
-| `GET /api/v1/public/vaults` | Erebor |
-| `GET /api/v1/registry/token-assets` | Erebor |
+Most protocol mutations follow this model:
 
-## On-Chain Settings
+1. API prepares calldata.
+2. Wallet signs and submits the transaction.
+3. API / indexer reads resulting state or confirms a transaction hash.
 
-Settings changes (fees, PPS parameters, timelocks, banned leaves) are **onchain transactions**. The institutional dashboard constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change. Current values are read from `GET /api/v1/vaults/{chain_id}/{address}` (e.g., `fee_config` and `upkeep_info` fields in the response).
+Do not treat a successful prepare request as a completed setting change.
 
-## Common Patterns
+## Vault Identity and Listing State
 
-### Prepare Pattern
+A vault can be:
 
-On-chain operations use a two-phase flow:
+- Created onchain.
+- Indexed in Erebor.
+- Active / discoverable after upkeep is funded.
+- Listed and available in the Superform catalog.
 
-1. **Prepare** — POST to a `prepare-*` endpoint. Returns raw EVM calldata.
-2. **Sign** — Pass `{ to, data, value }` to your wallet.
-3. **Confirm** (where applicable) — Notify Erebor of the transaction hash.
+Those are related but separate states. The dashboard setup flow tracks them together so operators do not route users into a half-configured vault.
 
-```json
-{
-  "to": "0xContractAddress...",
-  "data": "0xencoded_calldata...",
-  "value": "0"
-}
-```
+## Strategy Execution Flow
 
-Used for: vault creation, yield source management, user management, merkle root proposals, emergency pause.
+1. Manager configures hooks and publishes merkle authorization.
+2. Manager whitelists yield sources and pairs oracles.
+3. Manager creates and orders strategies.
+4. Strategy Engine evaluates rules and submits DeFiX intents.
+5. OMS validates authorization and executes hook transactions.
+6. Events and fills flow back into intent history.
 
-### Pagination
+## API Reference Pages
 
-Erebor supports cursor-based and offset-based pagination:
-
-```
-?limit=50&offset=0
-?limit=50&cursor=<next_cursor>
-```
-
-Most list responses include `has_more` or `next_cursor`.
-
-### Async Jobs
-
-Long-running operations (vault creation, merkle tree generation) return a `job_id`:
-
-1. Trigger operation → receive `job_id`
-2. Poll `GET /api/v1/.../jobs/{job_id}` with exponential backoff
-3. Status: `pending` → `running` → `completed` / `failed`
-
-### Optimistic Concurrency
-
-Strategy Engine PUT operations require a `version` field. Concurrent edits return `409 Conflict`. Refresh and retry with the latest version.
-
-## Error Codes
-
-| Code | Meaning |
-|------|---------|
-| `400` | Invalid parameters |
-| `401` | Missing or expired JWT |
-| `403` | JWT valid, insufficient role |
-| `404` | Resource not found |
-| `409` | Duplicate or version conflict |
-| `500` | Internal server error |
-
-## Route-to-Backend Matrix
-
-| Feature | Backend | Auth |
-|---------|---------|------|
-| Home vault list | Erebor | None |
-| Dashboard analytics | Erebor | JWT |
-| Strategy canvas | Strategy Engine | JWT |
-| Merkle tree management | Erebor | JWT |
-| Yield source management | Erebor | JWT |
-| User management | Erebor | JWT |
-| Vault settings | Erebor | JWT |
-| Service health | Erebor | JWT |
-| Pause operations | Erebor | JWT |
-| Registry management | Erebor | JWT |
-| Admin backfill | Erebor | JWT |
-| Vault creation | Erebor | JWT |
-| DeFiX intents | OMS | JWT |
-| OMS session keys | OMS | JWT |
-
-## Rate Limits
-
-Rate limits are not yet published. Recommended polling intervals for automation:
-
-| Data | Interval |
-|------|----------|
-| Vault state | 15s |
-| Analytics | 60s |
-| Service health | 30s |
-
-Implement exponential backoff on `429 Too Many Requests`.
-
-## Endpoint Counts
-
-| Backend | Endpoints |
-|---------|----------|
-| Erebor | ~89 |
-| Strategy Engine | 14 |
-| OMS | 10 |
-| **Total** | **~113** |
+- [Erebor API](/curate/api/erebor)
+- [Strategy Engine API](/curate/api/strategy)
+- [OMS API](/curate/api/oms)
+- [Merkle Publishing](/curate/api/merkle-publish)

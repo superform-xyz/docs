@@ -1,158 +1,146 @@
 ---
 title: "Strategy Canvas"
-description: "Create and run automated rebalancing strategies with a visual rule-based canvas."
+description: "Build, order, run, and monitor automated SuperVault strategies."
 ---
 
-![SuperVaults Strategy Canvas — three-column canvas with Redemption Strategy, Vault Asset Pool center node, and Deposit Strategy columns](/curate/images/screenshots/strategy.jpg)
+The Strategy Canvas is where managers define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
 
-The Strategy Canvas is where institutions build rule-based automation for vault operations. Strategies evaluate indicator values on configurable tick intervals and dispatch DeFiX intents to the OMS when conditions are met.
+The canvas is organized by action lane:
 
-Navigate to `/strategy/{chainId}/{vaultAddress}` or select a vault from the dropdown.
+| Lane | Actions | Purpose |
+|------|---------|---------|
+| Inflow | `DEPOSIT` | Deploy idle assets into yield sources |
+| Outflow | `WITHDRAWAL`, `CLAIM` | Source liquidity and claim proceeds |
+| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Move capital between sources or routes |
 
-## Canvas Layout
+## Strategy Lifecycle
 
-Strategies are partitioned into three columns by action type:
-
-| Column | Action | Description |
-|--------|--------|-------------|
-| **Inflow** | `DEPOSIT` | Deploy capital into yield sources |
-| **Outflow** | `WITHDRAWAL` | Unwind positions to fulfill redemptions |
-| **Rebalance** | `REBALANCE` | Redistribute capital between yield sources |
-
-Each strategy card displays its name, state, tick interval, and last intent result.
-
-## Strategy States
-
-| State | Description |
-|-------|-------------|
-| `CREATED` | Defined but never activated |
-| `IDLE` | Ready, not ticking |
-| `RUNNING` | Actively evaluating rules each tick |
-| `PAUSED` | Halted by vault kill switch |
-| `ERROR` | Runtime error (hover for details) |
+| State | Meaning |
+|-------|---------|
+| `CREATED` | Drafted but not active |
+| `IDLE` | Ready but not ticking |
+| `RUNNING` | Evaluating rules and eligible to publish intents |
+| `ERROR` | Runtime error; inspect logs/events |
 | `ARCHIVED` | Soft-deleted |
 
-Toggle between `IDLE` and `RUNNING` using the state control on each card.
+The Strategy Engine API currently models these states directly. Vault-level kill switches and emergency locks can still prevent a strategy from publishing even when the stored state is `RUNNING`.
 
-## Kill Switch
+## Create or Update a Strategy
 
-The vault-level kill switch (top of canvas) pauses all strategies simultaneously. When engaged, all `RUNNING` strategies transition to `PAUSED`. Use this for emergency stops without toggling individual strategies.
+A strategy contains:
 
-API: `PATCH /api/v1/vaults/{vault_id}` with `{ "kill_switch": true }`
+- Name.
+- Indicators.
+- Rule tree.
+- Action config.
+- Conviction config.
+- Risk parameters.
+- Cooldown and concurrency controls.
 
-## Creating a Strategy
+Create and update calls do **not** carry priority. Ordering is handled by the dedicated reorder endpoint.
 
-Click **New Strategy** to open the creation form.
+Updates require a `version` for optimistic concurrency. A stale version returns `409 Conflict`.
 
-### Core Fields
+## Rule Trees
 
-| Field | Description |
-|-------|-------------|
-| **Name** | Human-readable identifier |
-| **Action** | `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE` |
-| **Tick Interval** | Evaluation frequency in milliseconds |
-| **Cooldown** | Minimum time between intent dispatches (milliseconds) |
-| **Priority** | Execution order within column (lower = higher priority) |
+Rules are boolean trees:
 
-### Indicators
+| Node | Meaning |
+|------|---------|
+| `EXPR` | Evaluate one expression |
+| `AND` | All children pass |
+| `OR` | At least one child passes |
+| `NOT` | Negate one child |
+| `VOTE` | N-of-M children pass |
 
-Named variables evaluated each tick. Define with a name (e.g., `usdc_morpho_apy`) and a data source expression. Live values are visible by hovering over a running strategy's shard state.
+Conviction config can require repeated passing ticks before publishing an intent.
 
-### Rule Tree
+## Action Config
 
-Boolean logic tree that determines when the strategy dispatches an intent:
+Action config tells the engine what to do after rules pass. Common fields include:
 
-| Node Type | Description |
-|-----------|-------------|
-| `EXPR` | `indicator op value` (e.g., `apy > 0.05`) |
-| `AND` | All children must be true |
-| `OR` | At least one child must be true |
-| `NOT` | Negates a child rule |
-| `VOTE` | N-of-M children must be true |
+- `action`
+- `size_expr`
+- `objective`
+- `execution_name`
+- `execution_address`
+- `target_address`
+- `from_address`
+- `target_type`
+- `execution_params`
+- `max_slippage_bps`
 
-### Action Config
+A target must be whitelisted and authorized by the active merkle root before OMS execution can succeed.
 
-| Field | Description |
-|-------|-------------|
-| `size_expr` | Position size expression (e.g., `free_assets * 0.5`) |
-| `objective` | Optimization goal |
-| `execution_name` | Target hook name |
-| `target_address` | Yield source address |
-| `max_slippage_bps` | Maximum acceptable slippage in basis points |
+## Reorder Strategies
 
-### Conviction Config
+Drag within a lane to change priority. The UI persists order through:
 
-Controls how many consecutive passing ticks are required before dispatching an intent. Prevents excessive churn on noisy signals.
+```bash
+POST /api/v1/strategies/reorder
+```
 
-## Viewing Intents
+The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
 
-Each strategy card has an **Intents** tab showing its dispatch history: intent ID, action, status (`Processing`/`Completed`/`Failed`/`Cancelled`), size, slippage, gas used, and timestamps. Vault-level intent history is also available across all strategies.
+<Note>
+The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
+</Note>
 
-## Live Shard State
+## Emergency Locks
 
-Running strategies maintain in-memory shards with current indicator values, active intent count, and last tick timestamp.
+Emergency liquidity exits create target-scoped locks. While a lock exists for a yield source address:
 
-`GET /api/v1/engine/shards/{vault_id}/state` returns this state. A `404` means no shard exists (no running strategies).
+- User-defined strategies targeting that address cannot publish new intents.
+- Affected toggles and reorder handles are disabled in the UI.
+- Strategies on other targets remain operable.
+- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/curate/ui/pause), not the normal editor.
 
-## Drag-to-Reorder
+The canvas reads `emergency_locks` from shard / vault state and displays a banner when active.
 
-Drag strategy cards within a column to change priority order. When multiple strategies trigger simultaneously, higher-priority strategies dispatch first.
+## Intent History
 
-## Optimistic Concurrency
+The Intent History view is the operator-facing execution ledger for strategies. It maps Strategy Engine projections to OMS events and fills.
 
-Strategy updates require a `version` field. If two clients edit the same strategy, the second write returns `409 Conflict`. Refresh and retry with the latest version.
+Use it to answer:
 
-## OMS Session Key
+- Which strategy created the intent?
+- What lifecycle state is it in?
+- Which OMS events have arrived?
+- Were fills mined?
+- What gas was used?
+- Which transaction hash settled the fill?
 
-Before strategies can dispatch intents, the vault must have a valid **OMS session key** — a delegated signing key that authorises the OMS to execute onchain actions on behalf of the vault.
+Prefer the search endpoint for new tooling:
 
-If no valid session key exists, the canvas displays an **OMS Canvas Gate** overlay blocking automation. Use the **Session Key** panel (accessible via `VaultStrategyHeaderControls` in the header) to grant or renew.
+```bash
+GET /api/v1/intents
+GET /api/v1/intents/{intent_id}/events
+GET /api/v1/intents/{intent_id}/fills
+GET /api/v1/fills
+```
 
-### Session Key States
+See [Strategy Engine API](/curate/api/strategy) and [OMS API](/curate/api/oms).
 
-| State | Description |
-|-------|-------------|
-| Ready | Valid key exists, automation can run |
-| Not Ready | No key or key expired — canvas gate shown |
-| Pending Rotation | Rotation initiated but not yet completed onchain |
+## Session Key Gate
 
-### Grant / Renew Flow
+Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points managers to grant or renew the key.
 
-1. Open the session key panel from the strategy header controls
-2. Click **Grant** (new) or **Renew** (expiring soon) — the UI calls the OMS grant/rotation endpoint and returns EVM calldata
-3. Sign the transaction with your connected wallet
-4. Call **Complete Rotation** after the transaction confirms
-
-The UI polls readiness every 45 seconds; polling accelerates to every 20 seconds while the signing popover is open.
-
-### Session Key API Endpoints (OMS)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/defix/vaults/{vault_id}/session-key/readiness` | GET | Check if key is ready |
-| `/defix/vaults/{vault_id}/session-key/grant` | GET | Get grant calldata |
-| `/defix/vaults/{vault_id}/session-key/rotation` | GET | Get renewal calldata |
-| `/defix/vaults/{vault_id}/session-key/rotation/complete` | POST | Complete rotation |
-| `/defix/vaults/{vault_id}/session-key/rotation/cancel` | POST | Cancel pending rotation |
-| `/defix/vaults/{vault_id}/session-key/revoke` | GET | Get revoke calldata |
-
-See [OMS API](/curate/api/oms) for full endpoint documentation.
+See [OMS API](/curate/api/oms#session-keys) for the session-key endpoints.
 
 ## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/strategies?vault_id={id}&limit=50` | GET | List strategies |
+| `/api/v1/strategies` | GET | List strategies with filters |
 | `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | PUT | Update (requires `version`) |
-| `/api/v1/strategies/{id}` | DELETE | Delete strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition state |
-| `/api/v1/strategies/{id}/reload` | POST | Hot-reload running strategy |
-| `/api/v1/strategies/{id}/intents?limit=50` | GET | Strategy intent history |
-| `/api/v1/vaults/{vault_id}` | GET/PATCH | Kill switch and rate limits |
-| `/api/v1/engine/status` | GET | Active shard count |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live indicator values |
-
-<Note>
-`vault_id` in the Strategy Engine uses `{chainId}:{vaultAddress}` format (e.g., `8453:0xdef...`). Erebor uses separate `chain_id` and `vault_address` parameters.
-</Note>
+| `/api/v1/strategies/{id}` | GET | Get strategy |
+| `/api/v1/strategies/{id}` | PUT | Update strategy with version |
+| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
+| `/api/v1/strategies/{id}/state` | PATCH | Transition lifecycle state |
+| `/api/v1/strategies/reorder` | POST | Persist lane order |
+| `/api/v1/intents` | GET | Search intent history |
+| `/api/v1/intents/facets` | GET | Intent filter facets |
+| `/api/v1/intents/{intent_id}/events` | GET | OMS event timeline |
+| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
+| `/api/v1/fills` | GET | Search fills across intents |
+| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state and emergency locks |

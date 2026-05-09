@@ -1,99 +1,128 @@
 ---
 title: "Pause Operations"
-description: "Emergency onchain vault pause and per-vault keeper service controls."
+description: "Pause vault execution, pause keeper services, and arm per-yield-source emergency liquidity exits."
 ---
 
-![SuperVaults Pause Operations — Pause Vault and Pause Keepers controls with Vault Pause Control card](/curate/images/screenshots/pause.jpg)
+The Pause page is the operator safety console. It has three distinct controls:
 
-The Pause page provides two control mechanisms: onchain vault pause (halts contract-level execution, requires gas) and per-vault keeper service controls (halts individual workers, no gas). Both are fully operational and wired to Erebor.
+1. **Pause Vault** — onchain contract-level pause / unpause.
+2. **Pause Keepers** — offchain per-vault service controls.
+3. **Emergency Exit** — per-yield-source liquidity drain through the Strategy Engine and OMS.
+
+Use the narrowest control that solves the problem. A vault pause, keeper pause, and emergency exit have different blast radii.
+
+## Pause Vault
+
+Vault pause is an onchain control. It halts protocol-level vault operations until a manager signs an unpause transaction.
+
+```bash
+GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr}
+POST /api/v1/vaults/emergency-pause/prepare
+POST /api/v1/vaults/emergency-unpause/prepare
+```
+
+Pause reasons are recorded for auditability.
+
+## Pause Keepers
+
+Keeper service controls are offchain. Use them when you want to stop a worker without changing vault contract state.
+
+```bash
+GET /api/v1/vaults/{chain_id}/{vault}/services
+PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/pause
+PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/resume
+PUT /api/v1/vaults/{chain_id}/{vault}/services/enabled
+```
+
+Service pause is useful for maintenance, data issues, or temporary operator intervention.
+
+## Emergency Exit
+
+Emergency Exit drains liquidity from one whitelisted yield source. It is operator-armed, target-scoped, and designed for urgent source-level risk events.
+
+When armed for a source:
+
+- The paired `EMERGENCY_EXIT` strategy transitions to `RUNNING`.
+- The Strategy Engine records an emergency lock keyed by that source's `target_address`.
+- User-defined strategies targeting the same address are blocked from publishing intents.
+- Strategies targeting other yield sources continue normally unless they have their own lock.
+- The emergency strategy emits withdrawal intents on every tick until stopped.
+- In-flight OMS transactions continue to settle even after the operator stops the drain.
 
 <Warning>
-The Pause page (`/pause`) is distinct from the Emergency page (`/emergency`). Pause is **fully operational**. The Emergency page is a mock Fireblocks multi-sig flow not yet implemented.
+Emergency Exit is not a replacement for vault pause. If the entire vault is unsafe, pause the vault. If one source is unsafe and the vault can keep operating elsewhere, arm an exit for that source.
 </Warning>
 
-## Section 1: On-Chain Vault Pause
+### Prerequisites
 
-### Batch Pause Status
+Emergency Exit depends on:
 
-Shows pause status for all vaults you curate. Each vault displays name, chain, pause state, timestamp, and actor.
+- The yield source being whitelisted.
+- An active withdrawal hook for that source in the current merkle config.
+- Published / available strategy proofs for the active merkle tree.
+- A paired `EMERGENCY_EXIT` strategy, created automatically when prerequisites are available.
+- OMS/session-key readiness for execution.
 
-API: `GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr},{chainId}:{vaultAddr},...` (polls every 10s)
+If the Pause page cannot arm a source, check [Merkle Trees](/curate/ui/merkle-trees), [Yield Source Management](/curate/ui/yield-sources), and [Strategy Canvas](/curate/ui/strategy).
 
-### Pausing
+### Arm an Emergency Exit
 
-1. Click **Pause Vault**
-2. Optionally enter a reason (stored in audit log)
-3. Erebor calls `POST /api/v1/vaults/emergency-pause/prepare` → calldata
-4. Sign the transaction
+1. Open **Pause → Emergency Exit**.
+2. Select the yield source.
+3. Review current allocation, APY/TVL metadata, and blocked strategies.
+4. Enter the confirmation suffix for the yield source address.
+5. Optionally enter a reason.
+6. Choose max slippage. Default is **50 bps**.
+7. Click **Arm emergency exit**.
 
-When paused: Strategy Engine stops dispatching intents, all onchain vault operations halt, PPS oracle updates may be blocked.
+The reason is stored with the emergency arm request and shown while the lock is active.
 
-### Unpausing
+If manager permission is revoked while arming, the in-flight request is not automatically cancelled. Verify the Pause page and stop the drain if it succeeded under the prior policy.
 
-1. Click **Unpause Vault**
-2. Erebor calls `POST /api/v1/vaults/emergency-unpause/prepare` → calldata
-3. Sign the transaction
+### Stop an Emergency Exit
 
-## Section 2: Keeper Service Controls
-
-Independent of the onchain pause. Control individual workers for a specific vault without gas.
-
-### Viewing Services
-
-`GET /api/v1/vaults/{chain_id}/{vault_address}/services` returns per-service status:
-
-| Field | Description |
-|-------|-------------|
-| `service_name` | e.g., `fulfill_deposits` |
-| `is_paused` | Current state |
-| `paused_at` | Timestamp |
-| `paused_by` | Actor wallet |
-| `paused_reason` | Optional reason |
-| `resumed_at` | Resume timestamp |
-
-### Pausing a Service
+Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source are eligible again on the next tick.
 
 ```bash
-PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/pause
-{ "reason": "Reconfiguring strategy" }
+PATCH /api/v1/strategies/{strategy_id}/state
+{
+  "target_state": "IDLE",
+  "version": 12
+}
 ```
 
-### Resuming a Service
+Stopping does not cancel transactions already published to the OMS.
 
-```bash
-PUT /api/v1/vaults/{chain_id}/{vault}/services/{service_name}/resume
-```
+## Strategy Canvas Locking
 
-### Bulk Enable/Disable
+While an emergency lock is active:
 
-Stop or start all services for a vault at once (no gas):
+- The Strategy Canvas shows a banner for active drains.
+- Strategy toggles that target the locked source are disabled.
+- Reorder controls are disabled only for lanes containing affected strategies.
+- Emergency strategies are hidden from normal strategy editing by default and are read-only when shown.
 
-```bash
-PUT /api/v1/vaults/{chain_id}/{vault}/services/enabled
-{ "enabled": false }
-```
+The engine exposes locks through shard and vault state as `emergency_locks` entries with `strategy_id`, `target_address`, `started_at`, and optional `reason`.
 
-## Pause Controls Comparison
+## Control Comparison
 
-| Control | Scope | Gas Required |
-|---------|-------|-------------|
-| On-chain pause | Contract-level, all operations | Yes |
-| Services enabled (bulk) | All keeper workers | No |
-| Vault Enabled toggle | All keeper workers | No |
-| Individual service pause | Single keeper worker | No |
-
-## Audit Trail
-
-All pause/resume events are logged. Query via `GET /api/v1/audit/logs?vault_address={}&chain_id={}`.
+| Control | Scope | Onchain Tx? | Typical Use |
+|---------|-------|-------------|-------------|
+| Pause Vault | Entire vault contract | Yes | Protocol-level emergency |
+| Pause Keepers | One or all offchain services | No | Maintenance or worker incident |
+| Emergency Exit | One yield source target | Strategy/OMS execution | Drain a risky source |
 
 ## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/vaults/pause-status` | GET | Batch pause status |
-| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare pause tx |
-| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare unpause tx |
-| `/api/v1/vaults/{chain_id}/{vault}/services` | GET | Per-vault service list |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
-| `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable |
+| `/api/v1/vaults/pause-status` | GET | Batch onchain pause status |
+| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare pause transaction |
+| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare unpause transaction |
+| `/api/v1/vaults/{chain_id}/{vault}/services` | GET | List keeper services |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause one service |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume one service |
+| `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable / disable services |
+| `/api/v1/strategies?kind=EMERGENCY_EXIT` | GET | List paired emergency strategies |
+| `/api/v1/strategies/{id}/state` | PATCH | Arm or stop paired emergency strategy |
+| `/api/v1/engine/shards/{vault_id}/state` | GET | Read active emergency locks and allocations |

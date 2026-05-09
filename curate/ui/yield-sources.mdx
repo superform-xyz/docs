@@ -1,74 +1,92 @@
 ---
 title: "Yield Source Management"
-description: "Whitelist, remove, and update yield sources and their oracle assignments for your vault."
+description: "Whitelist yield sources, pair oracles, and keep emergency-exit coverage in sync."
 ---
 
-![SuperVaults Yield Source Management — whitelisted yield sources table with type and oracle assignments](/curate/images/screenshots/yield-sources.jpg)
+Yield Source Management controls where a SuperVault is allowed to deploy capital. Each source is a protocol position, such as an ERC-4626 vault or Pendle PT, paired with an oracle that prices the position back into the vault's underlying asset.
 
-This page controls which external protocols your vault can deploy capital to. Each yield source requires a contract address and a paired oracle that prices the position back into the vault's underlying asset.
-
-All add/remove/update operations use the prepare pattern: Erebor constructs onchain calldata, your wallet signs the transaction.
+All whitelist mutations use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
 
 ## Page Layout
 
-**Whitelisted Yield Sources:** The main table shows yield sources currently onchain for your vault, with name, address, oracle assignment, type (`erc4626` or `pendle_pt`), and actions (Remove, Update Oracle).
+- **Whitelisted Yield Sources** — sources currently enabled for the selected vault.
+- **Yield Source Registry** — global source catalog filtered by chain and active status.
+- **Oracle Registry** — compatible pricing sources.
 
-**Yield Source Registry:** Browse global yield sources (filtered by chain, active only) to find new sources to add. This registry is specific to SuperVaults and is separate from the main Superform app registry.
+Registry entries can include provider data imported from external provider URLs, such as Morpho or Pendle metadata.
 
-**Oracle Registry:** Browse global oracles (filtered by chain, active only) for pairing with yield sources.
+## Add a Yield Source
 
-## Adding a Yield Source
+1. Select a registry yield source.
+2. Select a compatible oracle.
+3. Prepare the add transaction.
+4. Sign with the manager wallet.
+5. Confirm the source appears in the whitelisted table.
 
-1. Select a yield source from the registry
-2. Select a compatible oracle
-3. Click **Add** — Erebor calls `POST /api/v1/yield-sources/prepare-add` → returns calldata
-4. Sign the transaction
+```bash
+POST /api/v1/yield-sources/prepare-add
+POST /api/v1/yield-sources/prepare-bulk-add
+```
 
-Use **Bulk Add** to whitelist multiple yield sources in one transaction via `POST /api/v1/yield-sources/prepare-bulk-add`.
+Adding a source also keeps the paired emergency-exit strategy lifecycle in sync. The app provisions one `EMERGENCY_EXIT` withdrawal strategy for the source when the active hook and proof prerequisites are available.
 
-## Removing a Yield Source
+## Remove a Yield Source
 
-1. Click **Remove** next to the yield source
-2. Erebor calls `POST /api/v1/yield-sources/prepare-remove` → returns calldata
-3. Sign the transaction
+```bash
+POST /api/v1/yield-sources/prepare-remove
+POST /api/v1/yield-sources/prepare-bulk-remove
+```
+
+Before removing, confirm the vault has no deployed liquidity in the source.
 
 <Warning>
-Removing a yield source while capital is deployed to it does not automatically unwind the position. Ensure a withdrawal strategy processes the unwind first, or you risk stranded assets.
+Removing a yield source does not unwind assets. Withdraw first, or use [Pause Operations](/curate/ui/pause) to arm an emergency drain when the situation requires immediate exit.
 </Warning>
 
-## Updating an Oracle
+When a whitelisted source is removed, the paired `EMERGENCY_EXIT` strategy is archived. If an emergency lock is active for that source, removal is blocked until the operator stops the drain.
 
-1. Click **Update Oracle** and select the new oracle
-2. Erebor calls `POST /api/v1/yield-sources/prepare-update-oracle`
-3. Sign the transaction
+## Update Oracle
 
-## Yield Source Types
+Use oracle updates when the current oracle is wrong, deprecated, or needs a safer pricing path.
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `erc4626` | Standard ERC-4626 vault | Morpho, Aave wrappers |
-| `pendle_pt` | Pendle Principal Token | Fixed-rate yield position |
+```bash
+POST /api/v1/yield-sources/prepare-update-oracle
+POST /api/v1/yield-sources/prepare-bulk-update-oracle
+```
 
-## Oracle Types
+## Registry Sync
 
-| Type | Pricing Method |
-|------|---------------|
-| `erc4626` | Share price of the underlying vault |
-| `pendle_pt` | Spot market price |
-| `pendle_pt_amortized` | Linear decay to par value as PT approaches maturity |
+Registry maintainers can import external provider sources:
+
+```bash
+POST /api/v1/registry/yield-sources/sync
+```
+
+Synced entries may include provider-specific metadata in `provider_data`. Keep `is_active` accurate so inactive sources are hidden from normal operator flows.
+
+## Source and Oracle Types
+
+| Type | Meaning |
+|------|---------|
+| `erc4626` | Standard tokenized vault position |
+| `pendle_pt` | Pendle principal token position |
+| `erc4626` oracle | Prices by share value |
+| `pendle_pt` oracle | Prices by PT market value |
+| `pendle_pt_amortized` oracle | Amortizes PT value toward maturity |
 
 ## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/yield-sources/{chain_id}/{vault_address}` | GET | Whitelisted yield sources |
-| `/api/v1/registry/yield-sources` | GET | Registry browse (`?chain_id={}&is_active=true&limit=250`) |
-| `/api/v1/registry/oracles` | GET | Oracle registry browse |
-| `/api/v1/yield-sources/prepare-add` | POST | Prepare add tx |
-| `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove tx |
-| `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update tx |
-| `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add tx |
-| `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove tx |
-| `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update tx |
-
-All `prepare-*` endpoints return `{ "to": "0x...", "data": "0x...", "value": "0" }`. Pass this directly to `eth_sendTransaction`.
+| `/api/v1/yield-sources/{chain_id}/{vault_address}` | GET | Whitelisted sources for a vault |
+| `/api/v1/registry/yield-sources` | GET/POST | Browse or create registry source |
+| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET/PUT | Read or update source by chain/address |
+| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete registry source |
+| `/api/v1/registry/yield-sources/sync` | POST | Import provider sources |
+| `/api/v1/registry/oracles` | GET/POST | Browse or create oracles |
+| `/api/v1/yield-sources/prepare-add` | POST | Prepare add transaction |
+| `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove transaction |
+| `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update transaction |
+| `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add transaction |
+| `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove transaction |
+| `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update transaction |

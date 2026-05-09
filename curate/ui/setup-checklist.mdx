@@ -1,0 +1,54 @@
+---
+title: "Setup Checklist"
+description: "The canonical post-create path from onchain vault to live Superform listing."
+---
+
+The Setup page turns a newly-created SuperVault into an operational and discoverable vault. Use it after Create Vault and after any major configuration reset.
+
+A SuperVault can be deployed onchain before it is operationally live. Use this page to close the gap between **created** and **available**.
+
+## Checklist rows
+
+| Row | Complete when | Primary action |
+|-----|---------------|----------------|
+| **Vault is created** | Vault exists onchain and is readable in dashboard data. | Create Vault |
+| **Upkeep is staked** | Vault is active and can run operational automation. | Fund Upkeep |
+| **Hooks are set up** | At least one hook is configured in the active root config. | Configure Hooks |
+| **Yield sources are set up** | At least one yield source is whitelisted for this vault. | Manage Yield Sources |
+| **Strategy is set up** | At least one strategy exists for this vault. | Open Strategy |
+| **Vault is live on Superform** | Vault is listed and available in the Superform catalog. | List Vault |
+
+Statuses are `complete`, `in_progress`, `needs_setup`, or `blocked`.
+
+## Activation gate
+
+Upkeep is the activation gate. A vault can be created and visible to managers by direct link while still not active or discoverable. Fund upkeep from **Vault Settings → Upkeep**. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
+
+Current Erebor-facing activation fields used by the UI include:
+
+| Field | Meaning |
+|-------|---------|
+| `activation.is_active` | Whether the vault has cleared activation requirements. |
+| `activation.is_discoverable` | Whether the vault can appear in discovery surfaces. |
+| `upkeep_info.balance` | Current upkeep balance. |
+| `upkeep_info.payment_enabled` / `is_upkeep_payment_enabled` | Whether upkeep payment is enabled for the vault. |
+| `upkeep_info.threshold.required_balance` | Required balance for activation. |
+| `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. |
+
+## Catalog evidence
+
+The live-on-Superform row compares the managed vault against catalog data. Evidence includes `visibility` and `availability`, for example `listed` and `available`. If no matching catalog vault exists, the vault is onchain but not listed in the Superform catalog.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Next step |
+|---------|--------------|-----------|
+| Vault readable but not active | Upkeep shortfall. | Fund upkeep. |
+| Hooks count is zero | No active root config. | Draft, activate, generate, and propose a merkle root. |
+| Yield sources count is zero | Nothing is whitelisted. | Add yield sources and oracles. |
+| Strategy count is zero | No strategy exists. | Create a strategy after adding sources. |
+| Not live on Superform | Missing or unavailable catalog listing. | List the vault and set visibility/availability. |
+
+## Operator rule
+
+Do not route deposits into a vault just because creation succeeded. Wait for the checklist to show that upkeep, hooks, yield sources, strategies, and listing availability are all complete.

@@ -1,214 +1,175 @@
 ---
 title: "Erebor API Reference"
-description: "Complete reference for the Erebor Go management API — REST endpoints across auth, vaults, analytics, merkle, registry, and more."
+description: "Management API for vaults, settings, merkle authorization, registries, upkeep, notifications, session keys, and pause controls."
 ---
 
-Erebor is the primary management backend for SuperVaults. Go service, REST endpoints organized into 13 domains.
+Erebor is the SuperVaults management API. It powers vault reads, settings preparation, registries, merkle workflows, upkeep, users, pause controls, notification channels, and public vault data.
 
 **Base URL:** `https://erebor.superform.xyz`
-**Auth:** `Authorization: Bearer <jwt>` (except public endpoints)
-**OpenAPI spec:** `erebor-openapi2.json`
+
+**Auth:** `Authorization: Bearer <jwt>` except public endpoints
 
 <Note>
-Settings changes (fees, PPS parameters, timelocks, banned leaves) are **onchain transactions**. The institutional dashboard constructs calldata via Erebor's `/prepare` endpoints and your wallet signs and submits them to the protocol contracts directly. No Erebor REST endpoint is called for the actual setting change.
+For onchain changes, Erebor prepares calldata and the manager wallet signs the transaction. The REST request is not the state change; the signed transaction is.
 </Note>
-
-<Note>
-The Erebor OpenAPI spec does not include the Zap Terminal AI analysis endpoint (`GET /api/v1/vaults/{vaultAddress}/ai/analysis?chain_id={}`). This endpoint is operational but not yet in the spec.
-</Note>
-
----
 
 ## Auth
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/auth/me` | GET | JWT | **Primary auth endpoint.** Returns current user with all vault roles. |
-| `/api/v1/auth/verify` | GET | JWT | Lightweight JWT verification. Returns `{ verified, walletAddress, isManager, vaults[] }`. |
-
----
-
-## Vaults
-
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/public/vaults` | GET | None | Public vault list with TVL and APY |
-| `/api/v1/vaults` | GET | JWT | Authenticated vault list (`?detail=minimal&limit=500`) |
-| `/api/v1/vaults/{chain_id}/{vault_address}` | GET | JWT | Full vault detail: PPS, supply, allocation, managers, `fee_config`, `upkeep_info` |
-
----
-
-## Analytics (18 Endpoints)
-
-All under `/api/v1/vaults/{chain_id}/{address}/analytics/`:
-
-| Sub-path | Method | Description |
+| Endpoint | Method | Description |
 |----------|--------|-------------|
-| `overview` | GET | APY, TVL, depositor count, strategy count |
-| `pps` | GET | Price-per-share history |
-| `performance` | GET | Aggregate performance metrics |
-| `performance/apy?period={p}` | GET | APY time series |
-| `performance/tvl?period={p}` | GET | TVL time series |
-| `risk` | GET | Risk score, concentration, drawdown, Sharpe, volatility |
-| `risk/concentration` | GET | Concentration breakdown (not surfaced in UI) |
-| `risk/drawdown` | GET | Drawdown detail (not surfaced in UI) |
-| `risk/volatility` | GET | Volatility detail (not surfaced in UI) |
-| `users` | GET | Total/active/new/churned users |
-| `users/retention` | GET | Retention cohorts |
-| `users/top` | GET | Top holders by balance |
-| `users/cohorts` | GET | Cohort analysis (not surfaced in UI) |
-| `operations` | GET | Transaction count, gas, slippage |
-| `operations/transactions` | GET | Transaction history table |
-| `operations/volume` | GET | Deposit/withdraw volume |
-| `social` | GET | Social feed for Zap Terminal |
-| `export` | GET | Analytics export (not surfaced in UI) |
+| `/api/v1/auth/me` | GET | Current user, wallet, and vault roles |
+| `/api/v1/auth/verify` | GET | Lightweight JWT verification |
 
-`POST /api/v1/analytics/compare` for cross-vault comparison is available but not surfaced in the UI.
+## Vaults and Public Discovery
 
----
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/public/vaults` | GET | Public vault list |
+| `/api/v1/vaults` | GET | Authenticated vault list |
+| `/api/v1/vaults/{chain_id}/{vault_address}` | GET | Full vault detail |
 
-## Merkle (14 Endpoints)
+Vault detail includes onchain identity, managers, fees, PPS, balances, TVL, upkeep information, and allocation data when available.
+
+Public discovery depends on more than deployment. A vault should have adequate upkeep, configured hooks, yield sources, strategy coverage, and catalog listing / availability before it is treated as live.
+
+## Vault Creation
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/vaults/create/prepare` | POST | Prepare vault creation transaction |
+| `/api/v1/vaults/create/confirm` | POST | Confirm creation transaction hash and start indexing |
+| `/api/v1/vaults/create/jobs/{id}` | GET | Poll creation job |
+
+`ConfirmCreateVaultRequest` can include `vault_config.redeem_timelock_seconds` for post-indexing settings.
+
+Listing metadata is handled by the dashboard/catalog layer after vault address resolution. Onchain creation and catalog availability are separate states.
+
+## Settings and Upkeep
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/settings/upkeep` | POST | Prepare upkeep settings update |
+| `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
+| `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
+| `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
+| `/api/v1/settings/redeem-timelock` | POST | Prepare redeem timelock update |
+| `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
+| `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
+| `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
+
+Upkeep data drives activation and discoverability in the dashboard. Operators should treat insufficient upkeep as a launch blocker.
+
+## Merkle Authorization
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/merkle/configs/versions` | GET | Config version history |
-| `/api/v1/merkle/configs/version` | GET | Single config by version number |
-| `/api/v1/merkle/configs/active` | GET | Active config version |
-| `/api/v1/merkle/configs` | POST | Create new hook config |
-| `/api/v1/merkle/configs/{id}` | GET | Single config by ID |
-| `/api/v1/merkle/configs/activate` | PUT | Activate a config version |
-| `/api/v1/merkle/trees` | GET | All trees for vault |
-| `/api/v1/merkle/trees/{id}` | GET | Single tree (not surfaced in UI) |
-| `/api/v1/merkle/proofs` | GET | All leaf proofs |
-| `/api/v1/merkle/proofs/lookup` | GET | Single proof lookup (not surfaced in UI) |
-| `/api/v1/merkle/generate` | POST | Start async generation (409 = in progress) |
+| `/api/v1/merkle/configs/version` | GET | Single config version |
+| `/api/v1/merkle/configs/active` | GET | Active config |
+| `/api/v1/merkle/configs` | POST | Create config |
+| `/api/v1/merkle/configs/{id}` | GET | Get config by ID |
+| `/api/v1/merkle/configs/activate` | PUT | Activate config |
+| `/api/v1/merkle/trees` | GET | List trees |
+| `/api/v1/merkle/trees/{id}` | GET | Get tree |
+| `/api/v1/merkle/proofs` | GET | List proofs |
+| `/api/v1/merkle/proofs/lookup` | GET | Lookup proof |
+| `/api/v1/merkle/generate` | POST | Generate tree |
 | `/api/v1/merkle/jobs/{id}` | GET | Poll generation job |
-| `/api/v1/merkle/jobs` | GET | Recent jobs list |
-| `/api/v1/merkle/sync` | GET | Sync status (204 = in sync) |
+| `/api/v1/merkle/jobs` | GET | List jobs |
+| `/api/v1/merkle/sync` | GET | Determine onchain sync action |
+| `/api/v1/merkle/publish` | POST | Publish active proof artifact |
+| `/api/v1/merkle/publish/jobs/{id}` | GET | Poll publish job |
+| `/api/v1/merkle/published/{chain_id}/{vault}` | GET | Public published tree metadata |
 
----
-
-## Registry (18 Endpoints)
+## Registry
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/registry/yield-sources` | GET | List yield sources (`?chain_id={}&is_active=true&limit=250`) |
-| `/api/v1/registry/yield-sources` | POST | Create yield source |
-| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET | Single yield source |
-| `/api/v1/registry/yield-sources/{chain_id}/{address}` | PUT | Update yield source |
-| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete yield source |
-| `/api/v1/registry/yield-sources/sync` | POST | Import from Morpho/Pendle URL |
-| `/api/v1/registry/oracles` | GET | List oracles |
-| `/api/v1/registry/oracles` | POST | Create oracle |
-| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | GET | Single oracle |
-| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | PUT | Update oracle |
+| `/api/v1/registry/yield-sources` | GET/POST | Browse or create yield sources |
+| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET/PUT | Read or update source by chain/address |
+| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete source |
+| `/api/v1/registry/yield-sources/sync` | POST | Import provider sources |
+| `/api/v1/registry/oracles` | GET/POST | Browse or create oracles |
+| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | GET/PUT | Read or update oracle |
 | `/api/v1/registry/oracles/{id}` | DELETE | Delete oracle |
-| `/api/v1/registry/hooks` | GET | List hooks (`?is_active=true&limit=100`) |
-| `/api/v1/registry/hooks` | POST | Create hook |
-| `/api/v1/registry/hooks/{id}` | PUT | Update hook |
-| `/api/v1/registry/hooks/{id}` | DELETE | Delete hook |
-| `/api/v1/registry/token-assets` | GET | Token metadata (public) |
-| `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Single token |
-| `/api/v1/registry/token-assets` | PUT | Register/upsert custom token |
+| `/api/v1/registry/hooks` | GET/POST | Browse or create hooks |
+| `/api/v1/registry/hooks/{id}` | PUT/DELETE | Update or delete hook |
+| `/api/v1/registry/token-assets` | GET/PUT | Browse or upsert token metadata |
+| `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
----
+Yield source registry entries include active/inactive state and can carry external provider metadata.
 
-## Users (6 Endpoints)
+## Yield Source Whitelist
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/users` | GET | All users for vault (`?vault_address={}&chain_id={}`) |
-| `/api/v1/users/secondary-manager/prepare` | POST | Prepare add secondary manager tx |
-| `/api/v1/users/secondary-manager/remove/prepare` | POST | Prepare remove secondary manager tx |
-| `/api/v1/users/view-only` | POST | Add view-only user (offchain) |
+| `/api/v1/yield-sources/prepare-add` | POST | Prepare add transaction |
+| `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove transaction |
+| `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update transaction |
+| `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add transaction |
+| `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove transaction |
+| `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update transaction |
+
+## Users and Permissions
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/users` | GET | List users for a vault |
+| `/api/v1/users/secondary-manager/prepare` | POST | Prepare add-secondary-manager transaction |
+| `/api/v1/users/secondary-manager/remove/prepare` | POST | Prepare remove-secondary-manager transaction |
+| `/api/v1/users/view-only` | POST | Add view-only user |
 | `/api/v1/users/view-only/{wallet}` | DELETE | Remove view-only user |
 | `/api/v1/users/{wallet}/display-name` | PATCH | Update display name |
 
----
-
-## Yield Sources (6 Endpoints)
+## Session Keys
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/yield-sources/prepare-add` | POST | Prepare add tx |
-| `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove tx |
-| `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update tx |
-| `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add tx |
-| `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove tx |
-| `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update tx |
+| `/api/v1/session-keys` | GET | List manager-visible session keys |
+| `/api/v1/vaults/{chain_id}/{vault_address}/session-key` | GET | Read vault session key |
+| `/api/v1/vaults/session-key/prepare` | POST | Prepare session-key grant |
+| `/api/v1/vaults/session-key/revoke/prepare` | POST | Prepare session-key revoke |
 
----
+OMS owns additional readiness and rotation endpoints for strategy automation.
 
-## Vault Services (6 Endpoints)
+## Notification Channels
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/vaults/{chain_id}/{vault}/services` | GET | Per-vault service list |
+| `/api/v1/notification-channels` | GET/POST | List or create channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET/POST | List or attach vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach vault channel |
+
+Providers include Slack, webhook, and websocket channels.
+
+## Pause and Services
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/vaults/pause-status` | GET | Batch pause status |
+| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare onchain pause |
+| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare onchain unpause |
+| `/api/v1/vaults/{chain_id}/{vault}/services` | GET | List keeper services |
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
-| `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config (not surfaced in UI) |
-| `/api/v1/services/bulk` | PUT | Bulk service update (not surfaced in UI) |
+| `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable services |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config |
+| `/api/v1/services/bulk` | PUT | Bulk service update |
 
----
+## Analytics, Audit, and Admin
 
-## Allocation
+Analytics endpoints live under:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/vaults/{chain_id}/{vault_address}/ladder/{ladder_type}` | GET | Get allocation configuration by type |
-
----
-
-## Emergency Pause (3 Endpoints)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/vaults/pause-status` | GET | Batch pause status (`?vaults={chainId}:{addr},...`) |
-| `/api/v1/vaults/emergency-pause/prepare` | POST | Prepare onchain pause tx |
-| `/api/v1/vaults/emergency-unpause/prepare` | POST | Prepare onchain unpause tx |
-
----
-
-## Vault Creation (3 Endpoints)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/vaults/create/prepare` | POST | Vault creation calldata |
-| `/api/v1/vaults/create/confirm` | POST | Submit tx hash (409 = duplicate) |
-| `/api/v1/vaults/create/jobs/{id}` | GET | Poll creation job status |
-
----
-
-## Admin (3 Endpoints)
-
-| Endpoint | Method | Timeout | Description |
-|----------|--------|---------|-------------|
-| `/api/v1/admin/backfill/apy` | POST | 120s | APY backfill (max 90 days) |
-| `/api/v1/admin/backfill/tvl` | POST | 120s | TVL backfill (max 90 days) |
-| `/api/v1/admin/backfill/events` | POST | 120s | Events backfill (max 365 days) |
-
----
-
-## Audit (3 Endpoints)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/audit/logs` | GET | Query audit trail (not surfaced in UI) |
-| `/api/v1/audit/logs/{id}` | GET | Single audit log entry |
-| `/api/v1/audit/export` | GET | Export audit logs (CSV or JSON via Accept header) |
-
-Available for automation. See [Webhooks & Event Streaming](/curate/automation/webhooks).
-
----
-
-## Zap Terminal AI (Undocumented)
-
-Called by the Zap Terminal in the Dashboard but not included in the Erebor OpenAPI spec:
-
-```
-GET /api/v1/vaults/{vaultAddress}/ai/analysis?chain_id={chain_id}
-Authorization: Bearer <jwt>
+```bash
+/api/v1/vaults/{chain_id}/{address}/analytics/*
 ```
 
-Schema and stability not officially documented. The spec will be updated in a future release.
+Audit endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/audit/logs` | GET | Query audit trail |
+| `/api/v1/audit/logs/{id}` | GET | Single audit row |
+| `/api/v1/audit/export` | GET | Export audit rows |
+
+Admin endpoints include APY, TVL, and event backfills for registry maintainers.

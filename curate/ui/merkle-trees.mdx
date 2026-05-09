@@ -1,121 +1,92 @@
 ---
 title: "Merkle Trees"
-description: "Manage hook configurations and onchain merkle root authorization for vault keeper operations."
+description: "Configure hook authorization, generate merkle proofs, and publish active proof artifacts."
 ---
 
-![SuperVaults Merkle Trees — Hook Configs and Merkle Trees tabs with Create Hook Config action](/curate/images/screenshots/merkle-trees.jpg)
+Merkle Trees are the authorization layer for keeper and strategy execution. A keeper can only execute a hook when the hook call matches a leaf in an authorized merkle tree.
 
-The Merkle Trees page is the authorization control center for keeper operations. Every onchain action a keeper can perform must be encoded as a leaf in the vault's merkle tree and verified against the onchain root before execution.
+The operational flow is:
 
-The workflow: create a hook config defining authorized operations, generate a merkle tree from that config, then sync the tree root onchain through a timelocked proposal-execute cycle.
+1. Draft a root configuration.
+2. Activate the configuration version.
+3. Generate a merkle tree from the active config.
+4. Primary manager proposes / publishes the root onchain.
+5. Publish the proof artifact for consumers.
 
-## Tab 1: Hook Configs
+## Hook Configs
 
-### Version History
+Hook configs define which hook + parameter combinations the vault authorizes.
 
-Each vault maintains a history of hook configuration versions. The active version is highlighted. Previous versions are read-only for audit purposes.
+When creating a config, choose hooks from the registry and set inspect parameters such as:
 
-### Creating a Config
+- `yield_source` — target yield source address.
+- `token` — token address.
+- `oracle` — oracle address.
+- Freeform hook parameters.
 
-Click **Create New Config**. For each hook to authorize:
+Each parameterized row becomes a merkle leaf. Keepers must supply the matching proof at execution time.
 
-1. **Select Hook** — from the global Hook Registry (`GET /api/v1/registry/hooks`)
-2. **Set Parameters** — for each `inspectParam` defined by the hook:
-   - `yield_source` ref → yield source address
-   - `token` ref → ERC-20 token address
-   - `oracle` ref → oracle address
-   - `others` → freeform hex value
+## Activate Config
 
-Each row becomes one **leaf** in the merkle tree. A keeper can only call a hook with the exact parameter combination matching a leaf.
+Only one config version is active at a time. Activating a config selects the version used for the next tree generation.
 
-### Activating a Config
+Activating a config does not update the onchain root by itself. It selects what Erebor will generate next.
 
-Click **Activate** on a config version. Only one version is active at a time. The active config is used for the next tree generation.
+## Generate Tree
 
-## Tab 2: Merkle Trees
-
-Generated trees for the vault, showing:
-
-| Field | Description |
-|-------|-------------|
-| Root Hash | 32-byte merkle root |
-| Leaf Count | Number of authorized (hook, params) combinations |
-| Config Hash | Hash of the source config version |
-| Is Current | Whether this root is active onchain |
-
-Click a tree to view individual leaves: hook name and address, encoded argument values, leaf hash, index, and merkle proof path. This makes the contents of each leaf explicit to depositors and operators, including the hook name and parameter values that were authorized.
-
-<Note>
-SuperVaults use two merkle roots for hook authorization: a governance-controlled global hooks root and a manager-proposed strategy hooks root. Both flow through the aggregator's hook-root timelock, which defaults to 15 minutes and can be updated by governance. A hook must be included in either root to execute.
-</Note>
-
-## Generating a Tree
-
-Click **Generate Merkle Tree**. Erebor starts an async job:
-
-- Polling uses exponential backoff: 2s → 4s → 8s → 15s
-- `409 Conflict` = generation already in progress
-- Job status: `pending` → `running` → `completed` / `failed`
+Generation is asynchronous:
 
 ```bash
 POST /api/v1/merkle/generate
-{ "vault_address": "0x...", "chain_id": 8453 }
-
 GET /api/v1/merkle/jobs/{job_id}
 ```
 
-## Syncing to Chain
+A `409 Conflict` means generation is already in progress for the vault.
 
-After generation, click **Sync to Chain**. Erebor evaluates onchain state and returns the required action:
+The generated tree includes:
 
-| Sync Action | Description |
-|-------------|-------------|
-| `in_sync` | On-chain root matches. No action needed. |
-| `needs_generation` | No tree exists for the active config. |
-| `propose` | Tree ready. Sign and submit root proposal (starts timelock). |
-| `pending_timelock` | Root proposed. Waiting for timelock expiry. Shows `effectiveTime`. |
-| `execute` | Timelock expired. Sign to activate the new root onchain. |
+- Root hash.
+- Leaf count.
+- Config hash / version.
+- Leaf details and proof paths.
+
+## Sync Root Onchain
+
+The Sync action compares generated tree state to onchain state and returns the next action:
+
+| Action | Meaning |
+|--------|---------|
+| `in_sync` | Onchain root already matches |
+| `needs_generation` | Generate a tree for the active config |
+| `propose` | Sign a root proposal transaction |
+| `pending_timelock` | Wait for the proposal timelock |
+| `execute` | Sign execution after timelock expiry |
 
 ```bash
 GET /api/v1/merkle/sync?vault_address={addr}&chain_id={id}
-# Returns 204 No Content when already in sync
 ```
 
-<Note>
-Keepers cannot execute against yield sources until the merkle root is synced onchain. A pending timelock means your authorization changes are queued but not yet active.
-</Note>
+<Warning>
+Strategies and emergency exits depend on active merkle withdrawal hooks. A yield source can be whitelisted but still unavailable for execution if the active merkle root does not authorize the required hook path.
+</Warning>
 
-## Publishing the Tree
+## Publish Proof Artifact
 
-Once a tree is generated, primary managers can publish it to make the full proof set available to integrators, keepers, and frontends without requiring Erebor authentication.
-
-Navigate to the **Merkle Trees** tab and locate the active tree — the one currently synced onchain. Click **Publish** on that tree to trigger an async publish job that uploads the complete proof artifact to a public S3 URL.
-
-Only the active tree can be published. Publishing a tree that is not the current active tree is not permitted.
-
-<Note>
-Publishing is separate from syncing. Sync updates the onchain root; publish makes the off-chain proof artifact publicly accessible. Both steps are needed before external consumers can verify and use the proofs.
-</Note>
-
-Erebor runs the upload asynchronously. Poll the job status until `completed`:
+Publishing makes the active proof set available to integrators, keepers, and frontends without Erebor authentication.
 
 ```bash
 POST /api/v1/merkle/publish
-{ "vault_address": "0x...", "chain_id": 8453 }
-# Returns 202 + Location: /api/v1/merkle/publish/jobs/{id}
-# 409 if a publish is already in progress
-
 GET /api/v1/merkle/publish/jobs/{id}
-# status: pending → running → completed / failed
+GET /api/v1/merkle/published/{chain_id}/{vault}
 ```
 
-Once completed, the published artifact is accessible to anyone via the public endpoint — no authentication required. See [Getting SuperVaults Merkle Tree](/curate/api/merkle-publish) for how consumers fetch and use it.
+Publishing is separate from syncing. Sync updates the protocol root; publish exposes the proof artifact.
 
-## Merkle Proofs
+## Emergency Exit Dependency
 
-Proofs for each leaf are available via `GET /api/v1/merkle/proofs?vault_address={}&chain_id={}`. Use these for programmatic validation or custom keeper implementations.
+Emergency liquidity exit requires an active withdrawal hook for the target yield source. If the active config has no matching withdrawal hook or the proof artifact is missing the leaf, the Pause page cannot arm that source until the merkle configuration is fixed.
 
-## All Merkle Endpoints
+## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -124,12 +95,12 @@ Proofs for each leaf are available via `GET /api/v1/merkle/proofs?vault_address=
 | `/api/v1/merkle/configs/active` | GET | Active config |
 | `/api/v1/merkle/configs` | POST | Create new config |
 | `/api/v1/merkle/configs/activate` | PUT | Activate a version |
-| `/api/v1/merkle/trees` | GET | All trees for vault |
-| `/api/v1/merkle/proofs` | GET | All leaf proofs |
-| `/api/v1/merkle/generate` | POST | Start generation job |
-| `/api/v1/merkle/jobs/{id}` | GET | Poll job status |
-| `/api/v1/merkle/jobs` | GET | Recent jobs list |
-| `/api/v1/merkle/sync` | GET | Sync status and required action |
-| `/api/v1/merkle/publish` | POST | Publish active tree (primary manager only) |
-| `/api/v1/merkle/publish/jobs/{id}` | GET | Poll publish job status |
-| `/api/v1/merkle/published/{chain_id}/{vault}` | GET | Public — get published tree metadata |
+| `/api/v1/merkle/trees` | GET | List trees for a vault |
+| `/api/v1/merkle/proofs` | GET | List proofs |
+| `/api/v1/merkle/proofs/lookup` | GET | Lookup one proof |
+| `/api/v1/merkle/generate` | POST | Start generation |
+| `/api/v1/merkle/jobs/{id}` | GET | Poll generation job |
+| `/api/v1/merkle/sync` | GET | Determine root sync action |
+| `/api/v1/merkle/publish` | POST | Publish active tree proof artifact |
+| `/api/v1/merkle/publish/jobs/{id}` | GET | Poll publish job |
+| `/api/v1/merkle/published/{chain_id}/{vault}` | GET | Public published tree metadata |

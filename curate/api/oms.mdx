@@ -1,218 +1,182 @@
 ---
 title: "OMS API — DeFiX Intents & Session Keys"
-description: "10-endpoint DeFiX v0.1 intent protocol for submitting, tracking, and cancelling onchain vault operations, plus session-key management for strategy automation."
+description: "Submit, track, cancel, and execute DeFiX intents, including session-key readiness for strategy automation."
 ---
 
-The OMS (Order Management System) implements the **DeFiX v0.1** protocol: a standardized intent interface for DeFi vault operations. It receives intents from the Strategy Engine and executes them onchain.
+The OMS implements the DeFiX intent execution path. The Strategy Engine publishes intents; OMS validates authorization, builds execution, submits hook transactions, and emits lifecycle events / fills back to operators.
 
 **Base URL:** `https://oms.superform.xyz`
-**Auth:** `Authorization: Bearer <jwt>`
-**OpenAPI spec:** `oms-openapi.json` ✅
 
-<Note>
-The OMS is primarily backend-facing. In normal operations, the Strategy Engine submits intents automatically when strategies trigger. Direct OMS access is relevant for custom strategy implementations or advanced automation.
-</Note>
+**Auth:** `Authorization: Bearer <jwt>`
+
+In normal dashboard operations, managers do not submit intents directly. They configure strategies and monitor the resulting intent history.
 
 ## Intent Lifecycle
 
+OMS intent state is explicit and event-driven:
+
+```text
+RECEIVED → ACKED → STAGED → PLANNED → EXECUTING → COMPLETED
+                                      ↘ ABORTED
+                                      ↘ EXPIRED
+                                      ↘ FAILED
+                                      ↘ CANCELED
 ```
-Submit → Processing → Completed
-                   ↘ Failed
-                   ↘ Cancelled (only while Processing)
-```
 
-Terminal states (`Completed`, `Failed`) cannot be modified.
+State values:
 
----
+| State | Meaning |
+|-------|---------|
+| `RECEIVED` | OMS received the intent |
+| `ACKED` | Intent accepted for processing |
+| `STAGED` | Intent staged for planning/execution |
+| `PLANNED` | Route or execution plan built |
+| `EXECUTING` | Transaction execution in progress |
+| `COMPLETED` | Execution completed |
+| `ABORTED` | OMS aborted before success |
+| `EXPIRED` | Intent expired before execution |
+| `FAILED` | Execution failed |
+| `CANCELED` | Intent cancelled before terminal execution |
 
-## Endpoints
+Terminal states cannot be modified.
 
-### Submit Intent
+## Submit Intent
 
-```
+```bash
 POST /defix/intents
 ```
 
-```json
-{
-  "vault_id": "8453:0xdef...",
-  "action": "DEPOSIT",
-  "action_config": {
-    "size_expr": "1000000000",
-    "execution_name": "MorphoDepositHook",
-    "execution_address": "0xHookContract...",
-    "target_address": "0xMorphoVault...",
-    "from_address": "0xVaultContract...",
-    "max_slippage_bps": 50,
-    "execution_params": {}
-  },
-  "auth_signing": {
-    "proof": "0xmerkleproof...",
-    "root": "0xmerkleroot..."
-  }
-}
-```
+Typical requests include:
 
-Response:
-```json
-{
-  "id": "intent-uuid",
-  "status": "Processing",
-  "created_at": "2025-03-01T10:00:00Z"
-}
-```
+- `vault_id`
+- `strategy_id`
+- `action`
+- `objective`
+- `action_config`
+- `auth`
+- merkle proof / root data
+- account mode (`OMS`, `EIP4337`, `EIP4337_COMPANION`, or `EIP7702`)
 
-### Get Intent
+OMS validates the intent and authorization before execution.
 
-```
+## Get Intent
+
+```bash
 GET /defix/intents/{intent_id}
 ```
 
-```json
-{
-  "id": "intent-uuid",
-  "vault_id": "8453:0xdef...",
-  "action": "DEPOSIT",
-  "status": "Completed",
-  "created_at": "2025-03-01T10:00:00Z",
-  "completed_at": "2025-03-01T10:01:32Z",
-  "tx_hash": "0xabc...",
-  "gas_used": 180000,
-  "error": null
-}
-```
+Returns the current OMS state, latest sequence number, timestamps, and completion timestamp when available.
 
-### Cancel Intent
+Fields such as `completed_at` may be `null` before terminal execution.
 
-```
+## Cancel Intent
+
+```bash
 POST /defix/intents/{intent_id}/cancel
 ```
 
-Only `Processing` intents can be cancelled. Returns `409 Conflict` if the intent is already terminal.
+Cancellation is only valid before the intent reaches a terminal state.
 
-### Get Intent Events
+## Intent Events
 
-```
+```bash
 GET /defix/intents/{intent_id}/events
 ```
 
-State transition log:
+Events are the source of truth for lifecycle reconstruction. Each event has:
 
-```json
-{
-  "events": [
-    { "timestamp": "2025-03-01T10:00:00Z", "event_type": "submitted", "details": {} },
-    { "timestamp": "2025-03-01T10:01:00Z", "event_type": "processing", "details": { "attempt": 1 } },
-    { "timestamp": "2025-03-01T10:01:32Z", "event_type": "completed", "details": { "tx_hash": "0xabc...", "gas_used": 180000 } }
-  ]
-}
-```
+- `event_id`
+- `intent_id`
+- `execution_id`
+- `message_type`
+- `seq_num`
+- event-specific `payload`
+- `created_at`
 
----
+The Strategy Engine consumes these events and projects them into operator-friendly intent history.
 
-## Intent Status Values
+## Fills and Mined Transactions
 
-| Status | Description |
-|--------|-------------|
-| `Processing` | Queued or being executed |
-| `Completed` | Successfully executed onchain |
-| `Failed` | Execution failed (see error in intent detail) |
-| `Cancelled` | Cancelled before execution |
+Fills represent confirmed onchain execution evidence. In the operator UI, fills may include:
 
----
+- `tx_hash`
+- `chain_id`
+- `amount_in`
+- `amount_out`
+- `token_in`
+- `token_out`
+- `venue`
+- `gas_used`
+- mined / fill timestamp
 
-## DeFiX v0.1 Protocol Notes
+Pre-receipt rows can have `null` gas or missing fill fields until the transaction is mined and backfilled.
 
-- Intents are **idempotent**: submitting the same intent twice returns the existing intent (based on vault + action + config hash)
-- The OMS handles nonce management, gas estimation, and transaction broadcasting
-- Failed intents include error messages and may be retried by the Strategy Engine
-- The OMS validates the merkle proof in `auth_signing` before broadcasting
+## Hook Transactions and Account Modes
 
----
+OMS supports native hook transaction execution and smart-account/user-operation modes. Account mode controls how execution is signed and submitted:
+
+| Mode | Meaning |
+|------|---------|
+| `OMS` | OMS-managed delegated signer path |
+| `EIP4337` | ERC-4337 user operation path |
+| `EIP4337_COMPANION` | Companion 4337 path |
+| `EIP7702` | EIP-7702 account path |
+
+The hook transaction adapter handles execution against SuperVault hooks once session-key and merkle authorization are valid.
 
 ## Session Keys
 
-Strategy automation requires a **session key** — a delegated signing key that authorises the OMS to execute intents on behalf of a vault. The Strategy Canvas shows an `omsCanvasGate` overlay when the session key is not ready, blocking automation until the key is granted or renewed.
+Strategy automation requires a valid session key for the vault.
 
-`vault_id` format: `{chainId}:{normalizedVaultAddress}` (same convention as the Strategy Engine).
+### Readiness
 
-### Check Readiness
-
-```
+```bash
 GET /defix/vaults/{vault_id}/session-key/readiness
 ```
 
-Returns whether the vault has a valid, non-expired session key. Polled automatically by the UI every 45 seconds (25 s stale time); polling accelerates to every 20 s while the signing popover is open.
+Returns whether the vault has a valid session key and whether a rotation is pending.
 
-```json
-{
-  "vault_id": "8453:0xdef...",
-  "is_ready": true,
-  "session_key_address": "0xsessionkey...",
-  "expires_at": "2026-04-10T00:00:00Z",
-  "pending_rotation": false
-}
-```
+### Grant
 
-### Grant Session Key
-
-```
+```bash
 GET /defix/vaults/{vault_id}/session-key/grant
 ```
 
-Returns calldata to grant a new session key. Pass `?requested_expiry=168h` to set a custom duration (defaults to server default).
+Returns calldata to grant a session key. The manager signs and submits the transaction.
 
-Response: `{ "to": "0x...", "data": "0x...", "value": "0" }` — sign and submit with your wallet.
+### Rotate / Renew
 
-### Rotate (Renew) Session Key
-
-```
+```bash
 GET /defix/vaults/{vault_id}/session-key/rotation
-```
-
-Returns calldata to rotate an existing session key. Used for key renewal before expiry.
-
-### Complete Rotation
-
-```
 POST /defix/vaults/{vault_id}/session-key/rotation/complete
-```
-
-Finalises a pending rotation after the signed transaction is submitted onchain.
-
-### Cancel Rotation
-
-```
 POST /defix/vaults/{vault_id}/session-key/rotation/cancel
 ```
 
-Cancels a pending rotation that has not yet been completed.
+Complete rotation after the grant/revoke transactions have mined.
 
-### Revoke Session Key
+### Revoke
 
-```
+```bash
 GET /defix/vaults/{vault_id}/session-key/revoke
 ```
 
-Returns calldata to revoke the current session key immediately.
+Returns calldata to revoke the current session key.
 
 <Note>
-Grant, rotation, and revoke endpoints return raw EVM calldata — the same prepare pattern used elsewhere in the API. Your wallet signs and submits; no Erebor or OMS endpoint is called for the actual onchain action.
+Session-key endpoints return transaction data for wallet signing. They do not bypass onchain permission checks.
 </Note>
 
----
-
-## Summary
+## Endpoint Inventory
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/defix/intents` | POST | Submit DeFiX intent |
-| `/defix/intents/{id}` | GET | Get intent state |
-| `/defix/intents/{id}/cancel` | POST | Cancel pending intent |
-| `/defix/intents/{id}/events` | GET | Intent event log |
-| `/defix/vaults/{vault_id}/session-key/readiness` | GET | Session key readiness check |
-| `/defix/vaults/{vault_id}/session-key/grant` | GET | Get grant calldata |
-| `/defix/vaults/{vault_id}/session-key/rotation` | GET | Get rotation calldata |
-| `/defix/vaults/{vault_id}/session-key/rotation/complete` | POST | Complete pending rotation |
+| `/defix/intents` | POST | Submit intent |
+| `/defix/intents/{intent_id}` | GET | Current intent state |
+| `/defix/intents/{intent_id}/cancel` | POST | Cancel non-terminal intent |
+| `/defix/intents/{intent_id}/events` | GET | Intent event log |
+| `/defix/vaults/{vault_id}/session-key/readiness` | GET | Session-key readiness |
+| `/defix/vaults/{vault_id}/session-key/grant` | GET | Prepare grant calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation` | GET | Prepare rotation calldata |
+| `/defix/vaults/{vault_id}/session-key/rotation/complete` | POST | Complete rotation |
 | `/defix/vaults/{vault_id}/session-key/rotation/cancel` | POST | Cancel pending rotation |
-| `/defix/vaults/{vault_id}/session-key/revoke` | GET | Get revoke calldata |
+| `/defix/vaults/{vault_id}/session-key/revoke` | GET | Prepare revoke calldata |

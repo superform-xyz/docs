@@ -1,0 +1,58 @@
+---
+title: "Intent History"
+description: "Trace Strategy Engine intents through OMS events, fills, gas, and execution status."
+---
+
+Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+
+## What it shows
+
+| View | Use it for |
+|------|------------|
+| Intent list | Search and filter intents across vaults and strategies. |
+| Facets | Count by state, action, chain, vault, and strategy. |
+| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
+| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
+| OMS events | Audit message type, sequence, payload, and source. |
+| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+
+## Lifecycle states
+
+The explorer uses the OMS lifecycle vocabulary:
+
+`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+
+## How it maps to OMS
+
+The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+
+- `intent_id`, `execution_id`, `correlation_id`
+- strategy and vault IDs
+- last event sequence and message type
+- ack/executing/completed/terminal timestamps
+- error code and message
+- total amount in/out
+- total gas used
+- fills count
+- signal snapshot and summary
+- source: `engine`, `nats`, or `backfill`
+
+## API mapping
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/intents` | Global intent search. |
+| `GET /api/v1/intents/facets` | Facet counts for filters. |
+| `GET /api/v1/intents/{intent_id}` | Intent detail. |
+| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
+| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
+| `GET /api/v1/fills` | Global fill search. |
+
+## Common reads
+
+| Symptom | Check |
+|---------|-------|
+| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
+| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
+| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
+| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |

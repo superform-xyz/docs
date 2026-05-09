@@ -1,0 +1,45 @@
+---
+title: "Catalog Listing"
+description: "Make an onchain SuperVault visible and available in Superform catalog surfaces."
+---
+
+Catalog listing connects an onchain SuperVault to Superform discovery. A vault can be created, indexed, and manager-visible without being listed to users.
+
+## State model
+
+| Layer | Meaning |
+|-------|---------|
+| **Onchain vault** | Contract exists on the deployment chain. |
+| **Managed vault** | Erebor can read it and managers can operate it. |
+| **Catalog listing** | Persephone/Superform catalog knows how to display and route users to it. |
+| **Available listing** | The listing is both visible and available for user flows. |
+
+## Listing fields
+
+| Field | Description |
+|-------|-------------|
+| `provider_ids` | Provider or institution IDs associated with the vault. |
+| `category` | Catalog category, commonly `yield`. |
+| `visibility` | Whether the vault is listed or hidden from discovery. |
+| `availability` | Whether the listed vault is available to users. Non-superadmins cannot set `unavailable`. |
+| `external_url` | Optional external detail page or provider URL. |
+| `name` / `description` | User-facing catalog copy. |
+| `yield_source_ids` | Optional catalog yield-source associations. |
+
+Default catalog inputs are `visibility: listed` and `availability: available` when the role allows it.
+
+## Unlisted SuperVaults
+
+The **Unlisted SuperVaults** panel finds vaults you manage that are not in the catalog. Adding one pre-fills chain, address, provider IDs, category, visibility, availability, and external URL where known.
+
+## Operational invariant
+
+Do not treat deployment as launch. Launch requires:
+
+1. Onchain creation and indexing.
+2. Upkeep-funded activation.
+3. Hook and merkle proof readiness.
+4. Yield sources and strategy setup.
+5. Catalog row set to listed and available.
+
+The [Setup Checklist](/curate/ui/setup-checklist) is the canonical place to verify launch readiness.

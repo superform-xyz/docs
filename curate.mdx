@@ -1,59 +1,59 @@
 ---
-title: "Introduction"
-description: "Technical reference for institutions curating SuperVaults: vault operations, strategy automation, governance, and risk management."
+title: "Curate"
+description: "Operator documentation for creating, activating, automating, and safely managing SuperVaults."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give institutions full programmatic control over yield strategy execution. Institutions set allocation priorities, define automated rebalancing rules, configure onchain permissions through merkle-verified hook authorization, and monitor vault health across the full vault lifecycle.
+Curate is the institutional control plane for SuperVaults. It lets managers deploy vaults, configure launch readiness, authorize keeper actions, whitelist yield sources, run automated strategies, monitor execution, and intervene during incidents.
 
-This documentation covers everything an institution needs to operate a SuperVault: from initial vault creation and yield source whitelisting through strategy automation via the DeFiX v0.1 intent protocol.
+The core invariant: **a vault is not live just because it exists onchain.** A production vault needs upkeep, hook authorization, yield sources, strategy coverage, and catalog availability before users should rely on it.
 
-## Non-Custodial by Design
-
-SuperVaults are ERC-4626/ERC-7540 smart contracts deployed permissionlessly onchain. No intermediary holds custody of vault assets — depositor funds live in the contracts at all times. The institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz) is the institutional interface built on top of this decentralized infrastructure: it constructs calldata, your wallet signs, and you submit transactions directly to the protocol. Superform never touches your keys or your vault's assets.
-
-The contracts are open-source and audited. Anyone can interact with them directly without using this interface.
-
-- [v2-core contracts (GitHub)](https://github.com/superform-xyz/v2-core)
-- [v2-periphery contracts (GitHub)](https://github.com/superform-xyz/v2-periphery)
-- [ERC-7540 standard](https://eips.ethereum.org/EIPS/eip-7540)
-
-## Key Capabilities
+## What Curate Controls
 
 <CardGroup cols={2}>
-  <Card title="Vault Lifecycle Management" icon="key" href="/curate/ui/create-vault">
-    Deploy vaults, assign managers, and configure core operating parameters including fees, timelocks, and share settings from launch through steady-state operation.
+  <Card title="Create and Launch Vaults" icon="rocket" href="/curate/ui/create-vault">
+    Deploy a SuperVault, attach provider/listing metadata, fund upkeep, and complete the setup checklist.
   </Card>
-  <Card title="Onchain Policy Enforcement" icon="shield-check" href="/curate/ui/merkle-trees">
-    Define which hooks and parameter combinations are allowed, then promote root updates onchain through a controlled timelock flow.
+  <Card title="Authorize Execution" icon="shield-check" href="/curate/ui/merkle-trees">
+    Configure hook permissions, generate merkle trees, sync roots onchain, and publish proof artifacts.
   </Card>
-  <Card title="Automated Portfolio Execution" icon="robot" href="/curate/ui/strategy">
-    Run rule-based deposit, withdrawal, and rebalance strategies with configurable indicators, conviction logic, priority ordering, and OMS-backed intent execution.
+  <Card title="Operate Strategies" icon="diagram-project" href="/curate/ui/strategy">
+    Build rule-based deposit, withdrawal, and rebalance strategies with lane ordering and OMS-backed intent execution.
   </Card>
-  <Card title="Risk Monitoring & Operational Controls" icon="gauge-high" href="/curate/ui/alerts">
-    Monitor vault health, track alert states, and intervene quickly with pause controls, operational actions, and administrative maintenance workflows when conditions deteriorate.
+  <Card title="Manage Risk Controls" icon="triangle-exclamation" href="/curate/ui/pause">
+    Pause vaults, pause keeper services, and arm per-yield-source emergency liquidity exits.
   </Card>
 </CardGroup>
 
-## Documentation Structure
+## Operator Jobs
 
 <Steps>
-  <Step title="Core Concepts">
-    What institutions control, what the protocol enforces, ERC-7540 mechanics, the hook system, and merkle authorization. [Read more →](/curate/concepts)
+  <Step title="Prepare access">
+    Review [Prerequisites](/curate/prerequisites), [Authentication](/curate/authentication), and [Permissions](/curate/permissions).
   </Step>
-  <Step title="Get Started">
-    Prerequisites, authentication, permissions, and a quickstart walkthrough. [Read more →](/curate/prerequisites)
+  <Step title="Create the vault">
+    Use the four-step [Create Vault](/curate/ui/create-vault) wizard to configure identity, managers, fees, and listing metadata.
   </Step>
-  <Step title="Curate">
-    UI guide for every page in the institutional dashboard, from Dashboard to Strategy Canvas. [Read more →](/curate/ui/home)
+  <Step title="Complete launch readiness">
+    Work through the [Setup Checklist](/curate/ui/setup-checklist): created, upkeep funded, hooks configured, yield sources whitelisted, strategy created, and catalog listed/available.
   </Step>
-  <Step title="Automate">
-    Build programmatic institutional workflows: monitoring loops, service health alerting, and audit log streaming. [Read more →](/curate/automation/overview)
+  <Step title="Run the vault">
+    Monitor [Dashboard](/curate/ui/dashboard), [Strategy Canvas](/curate/ui/strategy), [Yield Sources](/curate/ui/yield-sources), and [Merkle Trees](/curate/ui/merkle-trees).
   </Step>
-  <Step title="References">
-    Flagship curation policy reference for curators running SuperVaults. [Read more →](/curate/curation-policy)
+  <Step title="Respond to incidents">
+    Use [Pause Operations](/curate/ui/pause), [Alerts](/curate/ui/alerts), audit logs, and notification channels to halt or drain risk when needed.
   </Step>
 </Steps>
 
+## API Surface
+
+Curate is backed by three main services:
+
+- [Erebor](/curate/api/erebor) — vault management, settings, registries, merkle workflows, upkeep, users, notifications, and pause controls.
+- [Strategy Engine](/curate/api/strategy) — strategies, ordering, live shards, intent projections, fills, and emergency locks.
+- [OMS](/curate/api/oms) — DeFiX intent execution, events, hook transactions, and session-key readiness.
+
+See [Curate API Overview](/curate/api/overview) for the control-plane map.
+
 <Note>
-This documentation targets institutions and integrators. For depositor-facing information, see the [Superform App](https://app.superform.xyz). For protocol-level specifications, see the [Superform Protocol Docs](/learn/learn).
+Curate prepares transactions and displays operational state. Protocol state changes still happen through signed onchain transactions from the authorized manager wallet.
 </Note>

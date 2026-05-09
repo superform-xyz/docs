@@ -28,12 +28,13 @@ Current Erebor-facing activation fields used by the UI include:
 
 | Field | Meaning |
 |-------|---------|
-| `activation.is_active` | Whether the vault has cleared activation requirements. |
-| `activation.is_discoverable` | Whether the vault can appear in discovery surfaces. |
-| `upkeep_info.balance` | Current upkeep balance. |
-| `upkeep_info.payment_enabled` / `is_upkeep_payment_enabled` | Whether upkeep payment is enabled for the vault. |
-| `upkeep_info.threshold.required_balance` | Required balance for activation. |
-| `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. |
+| `activation.is_active` | Whether the vault is eligible for keeper operations. |
+| `activation.is_discoverable` | Whether the vault is surfaced in discovery. |
+| `activation.status` | `active` or `insufficient_upkeep`. |
+| `activation.reason` | Optional explanation when the vault is not active. |
+| `upkeep_info.balance` | Current upkeep balance, in raw token units. |
+| `upkeep_info.threshold.required_balance` | Required balance for activation, in raw token units. |
+| `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. `0` means the threshold is satisfied. |
 
 ## Catalog evidence
 

@@ -70,12 +70,12 @@ The Upkeep panel shows:
 
 - Current upkeep balance.
 - Upkeep token.
-- Activation status.
-- Required balance.
-- Shortfall, when present.
+- Required balance and shortfall.
+- Activation status: `active` or `insufficient_upkeep`.
+- Whether the vault is active for keeper operations and discoverable in public listing surfaces.
 - Pending upkeep withdrawal proposal, if any.
 
-A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable.
+A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable. Erebor returns this as `upkeep_info` plus `activation`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
 
 ### Deposit Upkeep
 

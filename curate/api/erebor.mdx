@@ -28,9 +28,9 @@ For onchain changes, Erebor prepares calldata and the manager wallet signs the t
 | `/api/v1/vaults` | GET | Authenticated vault list |
 | `/api/v1/vaults/{chain_id}/{vault_address}` | GET | Full vault detail |
 
-Vault detail includes onchain identity, managers, fees, PPS, balances, TVL, upkeep information, and allocation data when available.
+Vault detail includes onchain identity, managers, fees, PPS, balances, TVL, upkeep information, activation state, and allocation data when available. Authenticated list responses may include `activation`; public vault responses include `upkeep_info` and `activation` when Erebor can compute them.
 
-Public discovery depends on more than deployment. A vault should have adequate upkeep, configured hooks, yield sources, strategy coverage, and catalog listing / availability before it is treated as live.
+Public discovery depends on more than deployment. Erebor only surfaces vaults with known activation when `activation.is_discoverable` is true. If activation is unknown because a subgraph dependency is unavailable, the vault can still be returned with `activation` unset rather than treated as deleted.
 
 ## Vault Creation
 
@@ -58,6 +58,20 @@ Listing metadata is handled by the dashboard/catalog layer after vault address r
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
 
 Upkeep data drives activation and discoverability in the dashboard. Operators should treat insufficient upkeep as a launch blocker.
+
+Current upkeep responses use:
+
+| Field | Description |
+|-------|-------------|
+| `upkeep_info.balance` | Current upkeep balance in raw token units. |
+| `upkeep_info.token` | Upkeep token address on settings responses. |
+| `upkeep_info.threshold.required_balance` | Required upkeep balance for activation. |
+| `upkeep_info.threshold.shortfall` | Remaining amount needed; `0` means the threshold is satisfied. |
+| `activation.is_active` | Whether the vault is eligible for keeper operations. |
+| `activation.is_discoverable` | Whether the vault is surfaced on public listing responses. |
+| `activation.status` | `active` or `insufficient_upkeep`. |
+| `activation.reason` | Optional explanation when inactive. |
+| `withdrawal_status` | Pending withdrawal lifecycle; separate from `activation.status`. |
 
 ## Merkle Authorization
 

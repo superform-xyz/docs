@@ -34,6 +34,8 @@ Reference production deployment for a single validator:
 | Monitoring | Prometheus metrics, Grafana dashboards/alerts, log retention |
 | RPC | Paid HTTPS + WSS endpoints for each assigned chain |
 
+A reference AWS deployment maps this to one `t4g.small` validator host in `eu-west-1`, a 16 GB encrypted gp3 root disk, one Elastic IP, RDS PostgreSQL 16 on `db.t4g.micro` with TLS and deletion protection, an AWS KMS secp256k1 CMK for the onchain signer, AWS Managed Prometheus/Grafana, and alert routing through SNS or an on-call channel. The validator, optional `snapshotd` IPC sidecar, and metrics collector can run as separate containers on the same host, with localhost-only Prometheus endpoints.
+
 This baseline is enough because the node is mostly stateless outside Postgres. OCR2 round state is small and recoverable; RPC quality and network reachability matter more than raw CPU.
 
 ## Sizing tiers
@@ -100,6 +102,8 @@ When those vaults are assigned, operators may run `snapshotd` as either:
 
 - **IPC sidecar**: same host as the validator, communicating over a Unix socket. Lowest cost and simplest when one validator consumes it.
 - **Standalone HTTP service**: separate host with JWT-gated HTTPS, useful when multiple validators or services share one snapshot endpoint.
+
+Both modes can share the same Redis-compatible cache for vault metadata, so a validator restart does not need to re-fetch every vault domain separator.
 
 If all assigned vaults are standard ERC-4626 and do not require cross-asset conversion, the validator can read directly from configured vault contracts and the snapshot service may not be needed.
 

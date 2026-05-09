@@ -1,17 +1,48 @@
 ---
-title: "Webhooks and Event Streaming"
-description: "Webhook delivery is planned but not yet implemented. Use audit logs and polling as the current event stream."
+title: "Notifications and Event Streams"
+description: "Use notification channels, audit logs, and polling to stream SuperVault operational events."
 ---
 
-<Warning>
-The **webhook system is not yet implemented**. This page documents what is available today (audit logs + polling) and the planned webhook schema for integrators building against the future API.
-</Warning>
+Curate exposes two event surfaces for operators:
 
-## Current: Audit Logs as Event Stream
+1. **Notification channels** for routed operational alerts.
+2. **Audit logs and polling** for integration-grade event reconstruction.
 
-The audit log endpoint in Erebor serves as an interim event stream for vault operations:
+Use notification channels for humans and incident destinations. Use audit logs / state polling for deterministic integrations.
 
-### Query Audit Logs
+## Notification Channels
+
+Create a channel, then bind it to the vaults that should send alerts.
+
+```bash
+# List or create channels
+GET /api/v1/notification-channels
+POST /api/v1/notification-channels
+
+# List or bind channels for one vault
+GET /api/v1/vaults/{chain_id}/{vault_address}/notification-channels
+POST /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
+
+# Unbind a channel
+DELETE /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
+```
+
+Recommended alert categories:
+
+- Upkeep shortfall or activation loss.
+- PPS staleness.
+- Failed keeper runs.
+- Session-key readiness changes.
+- Emergency pause / unpause.
+- Emergency liquidity exit arm / stop.
+- Merkle generation or publish failure.
+- Repeated OMS execution failure.
+
+See [Alerts](/curate/ui/alerts) for the operator flow.
+
+## Audit Logs as an Event Stream
+
+The audit log endpoint records vault operations and manager actions:
 
 ```bash
 GET /api/v1/audit/logs
@@ -29,7 +60,7 @@ Authorization: Bearer <jwt>
   "logs": [
     {
       "id": "uuid",
-      "timestamp": "2025-03-01T10:00:00Z",
+      "timestamp": "2026-05-09T10:00:00Z",
       "action_type": "yield_source_add",
       "vault_address": "0x...",
       "chain_id": 8453,
@@ -45,15 +76,14 @@ Authorization: Bearer <jwt>
 }
 ```
 
-### Export Audit Logs
+Export when you need a point-in-time compliance artifact:
 
 ```bash
 GET /api/v1/audit/export
 Authorization: Bearer <jwt>
-# Returns CSV or JSON depending on Accept header
 ```
 
-### Polling Pattern
+## Polling Pattern
 
 ```python
 import requests
@@ -73,8 +103,9 @@ def poll_audit_logs(since: datetime):
             "vault_address": VAULT,
             "chain_id": CHAIN_ID,
             "from_timestamp": since.isoformat(),
-            "limit": 100
-        }
+            "limit": 100,
+        },
+        timeout=15,
     )
     resp.raise_for_status()
     return resp.json().get("logs", [])
@@ -90,61 +121,18 @@ while True:
     if new_events:
         last_check = datetime.now(timezone.utc)
 
-    time.sleep(60)  # Poll every 60s
+    time.sleep(60)
 ```
 
----
+## State Polling Map
 
-## Planned: Webhook System
-
-When the webhook system ships, it will provide push-based event delivery.
-
-### Planned Events
-
-| Event Type | Description |
-|------------|-------------|
-| `pps.stale` | PPS staleness threshold crossed |
-| `pps.updated` | New PPS recorded onchain |
-| `vault.paused` | Vault paused onchain |
-| `vault.unpaused` | Vault unpaused |
-| `service.degraded` | Service success rate below threshold |
-| `service.down` | Service stopped responding |
-| `merkle.synced` | New merkle root confirmed onchain |
-| `yield_source.added` | Yield source whitelisted |
-| `yield_source.removed` | Yield source removed |
-| `redemption.fulfilled` | Redemption request(s) fulfilled |
-| `deposit.fulfilled` | Deposit executed |
-
-### Planned Delivery Format
-
-```json
-{
-  "event_id": "evt_uuid",
-  "event_type": "pps.stale",
-  "timestamp": "2025-03-01T10:00:00Z",
-  "vault_address": "0x...",
-  "chain_id": 8453,
-  "data": {
-    "remaining_seconds": 120,
-    "last_update": "2025-03-01T07:00:00Z"
-  }
-}
-```
-
-### Planned Integrations
-
-Slack, PagerDuty, Discord, and custom HTTPS endpoints. Failed deliveries retried with exponential backoff (1s → 2s → 4s → 8s → 16s, max 5 attempts).
-
----
-
-## Current Workaround Summary
-
-| Need | Solution |
-|------|---------|
-| Vault state changes | Poll `GET /api/v1/vaults/{chain_id}/{address}` every 15s |
-| Service degradation | Poll `GET /services/status` every 30s |
-| Operation events | Poll `GET /api/v1/audit/logs` every 60s |
-| PPS staleness | Calculate from `remaining_staleness_time` in vault state |
-| Redemption activity | Poll `GET /fulfill-redeems/executions` every 60s |
+| Need | Source |
+|------|--------|
+| Vault state changes | `GET /api/v1/vaults/{chain_id}/{address}` |
+| Service degradation | `GET /api/v1/vaults/{chain_id}/{vault}/services` |
+| Operation events | `GET /api/v1/audit/logs` |
+| PPS staleness | Vault detail PPS timestamps and remaining staleness |
+| Intent execution | `GET /api/v1/intents` and OMS event/fill endpoints |
+| Emergency locks | `GET /api/v1/engine/shards/{vault_id}/state` |
 
 See [Monitoring Vault State](/curate/automation/monitoring) for production-ready polling examples.

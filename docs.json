@@ -92,7 +92,7 @@
           {
             "group": "SuperVaults Validator Network",
             "pages": [
-              "build/become-a-validator",
+              "build/become-a-validator/index",
               "build/become-a-validator/quickstart",
               "build/become-a-validator/node-setup",
               "build/become-a-validator/operations",
@@ -128,7 +128,9 @@
             "group": "Vault Setup",
             "pages": [
               "curate/ui/home",
-              "curate/ui/create-vault"
+              "curate/ui/create-vault",
+              "curate/ui/setup-checklist",
+              "curate/ui/catalog-listing"
             ]
           },
           {
@@ -136,6 +138,7 @@
             "pages": [
               "curate/ui/dashboard",
               "curate/ui/strategy",
+              "curate/ui/intent-history",
               "curate/ui/yield-sources",
               "curate/ui/merkle-trees"
             ]
@@ -156,10 +159,21 @@
             ]
           },
           {
-            "group": "Emergency & Alerts",
+            "group": "Safety & Incident Response",
             "pages": [
               "curate/ui/pause",
+              "curate/ui/emergency-exit",
               "curate/ui/alerts"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "curate/api/overview",
+              "curate/api/erebor",
+              "curate/api/strategy",
+              "curate/api/oms",
+              "curate/api/merkle-publish"
             ]
           },
           {

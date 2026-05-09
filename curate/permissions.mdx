@@ -1,99 +1,132 @@
 ---
 title: "Permissions Model"
-description: "Four access levels for SuperVaults: Primary Manager, Secondary Manager, View Only, and Registry Maintainer."
+description: "Access boundaries for primary managers, secondary managers, view-only users, registry maintainers, session keys, and keepers."
 ---
+
+SuperVaults separates protocol ownership from day-to-day operations. The safest mental model is:
+
+- **Primary manager** owns the vault.
+- **Secondary managers** operate the vault.
+- **View-only users** observe the vault.
+- **Registry maintainers** maintain global metadata.
+- **Session keys / keepers** execute narrowly-authorized automation.
 
 ## Role Tiers
 
-SuperVaults enforces four permission tiers with distinct onchain and offchain boundaries:
-
-| Role | On-Chain? | Scope | Mutable? |
-|------|-----------|-------|---------|
-| **Primary Manager** | Yes | Full vault control | Immutable (set at creation) |
-| **Secondary Manager** | Yes | All operations except vault settings | Removable via onchain tx |
-| **View Only** | No | Dashboard read access | Added/removed offchain |
-| **Registry Maintainer** | No | Global registry CRUD | DB-level grant |
+| Role | Onchain? | Scope | Typical Use |
+|------|----------|-------|-------------|
+| Primary Manager | Yes | Full vault control | Multisig / hardware-backed owner |
+| Secondary Manager | Yes | Operational controls | PM, operations, risk |
+| View Only | No | Read access | Analysts, auditors, monitors |
+| Registry Maintainer | No | Global registry CRUD | Internal registry operations |
+| Session Key / Keeper | Yes, delegated | Specific executable actions | Strategy and OMS automation |
 
 ## Primary Manager
 
-The primary manager is the onchain vault owner. One per vault.
+The primary manager is set at vault creation and is the highest-authority vault operator.
 
-- Set at vault creation: the wallet that signs `POST /api/v1/vaults/create/prepare`
-- Cannot be changed without governance-level contract interaction
-- Exclusive access to vault settings (redeem timelock) and user management
-- Can add and remove secondary managers
+Primary manager responsibilities:
+
+- Vault settings and sensitive configuration.
+- Secondary-manager assignment.
+- Session-key grant and revoke flows.
+- Upkeep funding and withdrawal control.
+- Pause, unpause, and emergency operations.
+- Merkle root proposal / publish workflows.
 
 <Warning>
-The primary manager key cannot be rotated. Use a hardware wallet or multi-sig for production vaults. If this key is compromised, the attacker gains full vault control.
+Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker can control the vault.
 </Warning>
 
-## Secondary Manager
+## Secondary Managers
 
-On-chain delegates with operational authority. A vault supports multiple secondary managers.
+Secondary managers are onchain delegates for operational work.
 
-- Added via `POST /api/v1/users/secondary-manager/prepare` (prepare pattern, requires wallet signature)
-- Removed via `POST /api/v1/users/secondary-manager/remove/prepare`
-- Full operational access: yield sources, merkle trees, strategies, pause/unpause, view-only user management
-- Cannot modify vault settings or add/remove other secondary managers
+They can typically:
 
-## View Only
+- Manage strategies.
+- Configure yield sources.
+- Work with merkle tree configuration.
+- Pause/unpause operational services.
+- Add view-only collaborators.
 
-Off-chain read access. No onchain transaction required.
+They cannot replace the primary manager or take over primary-only settings.
 
-- Added via `POST /api/v1/users/view-only`
-- Removed via `DELETE /api/v1/users/view-only/{wallet}`
-- Read-only dashboard and analytics visibility
-- No write capabilities
+## View-Only Users
 
-## Registry Maintainer
+View-only access is offchain. It grants dashboard visibility without transaction authority.
 
-Global permission for administering Erebor registries. Not vault-scoped.
+Use it for:
 
-- Grants access to the Registry and Admin pages
-- Required for: creating/updating/deleting yield sources, oracles, hooks in the global registry; running data backfills
-- Separate from vault manager roles
+- Risk monitors.
+- Analysts.
+- Auditors.
+- Partners who need vault state without write access.
+
+## Registry Maintainers
+
+Registry maintainers manage global metadata shared across vaults, including:
+
+- Yield source registry entries.
+- Oracle registry entries.
+- Hook registry entries.
+- Token asset metadata.
+- Admin backfills.
+
+This role is not vault-scoped and should be tightly controlled.
+
+## Session Keys and Keepers
+
+Session keys are delegated execution keys used by automation. A session key does not imply broad manager authority; it authorizes a specific automation path.
+
+Keepers and OMS execution still depend on:
+
+- Active upkeep funding.
+- Valid session key readiness.
+- Active merkle root and proofs.
+- Non-paused vault / services.
+- Strategy state and emergency locks.
+
+If any of those gates fail, automation should stop even when a session key exists.
 
 ## Permission Matrix
 
-| Action | Primary | Secondary | View Only | Registry Maintainer |
-|--------|---------|-----------|-----------|---------------------|
-| View dashboard | ✅ | ✅ | ✅ | — |
-| Configure strategies | ✅ | ✅ | ❌ | — |
-| Manage yield sources | ✅ | ✅ | ❌ | — |
-| Merkle tree operations | ✅ | ✅ | ❌ | — |
-| Create/edit strategies | ✅ | ✅ | ❌ | — |
-| Pause vault (onchain) | ✅ | ✅ | ❌ | — |
-| Pause keeper services | ✅ | ✅ | ❌ | — |
-| Add/remove secondary managers | ✅ | ❌ | ❌ | — |
-| Add/remove view-only users | ✅ | ✅ | ❌ | — |
-| Vault settings (redeem timelock) | ✅ | ❌ | ❌ | — |
-| Registry CRUD | — | — | — | ✅ |
-| Admin backfill | — | — | — | ✅ |
+| Action | Primary | Secondary | View Only | Registry Maintainer | Session Key / Keeper |
+|--------|---------|-----------|-----------|---------------------|----------------------|
+| View dashboard | ✅ | ✅ | ✅ | — | — |
+| Create vault | ✅ | — | — | ✅ | — |
+| Fund upkeep | ✅ | ✅ | ❌ | — | — |
+| Withdraw upkeep | ✅ | Usually ❌ | ❌ | — | — |
+| Configure strategies | ✅ | ✅ | ❌ | — | — |
+| Reorder strategies | ✅ | ✅ | ❌ | — | — |
+| Manage yield sources | ✅ | ✅ | ❌ | — | — |
+| Configure hooks / merkle roots | ✅ | ✅ | ❌ | — | — |
+| Propose or publish merkle root | ✅ | Permissioned | ❌ | — | — |
+| Grant / revoke session key | ✅ | Usually ❌ | ❌ | — | — |
+| Pause vault | ✅ | ✅ | ❌ | — | — |
+| Arm emergency exit | ✅ | ✅ | ❌ | — | — |
+| Add/remove secondary managers | ✅ | ❌ | ❌ | — | — |
+| Add/remove view-only users | ✅ | ✅ | ❌ | — | — |
+| Registry CRUD | — | — | — | ✅ | — |
+| Execute authorized hooks | — | — | — | — | ✅ |
 
-## AuthGuard Enforcement
-
-The institutional dashboard enforces permissions at both the page level and the API level:
-
-**Client-side:** `AuthGuard` checks `curator_is_manager` in localStorage and redirects unauthorized users.
-
-**Server-side:** All Erebor endpoints validate JWT claims. A `403 Forbidden` response means the connected wallet lacks the required role.
-
-## Managing Users via API
+## API Patterns
 
 ```bash
-# List all users for a vault
+# List vault users
 GET /api/v1/users?vault_address={address}&chain_id={chainId}
-Authorization: Bearer <jwt>
 
-# Prepare add secondary manager (returns calldata to sign)
+# Prepare add secondary manager transaction
 POST /api/v1/users/secondary-manager/prepare
-Authorization: Bearer <jwt>
-{ "vault_address": "0x...", "chain_id": 8453, "manager_address": "0xnew..." }
 
-# Add view-only user (offchain, no gas)
+# Prepare remove secondary manager transaction
+POST /api/v1/users/secondary-manager/remove/prepare
+
+# Add view-only user offchain
 POST /api/v1/users/view-only
-Authorization: Bearer <jwt>
-{ "vault_address": "0x...", "chain_id": 8453, "wallet_address": "0x...", "display_name": "Risk Monitor" }
+
+# Remove view-only user offchain
+DELETE /api/v1/users/view-only/{wallet}
 ```
 
-See [User Management](/curate/ui/user-management) for the full UI walkthrough.
+A `403 Forbidden` means the connected wallet lacks the required role for that operation.

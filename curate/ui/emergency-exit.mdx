@@ -1,0 +1,63 @@
+---
+title: "Emergency Liquidity Exit"
+description: "Arm or stop per-yield-source emergency drains from Pause Operations."
+---
+
+Emergency Liquidity Exit lets a manager drain one whitelisted yield source without pausing the entire vault. It is an operator-armed incident control, not an automatic strategy and not a replacement for the onchain vault pause.
+
+## Core invariant
+
+Each whitelisted yield source can have exactly one paired `EMERGENCY_EXIT` strategy. Arming it transitions that strategy to `RUNNING`, acquires an emergency lock keyed by `target_address`, and starts withdrawal intents for that source. While the lock is held, user-defined strategies with the same `action_config.target_address` stop publishing conflicting intents. Strategies targeting other yield sources continue.
+
+## When to use it
+
+Use Emergency Exit when a single yield source needs liquidity drained because of protocol risk, oracle issues, market dislocation, or operational concerns.
+
+Do not use it for broad vault shutdown. Use onchain pause or keeper pause when every operation should stop.
+
+## Prerequisites
+
+- Yield source is whitelisted for the vault.
+- Active merkle withdrawal hook and proof exist for that source.
+- OMS session key and Strategy Engine are healthy.
+- Operator has manage permission.
+- Vault kill switch is not blocking strategy execution.
+
+## Arm flow
+
+1. Open **Pause → Emergency Exit**.
+2. Select a yield-source row.
+3. Review allocation, APY/TVL where available, paired strategy state, and blocked strategies.
+4. Type the required confirmation suffix from the yield-source address.
+5. Set max slippage in bps. Default is **50 bps (0.5%)**.
+6. Add an optional reason. The reason remains visible in lock banners and audit context.
+7. Click **Arm emergency exit**.
+8. Monitor [Intent History](/curate/ui/intent-history) for withdrawal intents, fills, gas, and errors.
+
+If no paired emergency strategy exists, the UI creates and arms one in the same flow. If another operator arms the same target first, the request returns a conflict and the UI asks you to refresh.
+
+## Stop flow
+
+Click **Stop emergency exit** on the source. This transitions the paired strategy to `IDLE` and releases the lock. User-defined strategies targeting that address resume on their next tick. Already-published OMS withdrawal intents continue to their terminal state.
+
+## Strategy Canvas behavior
+
+When one or more emergency locks are active, Strategy Canvas shows an emergency banner. Controls for user-defined strategies that target a locked address are disabled with a tooltip. `EMERGENCY_EXIT` strategies are system-managed, hidden from normal authoring by default, and read-only when inspected.
+
+## Yield-source whitelist side effects
+
+| Action | Side effect |
+|--------|-------------|
+| Whitelist add | Provisions a paired `EMERGENCY_EXIT` withdrawal strategy for that target. |
+| Whitelist remove | Archives the paired emergency strategy when no lock is active. |
+| Remove while locked | Blocked until the drain is stopped and the lock clears. |
+
+## Failure states
+
+| State | Meaning |
+|-------|---------|
+| No withdrawal hook or proof | Active merkle tree does not authorize the drain. Configure hooks and publish proofs. |
+| `EMERGENCY_LOCK_ACTIVE` | Another emergency drain already holds the target lock. |
+| Duplicate target | A paired emergency strategy already exists for that vault/target. |
+| Read-only banner | Current operator can inspect but cannot arm or stop drains. |
+| Lock data unavailable | UI fails closed and blocks controls until lock state loads. |

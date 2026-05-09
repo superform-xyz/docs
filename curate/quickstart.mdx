@@ -1,125 +1,87 @@
 ---
 title: "Quickstart"
-description: "Create and configure a SuperVault end-to-end in approximately 15 minutes."
+description: "Create, list, activate, and operate a SuperVault end to end."
 ---
 
-This guide covers the complete vault creation and configuration flow. By the end, you will have a live SuperVault with yield sources whitelisted, a merkle root synced onchain, strategies configured, and keeper services running.
+This guide follows the curator path from vault deployment to a live Superform listing. The launch path is complete when the vault is indexed, funded for upkeep, authorized with hooks, connected to yield sources, backed by at least one strategy, and listed as available in the Superform catalog.
 
-**Time required:** ~15 minutes
-**Prerequisites:** EVM wallet connected, ETH for gas, manager access granted by the Superform team
-
----
+Prerequisites: manager access, connected EVM wallet, gas on the deployment chain, provider or institution profile, and the token/yield-source details for the vault.
 
 <Steps>
 
-<Step title="Connect Wallet">
-Navigate to [institutions.superform.xyz](https://institutions.superform.xyz) and click **Connect Wallet**. Dynamic.xyz requests a signature to issue your JWT session. After connecting, the top navigation shows three sections: **Home** (global vault overview), **Curate** (per-vault curation), and **Institutional** (institutional operations).
+<Step title="Create the vault">
+Open **Create Vault** (`/vaults/create`). The editable wizard has four steps:
+
+1. **Basic Information** — select chain, provider, underlying asset, listing metadata, and the computed onchain name/symbol.
+2. **Managers** — assign the primary manager and optional secondary managers.
+3. **Fees** — configure fee recipient, performance fee, management fee, PPS timing, and redemption timing.
+4. **Review** — inspect the full configuration before the transaction phase.
+
+After review, the modal moves through transaction signing, indexing, optional yield-source setup, and completion. See [Create Vault](/curate/ui/create-vault).
 </Step>
 
-<Step title="Create a Vault">
-Click **Create Vault** (or navigate to `/vaults/create`). The creation flow:
+<Step title="Work through the setup checklist">
+Open **Setup**. Treat it as the canonical go-live checklist:
 
-1. **Select Chain** — Ethereum (1) or Base (8453). Permanent.
-2. **Choose Underlying Asset** — Select from registered tokens, or register a custom token.
-3. **Set Name & Symbol** — e.g., `"USDC Yield Vault"` / `"svUSDC"`
-4. **Configure Managers** — Your wallet becomes primary manager. Add secondary managers now or later.
-5. **Configure Fees** — Performance fee (bps), management fee (bps), fee recipient address. Bounded by SuperGovernor constraints.
-6. **Redeem Timelock** (optional) — Delay in seconds before redemptions can be fulfilled. 0 = instant.
-7. **Review SuperGovernor Config** — Protocol-level constraints (min staleness, revenue share). Not institution-configurable.
-8. **Sign Transaction** — Approve the vault creation transaction.
+- Vault is created and readable.
+- Upkeep is staked so automation can run.
+- Hooks are configured in the active root config.
+- Yield sources are whitelisted.
+- At least one strategy exists.
+- The vault is listed and available in the Superform catalog.
 
-Erebor starts a background indexing job after the transaction confirms. The modal polls until completion (up to 3 minutes, exponential backoff: 3s → 6s → 12s → 24s → 30s cap).
+The checklist coordinates operational readiness and public discovery. See [Setup Checklist](/curate/ui/setup-checklist).
 </Step>
 
-<Step title="Whitelist Yield Sources">
-Navigate to **Yield Sources** for your vault.
+<Step title="Fund upkeep and activate automation">
+Open **Vault Settings → Upkeep**. Fund the required upkeep balance. Erebor marks the vault active and discoverable once the funding gate is satisfied.
 
-1. Browse the Yield Source Registry (filtered by chain and active status)
-2. Select a yield source and its paired oracle
-3. Click **Add** — Erebor prepares calldata via `POST /api/v1/yield-sources/prepare-add`
-4. Sign the transaction
-
-Use **Bulk Add** to whitelist multiple yield sources in a single transaction. Two yield source types are supported: `erc4626` (Morpho, Aave wrappers) and `pendle_pt` (Pendle Principal Tokens).
+Without upkeep, operator pages can still show the vault by direct link, but keeper automation and discoverability remain gated.
 </Step>
 
-<Step title="Configure Hook Authorization">
-Navigate to **Merkle Trees** for your vault.
+<Step title="Configure hook authorization">
+Open **Merkle Trees** and follow the manager-root flow:
 
-1. Click **Create New Config** in the Hook Configs tab
-2. Add each hook you want keepers to execute: select hook from registry, assign parameter values (yield source address, token, oracle)
-3. Click **Activate** on the new config version
+1. Draft a root config.
+2. Activate the config.
+3. Generate the merkle tree.
+4. Have the primary manager propose and publish the root onchain.
 
-Each hook + parameter combination becomes a merkle tree leaf. Only authorized combinations pass onchain verification.
+Keepers and OMS intents need active merkle proofs for each hook/parameter combination they execute.
 </Step>
 
-<Step title="Generate and Sync Merkle Tree">
-Still in **Merkle Trees**:
+<Step title="Whitelist yield sources">
+Open **Yield Sources**. Add each target yield source with its paired oracle. Bulk add, bulk remove, and bulk oracle update flows prepare a single transaction for multiple rows.
 
-1. Click **Generate Merkle Tree** — async job, polls every 2–15s
-2. After generation completes, the tree root hash is displayed
-3. Click **Sync to Chain** — Erebor determines the required action:
-   - **Propose**: submits the new root to the contract (starts timelock)
-   - **Pending**: timelock in progress (shows time remaining)
-   - **Execute**: timelock expired, sign to activate the new root
-
-<Note>
-Keepers cannot execute against whitelisted yield sources until the merkle root is synced onchain. This step gates all vault operations.
-</Note>
+Emergency-exit readiness is tied to the whitelist: each whitelisted yield source can have a paired `EMERGENCY_EXIT` strategy used by the Pause page to drain that source during an incident.
 </Step>
 
-<Step title="Configure Strategies">
-Navigate to **Strategy Canvas** for your vault.
+<Step title="Create and order strategies">
+Open **Strategy Canvas**. Create user-defined strategies for deposits, withdrawals, and rebalances. Strategy priority is server-managed: use drag-to-reorder, which persists through `POST /api/v1/strategies/reorder`. Create and update requests do not carry `priority`.
 
-The Strategy Canvas is where you define rule-based automation for deposits, withdrawals, and rebalancing. Create strategies with:
-
-- **Indicators** — named variables evaluated each tick (e.g., `morpho_apy`, `free_assets`)
-- **Rules** — boolean logic trees that determine when to act
-- **Action config** — target hook, position size, slippage limits
-- **Tick interval** — evaluation frequency
-
-Set strategies to `RUNNING` to activate automated vault operations. Use the vault-level kill switch for emergency stops.
+Before a strategy can publish intents, the OMS session key must be ready and the active merkle tree must contain the required withdrawal/deposit hooks.
 </Step>
 
-<Step title="Verify Service Health">
-Navigate to **Dashboard** and check service status. Confirm keeper workers show **Healthy** status with success rates above 95%.
+<Step title="List the vault in the catalog">
+Open the catalog/listing flow. Confirm provider IDs, visibility, availability, category, description, and external URL when relevant.
 
-| Worker | Responsibility |
-|--------|---------------|
-| `fulfill_deposits` | Allocates free vault assets to yield sources based on the configured allocation strategy |
-| `fulfill_redeems` | Fulfills pending ERC-7540 redemption requests |
-| `fulfill_claims` | Claims reward tokens from external protocols |
-| `fulfill_swaps` | Swaps non-underlying tokens to underlying asset |
-| `redemption_queue_engine` | Monitors subgraph for new redemption requests |
-| `cleanup_processed_redeems` | Reconciles onchain vs DB redemption state |
-| `tx_manager` | Broadcasts transactions, monitors confirmations |
+Onchain created means the vault contract exists. Listed and available means the vault is discoverable in Superform surfaces. See [Catalog Listing](/curate/ui/catalog-listing).
 </Step>
 
-<Step title="Monitor">
-Navigate to **Dashboard** and select your vault. Key metrics after launch:
-
-- **TVL** — tracks inflows as deposits arrive
-- **PPS** — should increase as yield accrues
-- **PPS staleness countdown** — verify oracle refresh is on schedule
-- **Service success rates** — any drop below 95% warrants investigation
+<Step title="Monitor intents and operations">
+Use **Dashboard** for vault health, **Intent History** for execution traces, and **Pause** for incident controls. Intent History maps Strategy Engine rows to OMS events, fills, gas usage, mined timestamps, and hook transaction details.
 </Step>
 
 </Steps>
 
----
+## Go-live checklist
 
-## Pre-Launch Checklist
-
-Before accepting external deposits:
-
-- [ ] All target yield sources whitelisted onchain
-- [ ] Merkle root synced (not pending timelock)
-- [ ] Strategies configured and running on the Strategy Canvas
-- [ ] At least one deposit executed successfully
-- [ ] All keeper services healthy
-- [ ] Secondary manager added for operational redundancy
-- [ ] Fee recipient address confirmed
-- [ ] PPS oracle updating on schedule
-
-<Card title="Dashboard" icon="chart-line" href="/curate/ui/dashboard">
-  Vault analytics, allocation breakdown, and operational monitoring.
-</Card>
+- [ ] Vault contract created, indexed, and readable in dashboard data
+- [ ] Upkeep funded and activation gate cleared
+- [ ] Active hook config exists
+- [ ] Merkle tree generated, proposed onchain by the primary manager, and published
+- [ ] Yield sources whitelisted with correct oracles
+- [ ] At least one strategy exists and intended strategies are `RUNNING`
+- [ ] OMS session key readiness is green
+- [ ] Catalog listing is `listed` and `available`
+- [ ] Intent History shows expected execution or no unexpected failures

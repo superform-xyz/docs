@@ -1,223 +1,235 @@
 ---
 title: "Strategy Engine API Reference"
-description: "14 endpoints for creating and operating rule-based strategies, vault kill switches, and live shard state."
+description: "Create, order, execute, and inspect SuperVault strategies, intents, fills, and emergency locks."
 ---
 
-The Strategy Engine evaluates institution-defined rules and dispatches DeFiX intents to the OMS. It maintains in-memory **shards** for each active vault, running strategy tick loops.
+The Strategy Engine evaluates manager-defined rules and dispatches DeFiX intents to the OMS. It owns strategy lifecycle state, lane ordering, live shard state, intent history projections, and emergency locks.
 
 **Base URL:** `https://strategy.superform.xyz`
+
 **Auth:** `Authorization: Bearer <jwt>`
-**OpenAPI spec:** `strategy-openapi.json` ✅
 
 <Note>
-`vault_id` in the Strategy Engine uses `{chainId}:{vaultAddress}` format (e.g., `8453:0xdef...`). Erebor uses separate `chain_id` and `vault_address` parameters.
+`vault_id` uses `{chainId}:{vaultAddress}` format, for example `8453:0xdef...`. Erebor often uses separate `chain_id` and `vault_address` fields.
 </Note>
-
----
 
 ## Strategies
 
 ### List Strategies
 
-```
+```bash
 GET /api/v1/strategies?vault_id={vault_id}&limit=50
 ```
 
-Returns all strategies for a vault, sorted by priority.
+Filters:
 
-### Get Strategy
+- `kind` — `USER_DEFINED` or `EMERGENCY_EXIT`.
+- `state` — lifecycle state.
+- `lane` — `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE`.
+- `target_address` — lowercased target yield source / route address.
+- `limit`, `offset`.
 
-```
-GET /api/v1/strategies/{strategy_id}
-```
+Emergency strategies are separated by `kind=EMERGENCY_EXIT`; normal editor flows use `USER_DEFINED` by default.
 
 ### Create Strategy
 
-```
+```bash
 POST /api/v1/strategies
 ```
 
-```json
-{
-  "vault_id": "8453:0xdef...",
-  "name": "USDC Deposit Strategy",
-  "action": "DEPOSIT",
-  "tick_interval_ms": 60000,
-  "cooldown_ms": 300000,
-  "priority": 1,
-  "indicators": [
-    { "name": "morpho_apy", "expression": "..." }
-  ],
-  "rules": {
-    "type": "EXPR",
-    "indicator": "morpho_apy",
-    "op": ">",
-    "value": 0.05
-  },
-  "action_config": {
-    "action": "DEPOSIT",
-    "size_expr": "free_assets * 0.9",
-    "execution_name": "MorphoDepositHook",
-    "target_address": "0xMorphoVault...",
-    "max_slippage_bps": 50
-  },
-  "conviction_config": {
-    "required_ticks": 2,
-    "window_ms": 120000
-  }
-}
-```
+Required fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`.
+
+Priority is not part of create. Use the reorder endpoint after creation.
 
 ### Update Strategy
 
-```
+```bash
 PUT /api/v1/strategies/{strategy_id}
 ```
 
-```json
-{
-  "version": 3,
-  "name": "Updated USDC Deposit Strategy",
-  "..."
-}
-```
+`version` is required for optimistic concurrency. A stale version returns `409 Conflict`.
 
-**Version is required.** Returns `409 Conflict` if the version does not match current state (optimistic concurrency).
-
-### Delete Strategy
-
-```
-DELETE /api/v1/strategies/{strategy_id}
-```
+Priority is not part of update. Use the reorder endpoint.
 
 ### Transition State
 
-```
+```bash
 PATCH /api/v1/strategies/{strategy_id}/state
-{ "state": "RUNNING" }
+{
+  "target_state": "RUNNING",
+  "version": 12
+}
 ```
 
-Valid transitions: `IDLE → RUNNING`, `RUNNING → IDLE`. `PAUSED` is set by the vault kill switch, not by this endpoint.
+Allowed target states include `IDLE`, `RUNNING`, `ARCHIVED`, and `ERROR` depending on current state and policy.
 
-### Hot-Reload
+For emergency exits, arm requests may include `emergency_arm_reason`.
 
+### Reorder Strategies
+
+```bash
+POST /api/v1/strategies/reorder
+{
+  "vault_id": "8453:0xdef...",
+  "lane": "DEPOSIT",
+  "ordered_strategy_ids": ["strategy-a", "strategy-b"]
+}
 ```
-POST /api/v1/strategies/{strategy_id}/reload
-```
 
-Reloads strategy config in the running shard without stopping the tick loop. Use after updating a strategy to apply changes immediately.
+The backend atomically assigns priorities `1..N` inside the `(vault_id, lane)` partition.
 
-### Strategy Intents
+Rules:
 
-```
-GET /api/v1/strategies/{strategy_id}/intents?limit=50
-```
+- Include every non-archived strategy in that lane exactly once.
+- Do not include archived strategies.
+- The lane must match the lane derived from each strategy action.
+- Reorder is the only priority persistence path.
 
-DeFiX intent history for this strategy.
+## Strategy Kinds
 
----
+| Kind | Description |
+|------|-------------|
+| `USER_DEFINED` | Manager-authored strategy visible in normal canvas flows |
+| `EMERGENCY_EXIT` | System-managed withdrawal strategy paired to one whitelisted yield source |
 
-## Vault (Strategy Engine)
+`EMERGENCY_EXIT` strategies are controlled from [Pause Operations](/curate/ui/pause). They are read-only in normal strategy editing flows.
 
-### Get Vault Config
+## Vault Config and Shards
 
-```
+```bash
 GET /api/v1/vaults/{vault_id}
-```
-
-```json
-{
-  "id": "8453:0xdef...",
-  "kill_switch": false,
-  "max_intents_per_minute": 10,
-  "max_active_intents": 3
-}
-```
-
-### Update Vault Config (Kill Switch)
-
-```
 PATCH /api/v1/vaults/{vault_id}
-{ "kill_switch": true }
-```
-
-Engaging the kill switch transitions all `RUNNING` strategies to `PAUSED`.
-
-### Vault Intents
-
-```
-GET /api/v1/vaults/{vault_id}/intents?limit=50
-```
-
-All intents across all strategies for the vault.
-
----
-
-## Engine
-
-### Engine Status
-
-```
 GET /api/v1/engine/status
-```
-
-```json
-{
-  "active_shards": 4,
-  "total_strategies_running": 11
-}
-```
-
-### Shard State
-
-```
 GET /api/v1/engine/shards/{vault_id}/state
 ```
 
-Live in-memory state for the vault's shard:
+Vault state includes kill-switch / rate-limit settings. Shard state includes live indicator values, active strategy state, yield-source allocations, and active `emergency_locks`.
+
+An emergency lock has:
 
 ```json
 {
-  "vault_id": "8453:0xdef...",
-  "strategy_count": 3,
-  "active_intent_count": 1,
-  "tick_interval": 60000,
-  "fields": {
-    "morpho_apy": 0.0823,
-    "free_assets": 150000000000000000000,
-    "tvl": 1250000000000000000000
-  },
-  "strategies": ["..."]
+  "strategy_id": "emergency-8453:0xdef-0xsource...",
+  "target_address": "0xsource...",
+  "started_at": "2026-05-09T14:21:00Z",
+  "reason": "Oracle anomaly"
 }
 ```
 
-Returns `404` when no shard exists (no running strategies). This is not an error.
+## Intent History
 
----
+The Strategy Engine maintains an operator-facing projection of OMS intent execution.
 
-## Data Types
+### Search Intents
 
-### StrategyState
+```bash
+GET /api/v1/intents
+```
 
-| Value | Description |
-|-------|-------------|
-| `CREATED` | Defined, never activated |
-| `IDLE` | Ready, not ticking |
-| `RUNNING` | Actively evaluating rules |
-| `PAUSED` | Halted by kill switch |
-| `ERROR` | Runtime error |
-| `ARCHIVED` | Soft-deleted |
+Common filters:
 
-### IntentAction
+- `vault_id`
+- `strategy_id`
+- `action`
+- `state`
+- `chain_id`
+- `tx_hash`
+- `token_in`, `token_out`
+- created/completed time ranges
+- amount-in ranges
+- `error_code`
+- free-text search across `intent_id`, `execution_id`, `error_message`, and fill transaction hash
 
-`DEPOSIT` | `WITHDRAWAL` | `REBALANCE`
+Cursor pagination is preferred for large histories. Default sort is newest first.
 
-### Rule Node Types
+### Intent Facets
 
-| Type | Fields |
-|------|--------|
-| `EXPR` | `indicator`, `op`, `value` |
-| `AND` | `children: Rule[]` |
-| `OR` | `children: Rule[]` |
-| `NOT` | `child: Rule` |
-| `VOTE` | `children: Rule[]`, `required: number` |
+```bash
+GET /api/v1/intents/facets
+```
+
+Returns counts by state, action, chain, vault, and strategy for filter UIs.
+
+### Events and Fills
+
+```bash
+GET /api/v1/intents/{intent_id}/events
+GET /api/v1/intents/{intent_id}/fills
+GET /api/v1/fills
+```
+
+Use events for lifecycle reconstruction and fills for mined transaction evidence.
+
+Intent rows may include nullable fields while OMS execution is still in flight. For example, `completed_at`, `terminal_at`, `gas_used_total`, and fill data may be `null` until execution events and receipts arrive.
+
+## Important Schemas
+
+### StrategyResponse
+
+Important fields:
+
+- `id`
+- `vault_id`
+- `name`
+- `version`
+- `state`
+- `kind`
+- `indicators`
+- `rules`
+- `action_config`
+- `priority`
+- `cooldown_ms`
+- `max_concurrent`
+
+### IntentLogEntry
+
+Important fields:
+
+- `intent_id`
+- `execution_id`
+- `strategy_id`
+- `vault_id`
+- `action`
+- `state`
+- `source`
+- `fills_count`
+- `last_event_seq`
+- lifecycle timestamps such as `acked_at`, `executing_at`, `completed_at`, `terminal_at`
+- `error_code`, `error_message`
+- `total_amount_in`, `total_amount_out`
+- `gas_used_total`
+
+### IntentFillEntry
+
+Important fields:
+
+- `fill_id`
+- `intent_id`
+- `execution_id`
+- `chain_id`
+- `tx_hash`
+- `amount_in`, `amount_out`
+- `token_in`, `token_out`
+- `gas_used`
+- `fill_time`
+- `venue`
+
+## Endpoint Inventory
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/strategies` | GET | List strategies |
+| `/api/v1/strategies` | POST | Create strategy |
+| `/api/v1/strategies/{id}` | GET | Get strategy |
+| `/api/v1/strategies/{id}` | PUT | Update strategy |
+| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
+| `/api/v1/strategies/{id}/state` | PATCH | Transition state |
+| `/api/v1/strategies/reorder` | POST | Persist lane order |
+| `/api/v1/intents` | GET | Search intent projections |
+| `/api/v1/intents/facets` | GET | Intent facets |
+| `/api/v1/intents/{intent_id}/events` | GET | OMS event log |
+| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
+| `/api/v1/fills` | GET | Search fills |
+| `/api/v1/vaults/{vault_id}` | GET/PATCH | Vault engine config and emergency locks |
+| `/api/v1/engine/status` | GET | Engine status |
+| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state |

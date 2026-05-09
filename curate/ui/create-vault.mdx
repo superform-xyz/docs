@@ -1,92 +1,134 @@
 ---
 title: "Create Vault"
-description: "Multi-step vault creation flow: choose chain, asset, configure fees, sign onchain, and poll for indexing."
+description: "Deploy a SuperVault, attach listing metadata, and move from onchain creation to launch-ready operations."
 ---
 
-The Create Vault flow (`/vaults/create`) deploys a new SuperVault onchain. You configure chain, underlying asset, fees, and managers, then sign a single creation transaction. Erebor handles contract deployment and indexes the new vault.
+The Create Vault flow (`/vaults/create`) deploys a new SuperVault and captures the metadata needed to list it in the Superform catalog. Creation is intentionally split into two phases:
+
+1. Editable configuration before anything is signed.
+2. Operational setup after the vault exists onchain.
+
+Treat creation as the start of launch readiness: finish upkeep, authorization, yield-source, strategy, and catalog setup before routing depositor flows.
+
+## Before You Start
+
+You need:
+
+- A wallet with registry-maintainer access to the institutional dashboard.
+- The underlying token available in the token registry, or enough metadata to register it.
+- An approved provider / institution record for the vault's listing metadata.
+- The primary manager wallet that will own vault-level controls.
+- Fee recipient and fee parameters.
+
+## Editable Wizard Steps
+
+The wizard has four editable steps. You can move back through these steps until you enter the transaction phase.
+
+### 1. Basic Information
+
+Basic Information combines the old chain, asset, identity, and listing screens into one step.
+
+Configure:
+
+- **Chain** — the deployment network. This is permanent after deployment.
+- **Provider / institution** — the approved managed provider associated with the vault.
+- **Underlying asset** — the token users deposit into the vault. You can select a registered token or register a custom token.
+- **Listing metadata** — friendly name, description, category, and provider IDs used by the catalog/listing layer.
+- **Onchain identity** — name and symbol. By default these are computed from institution + asset, with an optional manual override.
 
 <Note>
-The vault creation form and step ordering may change as the product evolves. Screenshots are deferred.
+The onchain vault name and symbol are protocol identity. The friendly name, category, provider IDs, and description are listing metadata used by Superform distribution surfaces.
 </Note>
 
-## Creation Steps
+### 2. Managers
 
-### Step 1: Select Chain
+Set the primary manager and optional secondary managers.
 
-Choose the deployment chain: Ethereum Mainnet (chain ID: 1) or Base (chain ID: 8453). This is permanent. Vaults cannot be migrated between chains.
+- The **primary manager** owns vault settings, user management, session keys, and emergency authority.
+- **Secondary managers** can operate the vault but cannot replace the primary manager or change primary-only settings.
 
-### Step 2: Choose Underlying Asset
+For production vaults, use a hardware-backed wallet or multisig as the primary manager.
 
-Select the token depositors will supply (USDC, WETH, DAI, etc.).
+### 3. Fees
 
-- Browse registered tokens from `GET /api/v1/registry/token-assets?chain_id={}&limit=500`
-- If your token is not listed, click **Register Custom Token** via `PUT /api/v1/registry/token-assets` (idempotent)
+Configure:
 
-### Step 3: Set Name & Symbol
+- Performance fee.
+- Management fee.
+- Fee recipient.
+- PPS timing parameters.
+- Optional redeem timelock.
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| Vault Name | Descriptive name | `"USDC Yield Vault"` |
-| Symbol | Vault share ticker | `"svUSDC"` |
+Fee bounds and protocol constraints are read from protocol configuration. The dashboard prepares valid calldata; your wallet signs the resulting transaction.
 
-### Step 4: Configure Managers
+### 4. Review
 
-Your connected wallet becomes primary manager. Optionally add secondary managers now (or later via [User Management](/curate/ui/user-management)).
+Review everything before entering the transaction phase:
 
-### Step 5: Configure Fees
+- Chain and underlying asset.
+- Provider and listing metadata.
+- Onchain name and symbol.
+- Managers.
+- Fees and timing parameters.
 
-| Field | Description |
-|-------|-------------|
-| Performance Fee (bps) | Charged on yield above the high-water mark |
-| Management Fee (bps) | Annualized charge on TVL |
-| Fee Recipient | Address receiving the institution's fee share |
+After this point, the wizard moves into signing and indexing.
 
-Protocol constraints for vault creation (fee bounds, revenue share parameters) are fetched from onchain SuperGovernor contract data, not a REST API.
+## Transaction and Indexing Phases
 
-### Step 6: Redeem Timelock (Optional)
+### Sign the Creation Transaction
 
-Delay in seconds before redemption requests can be fulfilled. 0 = instant. Changeable later via [Vault Settings](/curate/ui/vault-settings) (primary manager only).
+The dashboard calls Erebor to prepare calldata:
 
-### Step 7: Review SuperGovernor Config
+```bash
+POST /api/v1/vaults/create/prepare
+```
 
-Protocol-level constraints displayed for review: revenue share (bps), performance fee protocol share (bps), minimum staleness interval, upkeep requirements. These are not institution-configurable.
+Your wallet signs and submits the transaction onchain. Erebor does not execute the transaction for you.
 
-### Step 8: Sign Transaction
+### Confirm and Index
 
-Click **Create Vault**:
+After the transaction is broadcast, the dashboard confirms the hash:
 
-1. `POST /api/v1/vaults/create/prepare` → calldata `{ to, data, value }`
-2. Wallet presents transaction for signature
-3. On broadcast, `POST /api/v1/vaults/create/confirm` with the `tx_hash`
+```bash
+POST /api/v1/vaults/create/confirm
+```
 
-<Warning>
-`409 Conflict` on the confirm step means a creation job already exists for this transaction hash. The vault may already be indexing. Check the job status.
-</Warning>
-
-### Step 9: Poll Job Status
-
-Erebor creates a background indexing job. The modal polls with exponential backoff: 3s → 6s → 12s → 24s → 30s cap. Timeout: 3 minutes.
+Erebor creates an indexing job and the UI polls:
 
 ```bash
 GET /api/v1/vaults/create/jobs/{job_id}
 ```
 
-| Status | Description |
-|--------|-------------|
-| `pending` | Job queued |
-| `running` | Indexing in progress |
-| `completed` | Vault indexed; redirects to Dashboard |
-| `failed` | Check `error_message` |
+Statuses are `pending`, `running`, `completed`, or `failed`.
+
+During indexing, the dashboard also submits the listing metadata to the catalog layer when the vault address is resolved. If catalog submission fails, the vault can still exist onchain; complete listing from the distribution/listing flow.
+
+<Warning>
+`409 Conflict` on confirm means a creation job already exists for that transaction hash. Check the existing job before retrying.
+</Warning>
+
+## Post-Create Setup
+
+Once the vault is indexed, complete the launch checklist:
+
+1. Vault exists onchain and appears in dashboard data.
+2. Upkeep is funded so the vault becomes active and discoverable.
+3. Hooks are configured in the active merkle root config.
+4. Yield sources are whitelisted and paired with oracles.
+5. At least one strategy exists for the vault.
+6. The vault is listed and available in the Superform catalog.
+
+See [Setup Checklist](/curate/ui/setup-checklist) for the canonical readiness flow.
 
 ## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `GET /api/v1/registry/token-assets` | GET | Token list |
-| `PUT /api/v1/registry/token-assets` | PUT | Register custom token |
-| `POST /api/v1/vaults/create/prepare` | POST | Creation calldata |
-| `POST /api/v1/vaults/create/confirm` | POST | Submit tx hash |
-| `GET /api/v1/vaults/create/jobs/{id}` | GET | Poll job status |
+| `/api/v1/registry/token-assets` | GET | Browse registered token assets |
+| `/api/v1/registry/token-assets` | PUT | Register or upsert a custom token |
+| `/api/v1/vaults/create/prepare` | POST | Prepare creation calldata |
+| `/api/v1/vaults/create/confirm` | POST | Confirm creation transaction hash |
+| `/api/v1/vaults/create/jobs/{id}` | GET | Poll indexing job status |
 
 ### PrepareCreateVaultRequest
 
@@ -94,9 +136,9 @@ GET /api/v1/vaults/create/jobs/{job_id}
 {
   "chain_id": 8453,
   "asset": "0xUSDC...",
-  "name": "USDC Yield Vault",
-  "symbol": "svUSDC",
-  "main_manager": "0xYourWallet...",
+  "name": "Provider USDC SuperVault",
+  "symbol": "proUSDC",
+  "main_manager": "0xPrimaryManager...",
   "secondary_managers": [],
   "min_update_interval": 3600,
   "max_staleness": 86400,

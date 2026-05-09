@@ -1,0 +1,121 @@
+---
+title: "Infrastructure Sizing"
+description: "Decision guide for sizing compute, database, key custody, and monitoring for a Superform validator node."
+---
+
+Use this page to choose the infrastructure tier for a Superform validator. The node is lightweight: it observes SuperVault PPS values, participates in OCR2 consensus, signs reports, and persists round state.
+
+It does **not** run an archive node, index chains, or replace your RPC provider. In production, most operator cost comes from RPC endpoints, managed Postgres, monitoring, and signing-key custody rather than the validator binary itself.
+
+## How much infrastructure do validators need?
+
+For most approved operators, start with the recommended baseline:
+
+- 2 vCPU / 2 GB RAM validator host
+- static public endpoint for ragep2p on TCP `6690`
+- managed PostgreSQL 15+
+- production RPC provider coverage for every assigned chain
+- KMS-backed onchain signing where supported
+- Prometheus-compatible metrics, alerts, and basic logs
+
+The validator can run on AWS, GCP, Azure, Hetzner, OVH, or bare metal. Pick the platform you can operate reliably. A cheap VPS with weak backups, no alerting, and a rotating IP is worse than a slightly more expensive managed setup.
+
+## Recommended production baseline
+
+Reference production deployment for a single validator:
+
+| Component | Recommended baseline |
+|-----------|----------------------|
+| Compute | 1 validator host, 2 vCPU ARM/x86, 2 GB RAM |
+| Disk | 16–20 GB encrypted SSD |
+| Public networking | Static IP or stable DNS name; direct TCP `6690` reachability |
+| Database | Managed PostgreSQL 15+, single-AZ, 20 GB, TLS, 7-day backups |
+| Key custody | KMS-backed secp256k1 onchain signer; local or keystore-managed OCR2/P2P identities |
+| Monitoring | Prometheus metrics, Grafana dashboards/alerts, log retention |
+| RPC | Paid HTTPS + WSS endpoints for each assigned chain |
+
+This baseline is enough because the node is mostly stateless outside Postgres. OCR2 round state is small and recoverable; RPC quality and network reachability matter more than raw CPU.
+
+## Sizing tiers
+
+| Component | Minimum | Recommended | High-Availability |
+|-----------|---------|-------------|-------------------|
+| Use case | Testnet, staging, evaluation | Production validator | Operators with SLA requirements |
+| Node CPU | 2 vCPU | 2 vCPU | 4 vCPU |
+| Node RAM | 2 GB | 2 GB | 4–8 GB |
+| Node disk | 20 GB SSD | 16–20 GB encrypted SSD | 20+ GB encrypted SSD |
+| Architecture | x86_64 or arm64 | arm64 preferred | arm64 preferred |
+| Public IP | Dynamic acceptable for tests | Static IP / stable DNS | Static IP / stable DNS with failover plan |
+| Postgres | Local or self-hosted | Managed single-AZ, 20 GB | Managed multi-AZ, 20–50 GB |
+| Key custody | Local encrypted keystore | Cloud KMS for onchain key | Cloud KMS or HSM-backed signer |
+| Metrics | Local Prometheus | Prometheus + Grafana alerts | Managed metrics + paging |
+| Backups | Manual | 7-day database backups | 7-day backups + cross-region snapshot policy |
+| Network | Non-residential preferred | Datacenter network, 100 Mbps+ | Datacenter network, 1 Gbps / SLA-backed |
+
+<Note>
+Minimum is not a production recommendation. Use it to evaluate the software, not to operate a live validator with meaningful stake or uptime expectations.
+</Note>
+
+## AWS cost estimate
+
+Approximate AWS `eu-west-1` on-demand reference pricing for the recommended baseline. These are maintainable planning numbers, not a quote. They exclude Savings Plans, Reserved Instances, taxes, support plans, and RPC provider fees.
+
+| Item | Reference spec | Approx. monthly cost |
+|------|----------------|----------------------|
+| EC2 `t4g.small` | 730 h × public on-demand rate | ~$12 |
+| EBS gp3 root disk | 16 GB encrypted gp3 | ~$1.5 |
+| RDS PostgreSQL | `db.t4g.micro`, single-AZ | ~$13 |
+| RDS storage + backups | 20 GB gp3 + 7-day backups | ~$3 |
+| AWS Managed Prometheus | ~10M allowlisted samples/month | ~$9 |
+| KMS key + signing API calls | 1 asymmetric secp256k1 CMK | ~$1–3 |
+| Secrets Manager | ~5 secrets | ~$2 |
+| ECR / SSM / CloudWatch logs | Light operational usage | ~$1–3 |
+| Data transfer | ragep2p + RPC client traffic | ~$2–5 |
+| **Total before RPC fees** | Single validator | **~$45–55/month** |
+
+RPC fees are separate and may be the largest operating line item. Budget for reliable HTTPS and WSS endpoints on every assigned chain through Alchemy, QuickNode, or an equivalent provider.
+
+Adding a separate optional snapshot service host typically adds about **$20–25/month** for another small EC2 host, EIP, and extra metric ingestion. Redis or other cache costs depend on the deployment shape and whether the service is shared.
+
+## Cloud and bare-metal equivalents
+
+Rough equivalents for the recommended tier:
+
+| Provider | Compute | Database |
+|----------|---------|----------|
+| AWS | `t4g.small` | RDS PostgreSQL `db.t4g.micro`, single-AZ |
+| GCP | `t2a-standard-1` or small x86 VM | Cloud SQL PostgreSQL small shared/burstable tier |
+| Azure | `B2pls v2` or comparable 2 vCPU VM | Azure Database for PostgreSQL burstable tier |
+| Hetzner Cloud | `CAX11` or comparable 2 vCPU VM | Managed Postgres if available, otherwise self-hosted with backups |
+| OVHcloud | Small 2 vCPU public cloud or ARM bare-metal host | Public Cloud Database for PostgreSQL |
+| Bare metal | Any reliable 2 vCPU / 2 GB server with SSD | Self-hosted PostgreSQL 15+ with tested backups |
+
+Hetzner, OVH, and bare-metal deployments can be cheaper than AWS. The tradeoff is operational ownership: backups, monitoring, failover, OS patching, network reliability, and key custody become your responsibility.
+
+## Optional snapshot service
+
+Some vaults need a price provider for cross-asset PPS conversion, such as Pendle, Spectra, or staking-style vaults that report shares in a different unit than the deposit asset.
+
+When those vaults are assigned, operators may run `snapshotd` as either:
+
+- **IPC sidecar**: same host as the validator, communicating over a Unix socket. Lowest cost and simplest when one validator consumes it.
+- **Standalone HTTP service**: separate host with JWT-gated HTTPS, useful when multiple validators or services share one snapshot endpoint.
+
+If all assigned vaults are standard ERC-4626 and do not require cross-asset conversion, the validator can read directly from configured vault contracts and the snapshot service may not be needed.
+
+## What to read next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/build/become-a-validator/quickstart">
+    Fast end-to-end checklist once you are approved.
+  </Card>
+  <Card title="Node Setup" icon="server" href="/build/become-a-validator/node-setup">
+    Install the node, configure runtime files, and verify startup.
+  </Card>
+  <Card title="Configuration Reference" icon="sliders" href="/build/become-a-validator/configuration-reference">
+    Full `config.toml`, `chains.yaml`, KMS, and OCR2 timing reference.
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/build/become-a-validator/monitoring">
+    Health endpoints, priority metrics, alerts, and operating habits.
+  </Card>
+</CardGroup>

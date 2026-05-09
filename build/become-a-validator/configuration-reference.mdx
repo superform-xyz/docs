@@ -57,7 +57,7 @@ kms_key_id = "arn:aws:kms:us-east-1:123456789:key/abcd-1234"
 
 Use this when you want the offchain/OCR2 identity managed separately from the production onchain signer. Supported KMS identifiers: full ARN, alias, or UUID.
 
-The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`.
+The KMS key must be an asymmetric signing key of type `ECC_SECG_P256K1`. In production, authorize only the validator runtime role to call `kms:Sign`. Keep admin principals able to manage the key, but do not grant them signing rights unless they also operate the validator. This keeps operational administration separate from report-signing authority.
 
 ### `[p2p]`
 

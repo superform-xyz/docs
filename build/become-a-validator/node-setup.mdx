@@ -3,7 +3,7 @@ title: "Node Setup"
 description: "Canonical install guide for running a Superform validator node with Docker or from source."
 ---
 
-This is the canonical setup guide. Use it when you need the full install flow, not just the short checklist.
+This is the canonical setup guide. Use it when you need the full install flow, not just the short checklist. Size production hosts first with [Infrastructure Sizing](/build/become-a-validator/infrastructure).
 
 ## Before you install
 
@@ -218,6 +218,15 @@ make docker-clean
 </Tabs>
 
 ---
+
+## Optional snapshot service
+
+Some assigned vaults may require `snapshotd` for cross-asset PPS conversion. If Superform tells you to run it, deploy it either as:
+
+- an IPC sidecar on the validator host using a Unix socket, or
+- a standalone HTTPS service protected by JWT when multiple validators or services share it.
+
+Skip it unless your assigned vault set requires it. Standard ERC-4626 vaults can be observed directly from configured contracts.
 
 ## Key management rules that matter during setup
 

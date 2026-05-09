@@ -94,6 +94,7 @@
             "pages": [
               "build/become-a-validator/index",
               "build/become-a-validator/quickstart",
+              "build/become-a-validator/infrastructure",
               "build/become-a-validator/node-setup",
               "build/become-a-validator/operations",
               "build/become-a-validator/configuration-reference",

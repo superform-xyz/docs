@@ -55,6 +55,20 @@ If you only alert on a handful of metrics, start here:
 - `ocr2_plugin_observations_total` (labels: `chain_id`, `result`) — counter of per-strategy observation outcomes
 - `ocr2_plugin_insufficient_observations_total` (label: `chain_id`) — counter of vaults dropped because quorum observations were not available
 
+## Alerting baseline
+
+For production, alert on the smallest set of signals that prove the node can observe, participate, and transmit:
+
+| Signal | Suggested action |
+|--------|------------------|
+| `ocr2_up` missing or `0` | Page or notify the operator immediately |
+| `ocr2_strategy_update_stale == 1` | Treat as an incident; check RPC, config, and transmission logs |
+| `ocr2_transmit_total{status="failure"}` increasing | Investigate transmitter key, RPC health, gas, and contract reverts |
+| `ocr2_plugin_observations_total{result="error"}` increasing | Check per-chain RPC health and vault configuration |
+| Unexpected `ocr2_config_version` | Confirm the node loaded the intended onchain config |
+
+Email, Slack, or SNS-style notifications are enough for most operators. Operators with SLA requirements should route these alerts into PagerDuty, Opsgenie, or an equivalent on-call system.
+
 ## Recommended operating habit
 
 After every config change, restart, or upgrade, verify three things in this order:

@@ -5,7 +5,7 @@ description: "The canonical post-create path from onchain vault to live Superfor
 
 The Setup page turns a newly-created SuperVault into an operational and discoverable vault. Use it after Create Vault and after any major configuration reset.
 
-A SuperVault can be deployed onchain before it is operationally live. Use this page to close the gap between **created** and **available**.
+Use this page to move from created to available: fund upkeep, configure hooks, add yield sources, create strategies, and complete catalog listing.
 
 ## Checklist rows
 
@@ -22,7 +22,7 @@ Statuses are `complete`, `in_progress`, `needs_setup`, or `blocked`.
 
 ## Activation gate
 
-Upkeep is the activation gate. A vault can be created and visible to managers by direct link while still not active or discoverable. Fund upkeep from **Vault Settings → Upkeep**. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
+Upkeep is the activation gate. Fund upkeep from **Vault Settings → Upkeep** to enable automation and discovery. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
 
 Current Erebor-facing activation fields used by the UI include:
 
@@ -51,4 +51,4 @@ The live-on-Superform row compares the managed vault against catalog data. Evide
 
 ## Operator rule
 
-Do not route deposits into a vault just because creation succeeded. Wait for the checklist to show that upkeep, hooks, yield sources, strategies, and listing availability are all complete.
+Route deposits only after the checklist shows that upkeep, hooks, yield sources, strategies, and listing availability are all complete.

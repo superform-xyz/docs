@@ -5,10 +5,10 @@ description: "Deploy a SuperVault, attach listing metadata, and move from onchai
 
 The Create Vault flow (`/vaults/create`) deploys a new SuperVault and captures the metadata needed to list it in the Superform catalog. Creation is intentionally split into two phases:
 
-1. **Editable configuration** before anything is signed.
-2. **Operational setup** after the vault exists onchain.
+1. Editable configuration before anything is signed.
+2. Operational setup after the vault exists onchain.
 
-A created vault is not necessarily live for depositors. Treat the transaction as the start of launch readiness, not the end of it.
+Treat creation as the start of launch readiness: finish upkeep, authorization, yield-source, strategy, and catalog setup before routing depositor flows.
 
 ## Before You Start
 

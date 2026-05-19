@@ -1,0 +1,118 @@
+---
+title: "SuperformOS"
+description: "How SuperformOS makes programmable vault strategy logic visible, bounded, executable, and verifiable."
+---
+
+SuperformOS is the operating layer for programmable vaults. It connects a vault's onchain contracts, operator-defined rules, automation services, proof artifacts, and price attestations into one verifiable operating surface.
+
+The goal is simple: a vault should not be a black box. Users and partners should be able to inspect what a vault is allowed to do, how strategy decisions are constrained, how execution happens, and what changed over time.
+
+## Built On ERC-7540
+
+SuperformOS is not an offchain vault wrapper. It is an operating system around onchain [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) SuperVaults.
+
+The vault contract holds depositor assets, issues shares, and enforces the core request and fulfillment flow. SuperformOS sits around that onchain vault: it helps operators define strategy rules, authorize executable actions, coordinate automation, maintain price attestations, and inspect operating history.
+
+SuperformOS simply makes vault operations easier to run for everyone to see, but it does not replace the vault contract as the source of custody or protocol enforcement.
+
+## The Operating Stack
+
+SuperformOS coordinates five layers:
+
+| Layer | What it does | Where to go deeper |
+|-------|--------------|--------------------|
+| SuperVault contracts | Hold assets, issue shares, enforce vault-level constraints, and process ERC-7540 request flows | [SuperVaults](/learn/supervaults) |
+| Operator configuration | Defines yield sources, oracles, managers, fees, service controls, and operational permissions | [Vault Settings](/operate/ui/vault-settings) |
+| Strategy rules | Expresses deposit, withdrawal, rebalance, and claim logic as rule-based strategies | [Strategy Canvas](/operate/ui/strategy) |
+| Merkle authorization | Converts approved actions into onchain roots and proof artifacts so execution stays inside disclosed permissions | [Merkle Trees](/operate/ui/merkle-trees) |
+| Automation and intents | Evaluates rules, submits DeFiX intents, executes hooks, and records lifecycle evidence | [Intent History](/operate/ui/intent-history) |
+
+## What Operators Define
+
+Operators use SuperformOS to turn a vault mandate into explicit operating rules:
+
+- which yield sources the vault can use
+- which oracles price those positions
+- which hooks and action parameters are authorized
+- how deposits, withdrawals, claims, and rebalances are handled
+- which operators have access
+- when services should pause, resume, or drain risk
+- how the vault appears in Superform distribution surfaces
+
+Those choices are not just UI settings. The parts that change protocol behavior are prepared as calldata, signed by the authorized wallet, and enforced by the relevant onchain contracts.
+
+<Note>
+SuperformOS never takes custody of vault assets or private keys. It prepares transactions, displays operational state, and coordinates automation. Onchain state changes still require authorized signatures.
+</Note>
+
+## What The Protocol Enforces
+
+SuperformOS is useful because the operating layer maps to protocol-enforced constraints:
+
+| Constraint | Enforcement model |
+|------------|-------------------|
+| Custody | Depositor funds stay in the SuperVault contract. |
+| Execution permissions | Hooks must match authorized merkle leaves before execution. |
+| Strategy changes | Hook-root updates follow proposal and timelock flows. |
+| Pricing | PPS updates require validator-signed attestations and staleness checks. |
+| Fees | Fee bounds and fee accrual are enforced by SuperVault contracts and SuperGovernor constraints. |
+| Emergency response | Operators can pause services, pause vault operations, or arm target-specific emergency exits. |
+
+This is the difference between a private operating process and a verifiable strategy engine: the rules are visible, and execution is constrained by the system.
+
+## How Execution Flows
+
+<Steps>
+  <Step title="Define the vault">
+    The operator creates or imports a SuperVault, assigns operators, configures fees, funds upkeep, and prepares the vault for listing.
+  </Step>
+  <Step title="Authorize actions">
+    The operator configures allowed hooks and parameters. SuperformOS generates merkle roots and proof artifacts, then the authorized wallet proposes and publishes them onchain.
+  </Step>
+  <Step title="Create strategies">
+    The operator defines rule-based strategies for deposits, withdrawals, claims, swaps, bridges, or rebalances.
+  </Step>
+  <Step title="Evaluate and execute">
+    Strategy Engine evaluates rules on ticks. When conditions pass, it submits DeFiX intents to OMS, which validates authorization and executes the corresponding hook transactions.
+  </Step>
+  <Step title="Inspect history">
+    SuperformOS records strategy state, intent lifecycle, events, fills, errors, and transaction hashes so operators can inspect what happened and why.
+  </Step>
+</Steps>
+
+## Price-Per-Share And Upkeep
+
+PPS is the accounting value of one vault share in the underlying asset. It determines deposit and redemption exchange rates, high-water-mark fee accrual, and whether a vault is operational.
+
+Validators compute PPS offchain, sign EIP-712 attestations, and submit updates onchain. Updates are checked for quorum, signature validity, timestamp staleness, replay protection, and abnormal movement.
+
+Operators fund upkeep so validators can keep PPS current. If upkeep is insufficient or PPS goes stale, vault operations can be blocked until the issue is resolved.
+
+## Roles In SuperformOS
+
+SuperformOS uses operator language in the product, but some onchain roles have precise names:
+
+| Role | Meaning |
+|------|---------|
+| Primary manager | Highest-authority onchain vault operator. Set at creation. |
+| Secondary manager | Onchain delegate for operational work. |
+| View-only user | Offchain read access for monitoring and review. |
+| Registry maintainer | Admin role for global registry and provider workflows. |
+| Validator | Attests vault PPS updates. |
+| Guardian / governance | Handles protocol-level emergency and governance powers where applicable. |
+
+Use [Permissions](/operate/permissions) for the full access matrix.
+
+## Why This Matters
+
+Programmable vaults need more than contracts and dashboards. They need an operating layer where strategy can be expressed, constrained, executed, reviewed, and distributed.
+
+SuperformOS makes that operating layer inspectable:
+
+- operators can launch vaults without rebuilding the full stack
+- strategies can be described as rules instead of private process
+- actions can be bounded by merkle authorization
+- pricing can be backed by validator attestations
+- operating history can be reviewed after the fact
+
+That is the standard SuperformOS is built around: not just non-custodial vaults, but verifiable vault operations.

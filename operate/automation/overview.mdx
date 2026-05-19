@@ -1,9 +1,9 @@
 ---
-title: "Building Institutional Automation"
+title: "Automating SuperformOS"
 description: "Programmatic auth, safety patterns, and an end-to-end example for automated vault operations."
 ---
 
-Automated institutional operators monitor vault state 24/7, define rule-based strategies via the Strategy Canvas, pause services on anomaly detection, and execute operations without human latency. SuperVaults supports full programmatic control via the Erebor management API and the Strategy Engine.
+Automated operators monitor vault state 24/7, define rule-based strategies via the Strategy Canvas, pause services on anomaly detection, and execute operations without human latency. SuperVaults supports full programmatic control via the Erebor management API and the Strategy Engine.
 
 ## Authentication for Automation
 
@@ -35,7 +35,7 @@ print(f"Vaults: {[v['vault_address'] for v in user['vaults']]}")
 
 ```typescript TypeScript
 const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.CURATOR_JWT!;
+const JWT = process.env.SUPERFORMOS_JWT!;
 
 const headers = { Authorization: `Bearer ${JWT}` };
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
 ```typescript TypeScript
 const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.CURATOR_JWT!;
+const JWT = process.env.SUPERFORMOS_JWT!;
 const CHAIN_ID = 8453;
 const VAULT_ADDRESS = "0xYourVault...";
 const headers = { Authorization: `Bearer ${JWT}` };
@@ -186,10 +186,10 @@ setInterval(checkVaultHealth, 60_000);
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Monitoring" icon="chart-line" href="/curate/automation/monitoring">
+  <Card title="Monitoring" icon="chart-line" href="/operate/automation/monitoring">
     Poll vault state and build alert conditions.
   </Card>
-  <Card title="Webhooks" icon="webhook" href="/curate/automation/webhooks">
+  <Card title="Webhooks" icon="webhook" href="/operate/automation/webhooks">
     Audit logs as interim event stream.
   </Card>
 </CardGroup>

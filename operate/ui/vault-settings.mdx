@@ -3,6 +3,8 @@ title: "Vault Settings"
 description: "Configure fees, PPS parameters, redeem timelock, banned hook leaves, session keys, notifications, and upkeep activation."
 ---
 
+![SuperformOS Vault Settings — fees, PPS, upkeep, session keys, and notifications](/operate/images/screenshots/vault-settings.jpg)
+
 Vault Settings is the configuration hub for vault-level controls. Most settings use the same pattern: Erebor prepares calldata, the manager wallet signs, and the protocol contract applies the change onchain.
 
 <Note>
@@ -13,7 +15,7 @@ Prepare endpoints return transaction data. They do not mutate protocol state by 
 
 Primary managers own sensitive vault settings. Secondary managers can operate the vault but do not control primary-only settings such as manager assignment and some security parameters.
 
-See [Permissions Model](/curate/permissions) for the full matrix.
+See [Permissions Model](/operate/permissions) for the full matrix.
 
 ## Fees
 
@@ -111,7 +113,7 @@ Erebor exposes vault-scoped session-key inventory and prepare endpoints:
 | `/api/v1/vaults/session-key/prepare` | POST | Prepare grant transaction |
 | `/api/v1/vaults/session-key/revoke/prepare` | POST | Prepare revoke transaction |
 
-OMS also exposes strategy-automation session-key readiness and rotation endpoints. See [OMS API](/curate/api/oms).
+OMS also exposes strategy-automation session-key readiness and rotation endpoints. See [OMS API](/operate/api/oms).
 
 ## Notification Channels
 

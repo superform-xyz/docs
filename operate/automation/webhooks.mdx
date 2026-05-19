@@ -3,7 +3,7 @@ title: "Notifications and Event Streams"
 description: "Use notification channels, audit logs, and polling to stream SuperVault operational events."
 ---
 
-Curate exposes two event surfaces for operators:
+Operate exposes two event surfaces for operators:
 
 1. **Notification channels** for routed operational alerts.
 2. **Audit logs and polling** for integration-grade event reconstruction.
@@ -38,7 +38,7 @@ Recommended alert categories:
 - Merkle generation or publish failure.
 - Repeated OMS execution failure.
 
-See [Alerts](/curate/ui/alerts) for the operator flow.
+See [Alerts](/operate/ui/alerts) for the operator flow.
 
 ## Audit Logs as an Event Stream
 
@@ -135,4 +135,4 @@ while True:
 | Intent execution | `GET /api/v1/intents` and OMS event/fill endpoints |
 | Emergency locks | `GET /api/v1/engine/shards/{vault_id}/state` |
 
-See [Monitoring Vault State](/curate/automation/monitoring) for production-ready polling examples.
+See [Monitoring Vault State](/operate/automation/monitoring) for production-ready polling examples.

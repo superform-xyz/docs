@@ -1,0 +1,61 @@
+---
+title: "What is SuperformOS?"
+description: "SuperformOS is the operating system for programmable vaults: transparent rules, bounded execution, validator-attested pricing, and auditable operating history."
+---
+
+SuperformOS is the operating system for programmable vaults. It lets operators launch, operate, and distribute SuperVaults with transparent rules, bounded execution, validator-attested pricing, and auditable operating history.
+
+Most vaults call themselves non-custodial, but their strategy logic still lives in private workflows: manual rebalances, internal scripts, multisig decisions, or trusted operator processes. SuperformOS moves that logic into a visible operating surface.
+
+Operators define what a vault is allowed to do. Users and partners can inspect the mandate, eligible actions, yield sources, pricing controls, and operating history. Execution stays inside the rules the vault has disclosed.
+
+## What SuperformOS Does
+
+<CardGroup cols={2}>
+  <Card title="Create and Launch Vaults" icon="rocket" href="/operate/ui/create-vault">
+    Deploy a SuperVault, attach listing metadata, fund upkeep, and move from onchain creation to live distribution.
+  </Card>
+  <Card title="Authorize Execution" icon="shield-check" href="/operate/ui/merkle-trees">
+    Configure approved actions, generate merkle roots, sync authorization onchain, and publish proof artifacts.
+  </Card>
+  <Card title="Operate Strategies" icon="diagram-project" href="/operate/ui/strategy">
+    Build rule-based deposit, withdrawal, and rebalance logic with OMS-backed intent execution.
+  </Card>
+  <Card title="Use Risk Controls" icon="triangle-exclamation" href="/operate/ui/pause">
+    Pause vaults, pause services, and arm per-yield-source emergency liquidity exits when conditions change.
+  </Card>
+</CardGroup>
+
+## Operator Jobs
+
+<Steps>
+  <Step title="Prepare access">
+    Review [Prerequisites](/operate/prerequisites), [Authentication](/operate/authentication), and [Permissions](/operate/permissions).
+  </Step>
+  <Step title="Create the vault">
+    Use the four-step [Create Vault](/operate/ui/create-vault) wizard to configure identity, operators, fees, and listing metadata.
+  </Step>
+  <Step title="Complete launch readiness">
+    Work through the [Setup Checklist](/operate/ui/setup-checklist): created, upkeep funded, hooks configured, yield sources whitelisted, strategy created, and catalog listed/available.
+  </Step>
+  <Step title="Run the vault">
+    Monitor [Dashboard](/operate/ui/dashboard), [Strategy Canvas](/operate/ui/strategy), [Yield Sources](/operate/ui/yield-sources), and [Merkle Trees](/operate/ui/merkle-trees).
+  </Step>
+  <Step title="Respond to incidents">
+    Use [Pause Operations](/operate/ui/pause), [Alerts](/operate/ui/alerts), audit logs, and notification channels to halt or drain risk when needed.
+  </Step>
+</Steps>
+
+## API Surface
+
+SuperformOS is backed by three main services:
+
+- [Erebor](/operate/api/erebor) — vault management, settings, registries, merkle workflows, upkeep, users, notifications, and pause controls.
+- [Strategy Engine](/operate/api/strategy) — strategies, ordering, live shards, intent projections, fills, and emergency locks.
+- [OMS](/operate/api/oms) — DeFiX intent execution, events, hook transactions, and session-key readiness.
+
+See [Operate API Overview](/operate/api/overview) for the service map.
+
+<Note>
+SuperformOS prepares transactions and displays operational state. Protocol state changes still happen through signed onchain transactions from the authorized operator wallet.
+</Note>

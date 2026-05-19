@@ -3,7 +3,9 @@ title: "Strategy Canvas"
 description: "Build, order, run, and monitor automated SuperVault strategies."
 ---
 
-The Strategy Canvas is where managers define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
+![SuperformOS Strategy Canvas — automated vault strategy lanes and controls](/operate/images/screenshots/strategy.jpg)
+
+The Strategy Canvas is where operators define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
 
 The canvas is organized by action lane:
 
@@ -93,7 +95,7 @@ Emergency liquidity exits create target-scoped locks. While a lock exists for a 
 - User-defined strategies targeting that address cannot publish new intents.
 - Affected toggles and reorder handles are disabled in the UI.
 - Strategies on other targets remain operable.
-- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/curate/ui/pause), not the normal editor.
+- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/operate/ui/pause), not the normal editor.
 
 The canvas reads `emergency_locks` from shard / vault state and displays a banner when active.
 
@@ -119,13 +121,13 @@ GET /api/v1/intents/{intent_id}/fills
 GET /api/v1/fills
 ```
 
-See [Strategy Engine API](/curate/api/strategy) and [OMS API](/curate/api/oms).
+See [Strategy Engine API](/operate/api/strategy) and [OMS API](/operate/api/oms).
 
 ## Session Key Gate
 
-Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points managers to grant or renew the key.
+Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points operators to grant or renew the key.
 
-See [OMS API](/curate/api/oms#session-keys) for the session-key endpoints.
+See [OMS API](/operate/api/oms#session-keys) for the session-key endpoints.
 
 ## API Reference
 

@@ -1,18 +1,18 @@
 ---
-title: "Curate API Overview"
+title: "Operate API Overview"
 description: "How Erebor, Strategy Engine, OMS, and merkle publishing fit together for SuperVault operations."
 ---
 
-Curate is the institutional control plane for SuperVaults. Its APIs split by operational responsibility.
+Operate is the operator control plane for SuperVaults. Its APIs split by operational responsibility.
 
 ## Services
 
 | Service | Owns | Docs |
 |---------|------|------|
-| Erebor | Vault reads, settings, registries, merkle config, upkeep, users, pause controls | [Erebor API](/curate/api/erebor) |
-| Strategy Engine | Strategy lifecycle, ordering, live shards, intent projections, emergency locks | [Strategy API](/curate/api/strategy) |
-| OMS | DeFiX intent execution, events, session-key readiness, hook transactions | [OMS API](/curate/api/oms) |
-| Public merkle artifact | Published proof data for keepers and integrators | [Merkle Publishing](/curate/api/merkle-publish) |
+| Erebor | Vault reads, settings, registries, merkle config, upkeep, users, pause controls | [Erebor API](/operate/api/erebor) |
+| Strategy Engine | Strategy lifecycle, ordering, live shards, intent projections, emergency locks | [Strategy API](/operate/api/strategy) |
+| OMS | DeFiX intent execution, events, session-key readiness, hook transactions | [OMS API](/operate/api/oms) |
+| Public merkle artifact | Published proof data for keepers and integrators | [Merkle Publishing](/operate/api/merkle-publish) |
 
 ## Auth
 
@@ -22,7 +22,7 @@ Authenticated endpoints use Dynamic-issued bearer JWTs:
 Authorization: Bearer <jwt>
 ```
 
-Public endpoints, such as published merkle artifacts and public vault listings, do not require a manager JWT.
+Public endpoints, such as published merkle artifacts and public vault listings, do not require an operator JWT.
 
 ## Prepare, Sign, Confirm
 
@@ -47,16 +47,16 @@ Those are related but separate states. The dashboard setup flow tracks them toge
 
 ## Strategy Execution Flow
 
-1. Manager configures hooks and publishes merkle authorization.
-2. Manager whitelists yield sources and pairs oracles.
-3. Manager creates and orders strategies.
+1. Operator configures hooks and publishes merkle authorization.
+2. Operator whitelists yield sources and pairs oracles.
+3. Operator creates and orders strategies.
 4. Strategy Engine evaluates rules and submits DeFiX intents.
 5. OMS validates authorization and executes hook transactions.
 6. Events and fills flow back into intent history.
 
 ## API Reference Pages
 
-- [Erebor API](/curate/api/erebor)
-- [Strategy Engine API](/curate/api/strategy)
-- [OMS API](/curate/api/oms)
-- [Merkle Publishing](/curate/api/merkle-publish)
+- [Erebor API](/operate/api/erebor)
+- [Strategy Engine API](/operate/api/strategy)
+- [OMS API](/operate/api/oms)
+- [Merkle Publishing](/operate/api/merkle-publish)

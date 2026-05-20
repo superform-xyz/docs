@@ -145,6 +145,12 @@
             ]
           },
           {
+            "group": "Strategy Authoring",
+            "pages": [
+              "operate/strategy/quickstart"
+            ]
+          },
+          {
             "group": "Access & Settings",
             "pages": [
               "operate/ui/vault-settings",

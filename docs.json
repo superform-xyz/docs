@@ -145,6 +145,17 @@
             ]
           },
           {
+            "group": "Strategy",
+            "pages": [
+              "operate/strategy/quickstart",
+              "operate/strategy/cookbook",
+              "operate/strategy/dsl",
+              "operate/strategy/action-config",
+              "operate/strategy/troubleshooting",
+              "operate/strategy/anti-patterns"
+            ]
+          },
+          {
             "group": "Access & Settings",
             "pages": [
               "operate/ui/vault-settings",

@@ -3,6 +3,8 @@ title: "Yield Source Management"
 description: "Whitelist yield sources, pair oracles, and keep emergency-exit coverage in sync."
 ---
 
+![SuperformOS Yield Source Management — whitelist and oracle pairing controls](/operate/images/screenshots/yield-sources.jpg)
+
 Yield Source Management controls where a SuperVault is allowed to deploy capital. Each source is a protocol position, such as an ERC-4626 vault or Pendle PT, paired with an oracle that prices the position back into the vault's underlying asset.
 
 All whitelist mutations use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
@@ -40,7 +42,7 @@ POST /api/v1/yield-sources/prepare-bulk-remove
 Before removing, confirm the vault has no deployed liquidity in the source.
 
 <Warning>
-Removing a yield source does not unwind assets. Withdraw first, or use [Pause Operations](/curate/ui/pause) to arm an emergency drain when the situation requires immediate exit.
+Removing a yield source does not unwind assets. Withdraw first, or use [Pause Operations](/operate/ui/pause) to arm an emergency drain when the situation requires immediate exit.
 </Warning>
 
 When a whitelisted source is removed, the paired `EMERGENCY_EXIT` strategy is archived. If an emergency lock is active for that source, removal is blocked until the operator stops the drain.

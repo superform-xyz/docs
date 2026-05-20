@@ -14,9 +14,9 @@ Treat creation as the start of launch readiness: finish upkeep, authorization, y
 
 You need:
 
-- A wallet with registry-maintainer access to the institutional dashboard.
+- A wallet with registry-maintainer access to SuperformOS.
 - The underlying token available in the token registry, or enough metadata to register it.
-- An approved provider / institution record for the vault's listing metadata.
+- An approved provider record for the vault's listing metadata.
 - The primary manager wallet that will own vault-level controls.
 - Fee recipient and fee parameters.
 
@@ -31,10 +31,10 @@ Basic Information combines the old chain, asset, identity, and listing screens i
 Configure:
 
 - **Chain** — the deployment network. This is permanent after deployment.
-- **Provider / institution** — the approved managed provider associated with the vault.
+- **Provider** — the approved managed provider associated with the vault.
 - **Underlying asset** — the token users deposit into the vault. You can select a registered token or register a custom token.
 - **Listing metadata** — friendly name, description, category, and provider IDs used by the catalog/listing layer.
-- **Onchain identity** — name and symbol. By default these are computed from institution + asset, with an optional manual override.
+- **Onchain identity** — name and symbol. By default these are computed from provider + asset, with an optional manual override.
 
 <Note>
 The onchain vault name and symbol are protocol identity. The friendly name, category, provider IDs, and description are listing metadata used by Superform distribution surfaces.
@@ -118,7 +118,7 @@ Once the vault is indexed, complete the launch checklist:
 5. At least one strategy exists for the vault.
 6. The vault is listed and available in the Superform catalog.
 
-See [Setup Checklist](/curate/ui/setup-checklist) for the canonical readiness flow.
+See [Setup Checklist](/operate/ui/setup-checklist) for the canonical readiness flow.
 
 ## API Reference
 

@@ -1,15 +1,15 @@
 ---
-title: "Curate a SuperVault"
+title: "Operate a SuperVault"
 description: "On-chain vault creation, manager roles, upkeep, strategy management, fee configuration, and redemption fulfillment via SuperVaultAggregator."
 ---
 
 While SuperVault deployment is permissionless, only SuperVaults whose managers perform KYC and stake $UP in the Aggregator contract will be displayed on the Superform UI as valid vaults.
 
 <Note>
-For a guided curation experience, use the institutional dashboard at [institutions.superform.xyz](https://institutions.superform.xyz). See the full [Curate Documentation](/curate) for the complete operational guide.
+For a guided operating experience, use SuperformOS at [os.superform.xyz](https://os.superform.xyz). See the full [Operate Documentation](/operate) for the complete operational guide.
 </Note>
 
-Once a manager becomes a validated curator, they gain full access to the tooling on the [curators.superform.xyz](https://curators.superform.xyz) site.
+Once a manager becomes a validated operator, they gain full access to the tooling in [SuperformOS](https://os.superform.xyz).
 
 ## Creating and Setting Up a Vault
 
@@ -135,7 +135,7 @@ function proposeStrategyHooksRoot(address strategy, bytes32 newRoot) external va
 
 Once the hooks required to perform a given yield strategy are available in the hooks root, the managers can run them through `executeHooks()`.
 
-The [curators dashboard](https://curators.superform.xyz/) supports hook execution simulations. It is advised to run these before actual execution.
+[SuperformOS](https://os.superform.xyz/) supports hook execution simulations. It is advised to run these before actual execution.
 
 ```solidity
 /// @notice Structure for hook execution arguments
@@ -220,11 +220,11 @@ Performance fees on realized profit are obtained by periodically calling `skimPe
 function skimPerformanceFee() external;
 ```
 
-The ideal frequency at which to skim fees depends on the TVL and PPS of a vault, but generally 24 hours is optimal. More precise simulations can be found on the curators dashboard and [here](https://github.com/superform-xyz/v2-periphery/tree/dev/research).
+The ideal frequency at which to skim fees depends on the TVL and PPS of a vault, but generally 24 hours is optimal. More precise simulations can be found on SuperformOS and [here](https://github.com/superform-xyz/v2-periphery/tree/dev/research).
 
 ## User Redemptions
 
-User redemption and cancel redemption requests must be fulfilled manually by any authorized manager. It is advised to do so through the [curators dashboard](https://curators.superform.xyz/) where there is tooling to aid controller sorting and `totalAssetsOut` calculations.
+User redemption and cancel redemption requests must be fulfilled manually by an authorized operator. It is advised to do so through [SuperformOS](https://os.superform.xyz/) where there is tooling to aid controller sorting and `totalAssetsOut` calculations.
 
 ```solidity
 /// @notice Fulfills pending cancel redeem requests by making shares claimable

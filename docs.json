@@ -20,9 +20,9 @@
           "href": "https://app.superform.xyz"
         },
         {
-          "anchor": "Institutional Dashboard",
+          "anchor": "SuperformOS",
           "icon": "gauge-high",
-          "href": "https://institutions.superform.xyz"
+          "href": "https://os.superform.xyz"
         },
         {
           "anchor": "GitHub",
@@ -106,89 +106,83 @@
         ]
       },
       {
-        "tab": "Curate",
+        "tab": "Operate",
         "groups": [
           {
-            "group": "Curate",
-            "root": "curate",
+            "group": "Introduction",
+            "root": "operate",
             "pages": [
-              "curate",
-              "curate/concepts"
+              "operate",
+              "operate/concepts"
             ]
           },
           {
             "group": "Getting Started",
             "pages": [
-              "curate/prerequisites",
-              "curate/authentication",
-              "curate/permissions",
-              "curate/quickstart"
+              "operate/prerequisites",
+              "operate/authentication",
+              "operate/permissions",
+              "operate/quickstart"
             ]
           },
           {
             "group": "Vault Setup",
             "pages": [
-              "curate/ui/home",
-              "curate/ui/create-vault",
-              "curate/ui/setup-checklist",
-              "curate/ui/catalog-listing"
+              "operate/ui/home",
+              "operate/ui/create-vault",
+              "operate/ui/setup-checklist",
+              "operate/ui/catalog-listing"
             ]
           },
           {
             "group": "Vault Operations",
             "pages": [
-              "curate/ui/dashboard",
-              "curate/ui/strategy",
-              "curate/ui/intent-history",
-              "curate/ui/yield-sources",
-              "curate/ui/merkle-trees"
+              "operate/ui/dashboard",
+              "operate/ui/strategy",
+              "operate/ui/intent-history",
+              "operate/ui/yield-sources",
+              "operate/ui/merkle-trees"
             ]
           },
           {
             "group": "Access & Settings",
             "pages": [
-              "curate/ui/vault-settings",
-              "curate/ui/user-management"
+              "operate/ui/vault-settings",
+              "operate/ui/user-management"
             ]
           },
           {
             "group": "Registry & Admin",
             "pages": [
-              "curate/ui/manage",
-              "curate/ui/registry",
-              "curate/ui/admin"
+              "operate/ui/manage",
+              "operate/ui/registry",
+              "operate/ui/admin"
             ]
           },
           {
             "group": "Safety & Incident Response",
             "pages": [
-              "curate/ui/pause",
-              "curate/ui/emergency-exit",
-              "curate/ui/alerts"
+              "operate/ui/pause",
+              "operate/ui/emergency-exit",
+              "operate/ui/alerts"
             ]
           },
           {
             "group": "API Reference",
             "pages": [
-              "curate/api/overview",
-              "curate/api/erebor",
-              "curate/api/strategy",
-              "curate/api/oms",
-              "curate/api/merkle-publish"
+              "operate/api/overview",
+              "operate/api/erebor",
+              "operate/api/strategy",
+              "operate/api/oms",
+              "operate/api/merkle-publish"
             ]
           },
           {
             "group": "Automation",
             "pages": [
-              "curate/automation/overview",
-              "curate/automation/monitoring",
-              "curate/automation/webhooks"
-            ]
-          },
-          {
-            "group": "References",
-            "pages": [
-              "curate/curation-policy"
+              "operate/automation/overview",
+              "operate/automation/monitoring",
+              "operate/automation/webhooks"
             ]
           }
         ]
@@ -220,13 +214,13 @@
   "navbar": {
     "links": [
       {
-        "label": "superform.xyz",
-        "href": "https://superform.xyz"
+        "label": "SuperformOS",
+        "href": "https://os.superform.xyz"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Launch App",
+      "label": "Superform App",
       "href": "https://app.superform.xyz"
     }
   },

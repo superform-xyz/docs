@@ -1,6 +1,6 @@
 ---
 title: "Prerequisites and Access"
-description: "What you need before you can curate a SuperVault: wallet, role, and API access."
+description: "What you need before you can operate a SuperVault: wallet, role, and API access."
 ---
 
 ## Wallet Requirements
@@ -9,7 +9,7 @@ SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JW
 
 - **EVM-compatible wallet** (MetaMask, Rabby, Frame, or any WalletConnect-compatible wallet)
 - **Native gas token** for each chain where you operate vaults
-- **Manager role** assigned on at least one vault before institution features are accessible
+- **Operator access** assigned on at least one vault before SuperformOS features are accessible
 
 <Note>
 View-only users are added offchain and do not require a wallet connection. All write operations require at minimum a secondary manager role.
@@ -26,11 +26,11 @@ View-only users are added offchain and do not require a wallet connection. All w
 
 The SuperVault contract architecture supports additional chains. Contact the Superform team for expansion requests.
 
-## Institutional Dashboard
+## SuperformOS
 
 | Environment | URL |
 |-------------|-----|
-| Production | [institutions.superform.xyz](https://institutions.superform.xyz) |
+| Production | [os.superform.xyz](https://os.superform.xyz) |
 
 ## API Base URLs
 
@@ -47,24 +47,24 @@ Each backend service exposes its own base URL. Use these when building automatio
 | Page | Minimum Role |
 |------|-------------|
 | Home | Public (no auth) |
-| Dashboard | Manager |
-| Strategy | Manager |
-| Yield Sources | Manager |
-| Merkle Trees | Manager |
+| Dashboard | Operator |
+| Strategy | Operator |
+| Yield Sources | Operator |
+| Merkle Trees | Operator |
 | User Management | Primary Manager |
 | Vault Settings | Primary Manager |
-| Pause | Manager |
+| Pause | Operator |
 | Registry | Registry Maintainer |
 | Admin | Registry Maintainer |
-| Create Vault | Manager (you become primary manager of the new vault) |
-| Alerts | Manager |
+| Create Vault | Operator (you become primary manager of the new vault) |
+| Alerts | Operator |
 
 ## Getting Access
 
-**Joining an existing vault:** The primary manager adds you via [User Management](/curate/ui/user-management) as a secondary manager (onchain transaction) or view-only user (offchain).
+**Joining an existing vault:** The primary manager adds you via [User Management](/operate/ui/user-management) as a secondary manager (onchain transaction) or view-only user (offchain).
 
-**Creating a new vault:** Any wallet with manager access can create a vault and automatically becomes its primary manager.
+**Creating a new vault:** Any wallet with operator access can create a vault and automatically becomes its primary manager.
 
-<Card title="Authentication" icon="key" href="/curate/authentication">
+<Card title="Authentication" icon="key" href="/operate/authentication">
   JWT auth flow, token storage, and programmatic access.
 </Card>

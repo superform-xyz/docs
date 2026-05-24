@@ -7,6 +7,8 @@ description: "Configure fees, PPS parameters, redeem timelock, banned hook leave
 
 Vault Settings is the configuration hub for vault-level controls. Most settings use the same pattern: Erebor prepares calldata, the manager wallet signs, and the protocol contract applies the change onchain.
 
+Public SuperVault detail pages expose Vault Settings as read-only context. Manager-only controls, including upkeep deposit/withdrawal and settings transactions, remain in the authenticated Operate flow.
+
 <Note>
 Prepare endpoints return transaction data. They do not mutate protocol state by themselves. The connected wallet must sign and submit the transaction.
 </Note>

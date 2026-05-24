@@ -7,7 +7,7 @@ description: "Whitelist yield sources, pair oracles, and keep emergency-exit cov
 
 Yield Source Management controls where a SuperVault is allowed to deploy capital. Each source is a protocol position, such as an ERC-4626 vault or Pendle PT, paired with an oracle that prices the position back into the vault's underlying asset.
 
-All whitelist mutations use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
+Public detail pages expose Yield Sources as a read-only tab. All whitelist mutations happen in the authenticated Operate surface and use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
 
 ## Page Layout
 

@@ -129,6 +129,7 @@
             "group": "Vault Setup",
             "pages": [
               "operate/ui/home",
+              "operate/ui/public-detail",
               "operate/ui/create-vault",
               "operate/ui/setup-checklist",
               "operate/ui/catalog-listing"
@@ -145,6 +146,16 @@
             ]
           },
           {
+            "group": "Strategy Authoring",
+            "pages": [
+              "operate/strategy/quickstart",
+              "operate/strategy/dsl",
+              "operate/strategy/action-config",
+              "operate/strategy/troubleshooting",
+              "operate/strategy/anti-patterns"
+            ]
+          },
+          {
             "group": "Access & Settings",
             "pages": [
               "operate/ui/vault-settings",
@@ -152,9 +163,9 @@
             ]
           },
           {
-            "group": "Registry & Admin",
+            "group": "Distribution & Admin",
             "pages": [
-              "operate/ui/manage",
+              "operate/ui/distribute",
               "operate/ui/registry",
               "operate/ui/admin"
             ]

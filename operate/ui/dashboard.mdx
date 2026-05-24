@@ -5,9 +5,9 @@ description: "9-section vault monitoring dashboard covering TVL, PPS, fees, risk
 
 ![SuperformOS Dashboard — vault monitoring panels and operational health](/operate/images/screenshots/dashboard.jpg)
 
-The Dashboard is the primary monitoring view for a single vault. Nine sidebar sections cover every dimension of vault health: financial state, allocation composition, pricing, fee accrual, access control, performance history, risk metrics, depositor analytics, and operational throughput.
+The Dashboard is the primary monitoring view for a single vault. It appears both in the manager Operate surface and as the read-only first tab of the public [SuperVault detail page](/operate/ui/public-detail). Nine sidebar sections cover every dimension of vault health: financial state, allocation composition, pricing, fee accrual, access control, performance history, risk metrics, depositor analytics, and operational throughput.
 
-Select your chain and vault from the top dropdowns. Financial data refreshes every 15 seconds from `GET /api/v1/vaults/{chain_id}/{vault_address}` plus Erebor analytics sub-endpoints.
+In Operate, select your chain and vault from the app controls. Public detail links use `/supervaults/{chain_name}/{vaultAddress}`. Financial data refreshes every 15 seconds from `GET /api/v1/vaults/{chain_id}/{vault_address}` plus Erebor analytics sub-endpoints.
 
 ## 1. Overview
 

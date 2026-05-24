@@ -1,0 +1,103 @@
+---
+title: "Strategy Anti-Patterns"
+description: "Strategy designs that look reasonable but create operational risk."
+---
+
+These patterns can pass validation but still create poor operator outcomes.
+
+## Unbounded Sizing
+
+Bad:
+
+```text
+vault_tvl
+```
+
+For a deposit, this can exceed idle assets. For a withdrawal, it can exceed target allocation.
+
+Better:
+
+```text
+min(vault_free_assets, 0.05 * vault_tvl)
+```
+
+Bound sizing to the assets actually available for the action.
+
+## Division in Triggers
+
+Bad:
+
+```text
+vault_free_assets / vault_tvl > 0.10
+```
+
+This can fail validation on zero snapshots.
+
+Better:
+
+```text
+vault_free_assets > 0.10 * vault_tvl
+```
+
+## Overlapping Lane Strategies
+
+Two `DEPOSIT` strategies targeting the same source can both pass on the same tick and compete for idle assets.
+
+Better:
+
+- Split targets by rule.
+- Use lane priority intentionally.
+- Add `max_concurrent: 1`.
+- Use mutually exclusive thresholds.
+
+## No Cooldown on Noisy Signals
+
+If a rule can oscillate around a boundary, it can create repeated small intents.
+
+Better:
+
+- Add a wider band between deposit and withdrawal thresholds.
+- Require repeated ticks with conviction settings where appropriate.
+- Set cooldowns for high-noise inputs.
+
+## Treating Emergency Exit as a Normal Strategy
+
+Emergency exits are incident controls. They create target-scoped locks and are operated from [Pause Operations](/operate/ui/pause).
+
+Better:
+
+- Keep normal withdrawal strategies focused on routine liquidity management.
+- Use emergency exit only when source-level risk justifies a drain.
+- Stop the emergency exit when the incident is resolved.
+
+## Authorizing a Target After the Strategy
+
+A strategy can save before the target is actually executable. It will not publish successfully without whitelist, oracle, merkle proof, and session-key readiness.
+
+Better:
+
+1. Whitelist the yield source.
+2. Pair the oracle.
+3. Generate, sync, and publish merkle proof coverage.
+4. Confirm OMS/session-key readiness.
+5. Move the strategy to `RUNNING`.
+
+## Stale Priority Assumptions
+
+Create and update requests do not own priority. Priority is server-managed through reorder.
+
+Better:
+
+- Create or update strategy content first.
+- Use canvas drag-to-reorder or `POST /api/v1/strategies/reorder`.
+- Always include every non-archived strategy in the lane when calling reorder.
+
+## Manager-Only Assumptions in Public Docs
+
+Public SuperVault detail pages are read-only. Do not document a public tab as though it can sign transactions.
+
+Better:
+
+- Use public detail pages for allocator inspection.
+- Send operator actions to the authenticated Operate surface.
+- Keep screenshots cropped so wallet state is not part of the documentation contract.

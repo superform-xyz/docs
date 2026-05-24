@@ -36,17 +36,18 @@ Below the overview cards, a searchable and filterable vault list displays every 
 | Chain filter | All, Ethereum (1), Base (8453) |
 | Search | Text match by vault name or asset |
 
-Clicking a vault navigates to its [Dashboard](/operate/ui/dashboard) under the **Operate** section at `/dashboard?chainId={id}&vaultAddress={addr}`.
+Clicking a vault opens the public [SuperVault detail page](/operate/ui/public-detail) at `/supervaults/{chain_name}/{vaultAddress}`. The public detail view keeps allocator-facing tabs read-only while manager-only actions remain in Operate.
 
 ## Navigation Context
 
-Home is one of three top-level sections in SuperformOS:
+Home sits alongside the operator and distribution sections in SuperformOS:
 
 | Section | Path | Purpose |
 |---------|------|---------|
 | **Home** | `/` | Global overview — TVL, vault count, APY, vault list |
-| **Operate** | `/dashboard` | Per-vault operation — dashboard, strategy, merkle trees, yield sources, settings, alerts |
-| **Manage** | `/manage` | SuperformOS administration — deployers, providers, vault registry, and approval queues |
+| **Operate** | `/operate` | Per-vault operation - dashboard, setup, strategy, merkle trees, yield sources, settings, alerts |
+| **Distribute** | `/distribute` | Vault and provider distribution workflows |
+| **Admin** | `/admin` | Internal backfill and maintenance tools for permissioned operators |
 
 ## API Reference
 

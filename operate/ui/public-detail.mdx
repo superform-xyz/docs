@@ -1,0 +1,51 @@
+---
+title: "Public SuperVault Detail"
+description: "Read-only allocator-facing SuperVault pages at /supervaults/{chain_name}/{vaultAddress}."
+---
+
+![SuperformOS public SuperVault detail - read-only vault dashboard tabs](/operate/images/screenshots/public-detail.jpg)
+
+The public SuperVault detail page is the allocator-facing view for a single vault. It uses the route:
+
+```text
+/supervaults/{chain_name}/{vaultAddress}
+```
+
+For example:
+
+```text
+/supervaults/ethereum/0x8c365aF7094Eaac29314eDeE577B435892CA93A3
+```
+
+This route is the destination from Home and distribution surfaces. It is designed for inspection, not management: public users can read vault health, strategy context, operating history, roles, settings, hooks, and yield-source data without exposing manager-only transaction controls.
+
+## Public Tabs
+
+| Tab | What allocators can inspect |
+|-----|-----------------------------|
+| Dashboard | TVL, APY, PPS, allocation, fees, risk, users, operations, and vault summary metrics. |
+| Strategy | Read-only strategy canvas and lane structure for disclosed automation. |
+| Intent History | Execution history when intent data is available. |
+| Hooks | Published hook and merkle authorization context. |
+| Yield Sources | Whitelisted sources, paired oracles, and source metadata. |
+| Roles | Primary manager, secondary managers, and view-only roles. |
+| Vault Settings | Read-only fee, PPS, redeem timelock, upkeep, session key, and notification context. |
+
+## Private vs Public Controls
+
+Public detail pages intentionally omit wallet-signing actions. To make changes, an authorized operator should open the same vault in Operate and use the relevant manager surface:
+
+| Change | Manager surface |
+|--------|-----------------|
+| Fund upkeep or adjust settings | [Vault Settings](/operate/ui/vault-settings) |
+| Add yield sources or update oracles | [Yield Source Management](/operate/ui/yield-sources) |
+| Publish hook proofs | [Merkle Trees](/operate/ui/merkle-trees) |
+| Create or reorder strategies | [Strategy Canvas](/operate/ui/strategy) |
+| Add secondary managers or view-only users | [User Management](/operate/ui/user-management) |
+| Update listing availability | [Catalog Listing](/operate/ui/catalog-listing) |
+
+## Link Format
+
+Use the chain slug, not the numeric chain ID, in public links. Common slugs include `ethereum` and `base`.
+
+When sharing links externally, use the canonical vault address casing from Erebor or the protocol registry. The route remains address-insensitive, but canonical casing makes screenshots, logs, and support conversations easier to compare.

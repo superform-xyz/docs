@@ -5,6 +5,8 @@ description: "Deploy a SuperVault, attach listing metadata, and move from onchai
 
 The Create Vault flow (`/vaults/create`) deploys a new SuperVault and captures the metadata needed to list it in the Superform catalog. Creation is intentionally split into two phases:
 
+![SuperformOS Create Vault - basic information and launch wizard](/operate/images/screenshots/create-vault.jpg)
+
 1. Editable configuration before anything is signed.
 2. Operational setup after the vault exists onchain.
 
@@ -14,7 +16,7 @@ Treat creation as the start of launch readiness: finish upkeep, authorization, y
 
 You need:
 
-- A wallet with registry-maintainer access to SuperformOS.
+- A connected wallet with permission to create and manage the vault.
 - The underlying token available in the token registry, or enough metadata to register it.
 - An approved provider record for the vault's listing metadata.
 - The primary manager wallet that will own vault-level controls.
@@ -71,9 +73,9 @@ Review everything before entering the transaction phase:
 - Managers.
 - Fees and timing parameters.
 
-After this point, the wizard moves into signing and indexing.
+After this point, the wizard moves into signing, indexing, activation, and post-create setup.
 
-## Transaction and Indexing Phases
+## Transaction, Indexing, and Activation
 
 ### Sign the Creation Transaction
 
@@ -106,6 +108,18 @@ During indexing, the dashboard also submits the listing metadata to the catalog 
 <Warning>
 `409 Conflict` on confirm means a creation job already exists for that transaction hash. Check the existing job before retrying.
 </Warning>
+
+### Activate With Upkeep
+
+After indexing, the wizard can send the operator to **Vault Settings -> Upkeep**. Upkeep funding is the activation gate for automation and discoverability. The setup route can deep-link with `panel=upkeep&activateVault=1` so the manager lands directly on the funding action.
+
+### Set Up Yield Sources
+
+Creation can continue into yield-source setup. Add at least one whitelisted source and paired oracle before creating strategies or routing deposits.
+
+### Complete or Finish Later
+
+The vault can exist before all setup rows are complete. If you leave the wizard after deployment, use [Setup Checklist](/operate/ui/setup-checklist) to resume activation, hooks, yield sources, strategy, and listing work.
 
 ## Post-Create Setup
 

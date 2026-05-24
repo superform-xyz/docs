@@ -129,7 +129,6 @@
             "group": "Vault Setup",
             "pages": [
               "operate/ui/home",
-              "operate/ui/public-detail",
               "operate/ui/create-vault",
               "operate/ui/setup-checklist",
               "operate/ui/catalog-listing"
@@ -139,6 +138,7 @@
             "group": "Vault Operations",
             "pages": [
               "operate/ui/dashboard",
+              "operate/ui/public-detail",
               "operate/ui/strategy",
               "operate/ui/intent-history",
               "operate/ui/yield-sources",

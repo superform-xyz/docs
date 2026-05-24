@@ -162,6 +162,22 @@ Use events for lifecycle reconstruction and fills for mined transaction evidence
 
 Intent rows may include nullable fields while OMS execution is still in flight. For example, `completed_at`, `terminal_at`, `gas_used_total`, and fill data may be `null` until execution events and receipts arrive.
 
+## Simulations
+
+Simulation endpoints let operators test strategy behavior before live execution. They do not publish OMS intents or submit onchain transactions.
+
+```bash
+POST /api/v1/simulations/backtest
+POST /api/v1/simulations/ahead
+GET /api/v1/simulations/saved
+GET /api/v1/simulations/saved/{simulation_id}
+POST /api/v1/simulations/saved/lookup
+POST /api/v1/simulations/saved
+DELETE /api/v1/simulations/saved/{simulation_id}
+```
+
+Use backtests for historical replay and forward simulations for current-state what-if analysis. See [Simulation](/operate/ui/simulation) for the operator flow.
+
 ## Important Schemas
 
 ### StrategyResponse
@@ -230,6 +246,11 @@ Important fields:
 | `/api/v1/intents/{intent_id}/events` | GET | OMS event log |
 | `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
 | `/api/v1/fills` | GET | Search fills |
+| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation |
+| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation |
+| `/api/v1/simulations/saved` | GET/POST | List or save simulations |
+| `/api/v1/simulations/saved/{simulation_id}` | GET/DELETE | Read or delete a saved simulation |
+| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs |
 | `/api/v1/vaults/{vault_id}` | GET/PATCH | Vault engine config and emergency locks |
 | `/api/v1/engine/status` | GET | Engine status |
 | `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state |

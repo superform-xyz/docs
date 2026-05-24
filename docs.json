@@ -149,6 +149,7 @@
                   "operate/strategy/anti-patterns"
                 ]
               },
+              "operate/ui/simulation",
               "operate/ui/intent-history",
               "operate/ui/yield-sources",
               "operate/ui/merkle-trees"
@@ -171,9 +172,7 @@
           {
             "group": "Safety & Incident Response",
             "pages": [
-              "operate/ui/pause",
-              "operate/ui/emergency-exit",
-              "operate/ui/alerts"
+              "operate/ui/pause"
             ]
           },
           {

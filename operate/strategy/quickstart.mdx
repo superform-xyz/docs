@@ -1,7 +1,10 @@
 ---
 title: "Strategy Quickstart"
 description: "Author and POST your first SuperformOS strategy pair."
-agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples can be adapted for POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
+agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples are adapted from CI-validated drift-rebalance cookbook payloads and can be used with POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
+strategy_json:
+  - "superman-strategy/testdata/cookbook/drift_rebalance_deposit.json"
+  - "superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json"
 applicability: "Single yield source, no indicators, no advanced conviction tuning. Triggers on a vault-state ratio and is best used as a first deposit/withdrawal pair before adding more sophisticated strategies."
 ---
 
@@ -54,7 +57,7 @@ The trigger is a `rules` tree. The simplest form is a single `EXPR` leaf that re
 { "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }
 ```
 
-`vault_free_assets` is the vault's idle asset balance. `vault_tvl` is the total vault value in the underlying asset's base units.
+`vault_free_assets` is sourced live from chain as `IERC20(asset).balanceOf(strategy)` through the EVM RPC datafeed, so the trigger reflects the strategy contract's actual idle balance. `vault_tvl` is derived from yield-source allocations on the subgraph cadence. Both are in the underlying asset's base units.
 
 <Warning>
 Avoid division in trigger expressions. The validator dry-runs expressions against an empty snapshot where values can be zero. `vault_free_assets / vault_tvl > 0.10` can fail with division by zero at create/update time. Use the multiplicative form: `vault_free_assets > 0.10 * vault_tvl`.
@@ -82,7 +85,7 @@ Both expressions are positive when their corresponding trigger passes. A `size_e
 
 ## 5. Deposit Strategy JSON
 
-Replace the vault ID, yield-source address, hook address, and executor address before sending.
+These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
 
 ```json
 {

@@ -48,11 +48,26 @@ Listing metadata is handled by the dashboard/catalog layer after vault address r
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/settings/upkeep` | POST | Prepare upkeep settings update |
+| `/api/v1/settings/fee-config` | GET | Read current fee config |
+| `/api/v1/settings/fee-config/propose` | POST | Prepare fee-config proposal transaction |
+| `/api/v1/settings/fee-config/execute` | POST | Prepare fee-config execution transaction |
+| `/api/v1/settings/deviation-threshold` | GET | Read PPS deviation threshold |
+| `/api/v1/settings/deviation-threshold/update` | POST | Prepare deviation-threshold update transaction |
+| `/api/v1/settings/pps-expiration` | GET | Read PPS expiration / staleness setting |
+| `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
+| `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
+| `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
+| `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
+| `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
+| `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
+| `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
+| `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
+| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare redeem timelock update |
 | `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
 | `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
@@ -151,7 +166,8 @@ OMS owns additional readiness and rotation endpoints for strategy automation.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/notification-channels` | GET/POST | List or create channels |
-| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET/POST | List or attach vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET | List vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | POST | Attach channel |
 | `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach vault channel |
 
 Providers include Slack, webhook, and websocket channels.

@@ -1,0 +1,66 @@
+---
+title: "Simulation"
+description: "Run backtests and forward simulations against current vault strategies before relying on automation."
+---
+
+Simulation sits between the Strategy Canvas and Intent History. Use it after authoring or reordering strategies, but before treating the live automation loop as production-ready.
+
+The page is vault-scoped. Select the vault first, then choose whether to run a historical backtest or a forward-looking simulation against the current strategy set.
+
+## Simulation Modes
+
+| Mode | Endpoint | Use It For |
+|------|----------|------------|
+| Backtest | `POST /api/v1/simulations/backtest` | Replay strategy behavior over historical vault and yield-source state. |
+| Forward simulation | `POST /api/v1/simulations/ahead` | Project how the current strategy set behaves from a chosen starting state. |
+
+Backtests are best for validating trigger thresholds, action sizing, and lane ordering against known market history. Forward simulations are better for checking a proposed strategy set before the next keeper cycle.
+
+## Operator Flow
+
+1. Open **Operate → Simulation** with the target vault selected.
+2. Choose backtest or forward simulation.
+3. Select the strategy set, time range, and run parameters.
+4. Run the simulation.
+5. Review the chart, metrics, generated command timeline, and per-strategy results.
+6. Save the run if it should become comparison evidence for future edits.
+
+Simulation does not execute OMS intents or submit onchain transactions. It is a decision-support surface for strategy changes.
+
+## Saved Simulations
+
+Saved simulations let teams compare strategy edits over time without rerunning every scenario.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/simulations/saved` | GET | List saved simulations for the current vault/user scope. |
+| `/api/v1/simulations/saved/{simulation_id}` | GET | Load one saved simulation. |
+| `/api/v1/simulations/saved/lookup` | POST | Check whether an equivalent simulation already exists. |
+| `/api/v1/simulations/saved` | POST | Save a completed simulation result. |
+| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+
+Use saved runs as review artifacts when changing thresholds, `size_expr` values, or lane order. They are especially useful when a strategy appears healthy in the canvas but produces too many small intents, creates oscillation, or misses a liquidity target.
+
+## What to Inspect
+
+| Surface | What to Check |
+|---------|---------------|
+| Trigger timing | Rules fire when the vault state actually crosses the intended threshold. |
+| Action size | `size_expr` produces positive, reasonable amounts and does not overshoot the intended reserve. |
+| Lane order | Higher-priority strategies win when multiple strategies are eligible. |
+| Command timeline | Generated actions match the expected deposit, withdrawal, claim, swap, bridge, or rebalance sequence. |
+| Error output | Validator, hook, merkle, or data gaps are visible before live execution. |
+
+After a simulation looks correct, move to [Intent History](/operate/ui/intent-history) to monitor real OMS execution.
+
+## API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation. |
+| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation. |
+| `/api/v1/simulations/saved` | GET | List saved simulations. |
+| `/api/v1/simulations/saved/{simulation_id}` | GET | Read a saved simulation. |
+| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs. |
+| `/api/v1/simulations/saved` | POST | Persist a simulation result. |
+| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |

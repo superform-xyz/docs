@@ -124,18 +124,68 @@ Notification channels attach Slack, webhook, or websocket destinations to a vaul
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/notification-channels` | GET/POST | List or create manager-owned channels |
-| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET/POST | Attach or list vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET | List vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | POST | Attach channel |
 | `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach channel |
 
 Use notification channels for operational alerts, monitoring, and downstream automation.
+
+## Alert Delivery
+
+Alerts connect vault events to notification destinations. Treat alert delivery as operational plumbing: create the channel first, bind it to the vault, then verify delivery with a low-risk event before relying on it for incidents.
+
+Notification channel records include:
+
+| Field | Description |
+|-------|-------------|
+| `provider` | Channel provider or transport. |
+| `name` | Operator-facing channel name. |
+| `config` | Provider-specific destination config. Sensitive values should be redacted in UI. |
+| `created_by` | Creator metadata. |
+| `created_at` / `updated_at` | Audit timestamps. |
+
+Recommended alert categories:
+
+- Upkeep shortfall or activation loss.
+- PPS staleness.
+- Failed keeper runs.
+- Session-key readiness changes.
+- Emergency pause / unpause.
+- Emergency liquidity exit arm / stop.
+- Merkle generation or publish failure.
+- Repeated OMS execution failure.
+
+Troubleshooting:
+
+| Symptom | Check |
+|---------|-------|
+| Channel exists but receives nothing | Confirm it is bound to the vault. |
+| Sensitive destination appears in UI | Redact config display and rotate the destination if leaked. |
+| Alerts are noisy | Tune event thresholds before muting the channel. |
+| Incident alert is missing | Check audit logs and notification-channel binding first. |
 
 ## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/vaults/{chain_id}/{vault_address}` | GET | Full vault detail including fee, PPS, and upkeep data |
-| `/api/v1/settings/upkeep` | POST | Prepare upkeep settings update |
+| `/api/v1/settings/fee-config` | GET | Read current fee config |
+| `/api/v1/settings/fee-config/propose` | POST | Prepare fee-config proposal transaction |
+| `/api/v1/settings/fee-config/execute` | POST | Prepare fee-config execution transaction |
+| `/api/v1/settings/deviation-threshold` | GET | Read PPS deviation threshold |
+| `/api/v1/settings/deviation-threshold/update` | POST | Prepare deviation-threshold update transaction |
+| `/api/v1/settings/pps-expiration` | GET | Read PPS expiration / staleness setting |
+| `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
+| `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
+| `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
+| `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
+| `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
+| `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
+| `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
+| `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
+| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare redeem timelock update |

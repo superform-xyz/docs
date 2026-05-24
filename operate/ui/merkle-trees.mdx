@@ -76,7 +76,7 @@ Strategies and emergency exits depend on active merkle withdrawal hooks. A yield
 
 ## Publish Proof Artifact
 
-Publishing makes the active proof set available to integrators, keepers, and frontends without Erebor authentication.
+Publishing makes the active proof set available to integrators, keepers, and frontends without Erebor authentication. The app exposes this as a primary-manager-gated **Publish** or **Re-publish** action on the active tree. Once the current artifact matches the active tree, the button state becomes **Published**.
 
 ```bash
 POST /api/v1/merkle/publish
@@ -84,7 +84,23 @@ GET /api/v1/merkle/publish/jobs/{id}
 GET /api/v1/merkle/published/{chain_id}/{vault}
 ```
 
-Publishing is separate from syncing. Sync updates the protocol root; publish exposes the proof artifact.
+Publishing is separate from syncing. Sync updates the protocol root; publish exposes the proof artifact. A published response includes:
+
+| Field | Description |
+|-------|-------------|
+| `published` | Whether a published tree exists for the vault. |
+| `published_at` | Timestamp for the most recent publish. |
+| `root_hash` | Published merkle root. Verify this against the onchain root before using proofs. |
+| `s3_url` | Public JSON artifact containing the full tree and leaf proofs. |
+| `total_leaves` | Number of authorized leaf combinations. |
+| `tree_id` | Published tree identifier. |
+| `is_stale` | Whether the artifact no longer matches the current active tree. |
+
+When `is_stale` is true, re-publish before relying on the artifact for execution. Even when `is_stale` is false, verify `root_hash` against the onchain SuperVaultAggregator state; offchain publish and onchain root sync are independent steps.
+
+```bash
+curl https://erebor.superform.xyz/api/v1/merkle/published/8453/{vault_address}
+```
 
 ## Emergency Exit Dependency
 

@@ -138,21 +138,20 @@
             "group": "Vault Operations",
             "pages": [
               "operate/ui/dashboard",
-              "operate/ui/public-detail",
-              "operate/ui/strategy",
+              {
+                "group": "Strategy Canvas",
+                "pages": [
+                  "operate/ui/strategy",
+                  "operate/strategy/quickstart",
+                  "operate/strategy/dsl",
+                  "operate/strategy/action-config",
+                  "operate/strategy/troubleshooting",
+                  "operate/strategy/anti-patterns"
+                ]
+              },
               "operate/ui/intent-history",
               "operate/ui/yield-sources",
               "operate/ui/merkle-trees"
-            ]
-          },
-          {
-            "group": "Strategy Authoring",
-            "pages": [
-              "operate/strategy/quickstart",
-              "operate/strategy/dsl",
-              "operate/strategy/action-config",
-              "operate/strategy/troubleshooting",
-              "operate/strategy/anti-patterns"
             ]
           },
           {
@@ -163,11 +162,10 @@
             ]
           },
           {
-            "group": "Distribution & Admin",
+            "group": "Distribution",
             "pages": [
               "operate/ui/distribute",
-              "operate/ui/registry",
-              "operate/ui/admin"
+              "operate/ui/registry"
             ]
           },
           {
@@ -184,8 +182,7 @@
               "operate/api/overview",
               "operate/api/erebor",
               "operate/api/strategy",
-              "operate/api/oms",
-              "operate/api/merkle-publish"
+              "operate/api/oms"
             ]
           },
           {

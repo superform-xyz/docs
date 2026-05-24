@@ -28,6 +28,17 @@ Catalog listing connects an onchain SuperVault to Superform discovery. A vault c
 
 Default catalog inputs are `visibility: listed` and `availability: available` when the role allows it.
 
+## Activation and Discoverability
+
+Catalog status alone does not make a vault active in Superform web surfaces. The vault also needs enough `$UP` in upkeep:
+
+| Vault Chain | Minimum Upkeep for Activation |
+|-------------|-------------------------------|
+| Ethereum L1 | `100,000 $UP` |
+| Non-L1 chains | `1,000 $UP` |
+
+If the upkeep balance is below the chain-specific threshold, the vault can still exist onchain and appear to managers by direct link, but activation and public discoverability will fail.
+
 ## Unlisted SuperVaults
 
 The **Unlisted SuperVaults** panel finds vaults you manage that are not in the catalog. Adding one pre-fills chain, address, provider IDs, category, visibility, availability, and external URL where known.
@@ -37,7 +48,7 @@ The **Unlisted SuperVaults** panel finds vaults you manage that are not in the c
 Do not treat deployment as launch. Launch requires:
 
 1. Onchain creation and indexing.
-2. Upkeep-funded activation.
+2. Upkeep-funded activation at the chain-specific `$UP` threshold.
 3. Hook and merkle proof readiness.
 4. Yield sources and strategy setup.
 5. Catalog row set to listed and available.

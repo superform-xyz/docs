@@ -5,7 +5,13 @@ description: "Build, order, run, and monitor automated SuperVault strategies."
 
 ![SuperformOS Strategy Canvas — automated vault strategy lanes and controls](/operate/images/screenshots/strategy.jpg)
 
+<Note>
+New to strategy authoring? Start with [Strategy Quickstart](/operate/strategy/quickstart), then use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config) as field references.
+</Note>
+
 The Strategy Canvas is where operators define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
+
+Public SuperVault detail pages expose the canvas as a read-only tab. Manager actions such as create, update, reorder, run, stop, and archive are available only in the authenticated Operate surface.
 
 The canvas is organized by action lane:
 
@@ -43,6 +49,32 @@ Create and update calls do **not** carry priority. Ordering is handled by the de
 
 Updates require a `version` for optimistic concurrency. A stale version returns `409 Conflict`.
 
+## Authoring References
+
+Strategy authoring is split into focused references:
+
+| Page | Use it for |
+|------|------------|
+| [Strategy Quickstart](/operate/strategy/quickstart) | Build and POST a first deposit/withdrawal reserve manager. |
+| [Strategy DSL](/operate/strategy/dsl) | Rule tree syntax, expressions, variables, and validation behavior. |
+| [Action Config](/operate/strategy/action-config) | OMS dispatch fields and yield-source execution requirements. |
+| [Strategy Troubleshooting](/operate/strategy/troubleshooting) | Diagnose strategies that do not tick, publish, or fill. |
+| [Strategy Anti-Patterns](/operate/strategy/anti-patterns) | Avoid designs that pass validation but fail operationally. |
+
+## Reorder Strategies
+
+Drag within a lane to change priority. The UI persists order through:
+
+```bash
+POST /api/v1/strategies/reorder
+```
+
+The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
+
+<Note>
+The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
+</Note>
+
 ## Rule Trees
 
 Rules are boolean trees:
@@ -73,20 +105,6 @@ Action config tells the engine what to do after rules pass. Common fields includ
 - `max_slippage_bps`
 
 A target must be whitelisted and authorized by the active merkle root before OMS execution can succeed.
-
-## Reorder Strategies
-
-Drag within a lane to change priority. The UI persists order through:
-
-```bash
-POST /api/v1/strategies/reorder
-```
-
-The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
-
-<Note>
-The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
-</Note>
 
 ## Emergency Locks
 

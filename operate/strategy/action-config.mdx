@@ -1,0 +1,73 @@
+---
+title: "Action Config"
+description: "Reference for the action_config block that dispatches strategy results into OMS intents."
+---
+
+`action_config` tells the Strategy Engine what OMS intent to publish when a strategy's rules pass.
+
+## Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
+| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
+| `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
+| `execution_name` | Yes | Hook identifier from the hook registry. |
+| `execution_address` | Yes | Hook contract address for the target chain. |
+| `target_address` | Yes | Yield source, route target, or protocol address being acted on. |
+| `from_address` | Yes | Account or executor address used for the intent. |
+| `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
+| `execution_params` | Optional | Hook-specific encoded parameters. |
+| `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
+| `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
+
+## Target Requirements
+
+Before an action can execute, the target must be operationally allowed:
+
+- The target yield source is whitelisted for the vault.
+- The source has a compatible oracle where pricing is required.
+- The hook exists in the active merkle config.
+- The active merkle tree has been generated, synced onchain when required, and published for proof consumers.
+- The vault has OMS/session-key readiness.
+- The vault is not paused, and the target is not locked by an active emergency exit.
+
+See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [OMS API](/operate/api/oms).
+
+## Action Notes
+
+| Action | Notes |
+|--------|-------|
+| `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
+| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
+| `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
+| `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
+| `SWAP` | Requires route/slippage constraints and target authorization. |
+| `BRIDGE` | Requires bridge route, destination-chain controls, and stricter incident monitoring. |
+
+## Example
+
+```json
+{
+  "action": "DEPOSIT",
+  "size_expr": "min(vault_free_assets, 0.05 * vault_tvl)",
+  "objective": "BALANCED",
+  "execution_name": "ApproveAndDeposit4626VaultHook",
+  "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
+  "target_address": "0x0000000000000000000000000000000000000001",
+  "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
+  "target_type": "erc4626",
+  "max_slippage_bps": 50,
+  "reason": "Deploy capped idle assets into the active ERC-4626 source"
+}
+```
+
+## Operational Review
+
+Before switching a strategy to `RUNNING`, review:
+
+- The `size_expr` cannot consume more than the vault/source can safely supply.
+- The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
+- The target has emergency exit coverage if it can hold material liquidity.
+- `max_slippage_bps` matches the liquidity profile of the action.
+- The reason is clear enough for Incident History and postmortems.

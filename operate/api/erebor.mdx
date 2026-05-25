@@ -42,17 +42,32 @@ Public discovery depends on more than deployment. Erebor only surfaces vaults wi
 
 `ConfirmCreateVaultRequest` can include `vault_config.redeem_timelock_seconds` for post-indexing settings.
 
-Listing metadata is handled by the dashboard/catalog layer after vault address resolution. Onchain creation and catalog availability are separate states.
+Distribution metadata is handled by the dashboard/listing layer after vault address resolution. Onchain creation and Superform availability are separate states.
 
 ## Settings and Upkeep
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/settings/upkeep` | POST | Prepare upkeep settings update |
+| `/api/v1/settings/fee-config` | GET | Read current fee config |
+| `/api/v1/settings/fee-config/propose` | POST | Prepare fee-config proposal transaction |
+| `/api/v1/settings/fee-config/execute` | POST | Prepare fee-config execution transaction |
+| `/api/v1/settings/deviation-threshold` | GET | Read PPS deviation threshold |
+| `/api/v1/settings/deviation-threshold/update` | POST | Prepare deviation-threshold update transaction |
+| `/api/v1/settings/pps-expiration` | GET | Read PPS expiration / staleness setting |
+| `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
+| `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
+| `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
+| `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
+| `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
+| `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
+| `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
+| `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
+| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare redeem timelock update |
 | `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
 | `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
@@ -99,19 +114,13 @@ Current upkeep responses use:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/registry/yield-sources` | GET/POST | Browse or create yield sources |
-| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET/PUT | Read or update source by chain/address |
-| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete source |
-| `/api/v1/registry/yield-sources/sync` | POST | Import provider sources |
-| `/api/v1/registry/oracles` | GET/POST | Browse or create oracles |
-| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | GET/PUT | Read or update oracle |
-| `/api/v1/registry/oracles/{id}` | DELETE | Delete oracle |
-| `/api/v1/registry/hooks` | GET/POST | Browse or create hooks |
-| `/api/v1/registry/hooks/{id}` | PUT/DELETE | Update or delete hook |
-| `/api/v1/registry/token-assets` | GET/PUT | Browse or upsert token metadata |
+| `/api/v1/registry/yield-sources` | GET | Browse yield sources for operator selection |
+| `/api/v1/registry/oracles` | GET | Browse oracles for operator selection |
+| `/api/v1/registry/hooks` | GET | Browse hooks for merkle config authoring |
+| `/api/v1/registry/token-assets` | GET | Browse token metadata |
 | `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
-Yield source registry entries include active/inactive state and can carry external provider metadata.
+Yield source registry entries include active/inactive state and can carry external provider metadata. Registry create, update, delete, and sync endpoints are registry-maintainer surfaces, not normal third-party operator flows.
 
 ## Yield Source Whitelist
 
@@ -151,7 +160,8 @@ OMS owns additional readiness and rotation endpoints for strategy automation.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/notification-channels` | GET/POST | List or create channels |
-| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET/POST | List or attach vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels` | GET | List vault channels |
+| `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | POST | Attach channel |
 | `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach vault channel |
 
 Providers include Slack, webhook, and websocket channels.
@@ -170,7 +180,7 @@ Providers include Slack, webhook, and websocket channels.
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config |
 | `/api/v1/services/bulk` | PUT | Bulk service update |
 
-## Analytics, Audit, and Admin
+## Analytics and Audit
 
 Analytics endpoints live under:
 
@@ -185,5 +195,3 @@ Audit endpoints:
 | `/api/v1/audit/logs` | GET | Query audit trail |
 | `/api/v1/audit/logs/{id}` | GET | Single audit row |
 | `/api/v1/audit/export` | GET | Export audit rows |
-
-Admin endpoints include APY, TVL, and event backfills for registry maintainers.

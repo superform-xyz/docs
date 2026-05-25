@@ -1,0 +1,179 @@
+---
+title: "Strategy Quickstart"
+description: "Author and POST your first SuperformOS strategy pair."
+agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples are adapted from CI-validated drift-rebalance cookbook payloads and can be used with POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
+strategy_json:
+  - "superman-strategy/testdata/cookbook/drift_rebalance_deposit.json"
+  - "superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json"
+applicability: "Single yield source, no indicators, no advanced conviction tuning. Triggers on a vault-state ratio and is best used as a first deposit/withdrawal pair before adding more sophisticated strategies."
+---
+
+This is the shortest path from no strategy to a validated deposit/withdrawal pair. You will build a reserve manager for one yield source: when idle assets are too high, it deposits; when idle assets are too low, it withdraws.
+
+## What You Are Building
+
+A drift-trigger reserve pair:
+
+- A `DEPOSIT` strategy fires when `vault_free_assets` is above 10% of vault TVL.
+- A `WITHDRAWAL` strategy fires when `vault_free_assets` is below 5% of vault TVL.
+- The withdrawal half refills the reserve toward a 7.5% target.
+
+Two strategies, one yield source, one `EXPR` rule each, no indicators.
+
+## 1. Choose the Lane
+
+Strategy actions group into lanes. The lane determines where the strategy appears in the canvas and how ordering works.
+
+| Lane | Actions | This guide |
+|------|---------|------------|
+| Inflow | `DEPOSIT` | Deposit half |
+| Outflow | `WITHDRAWAL`, `CLAIM` | Withdrawal half |
+| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Not used |
+
+See [Strategy Canvas](/operate/ui/strategy) for the UI model.
+
+## 2. Pick the Action
+
+Each strategy has one `action_config.action`. Use `DEPOSIT` for the inflow strategy and `WITHDRAWAL` for the outflow strategy.
+
+The other `action_config` fields tell OMS how to execute:
+
+| Field | Meaning |
+|-------|---------|
+| `execution_name` | Hook identifier from the Erebor hook registry. |
+| `execution_address` | Deployed hook contract on the target chain. |
+| `target_address` | Yield source address. |
+| `from_address` | Account that executes the intent. |
+| `target_type` | Yield-source family, such as `erc4626` or `pendle_pt`. |
+| `objective` | Routing preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
+
+See [Action Config](/operate/strategy/action-config) for the full field reference.
+
+## 3. Write the Trigger
+
+The trigger is a `rules` tree. The simplest form is a single `EXPR` leaf that returns a boolean.
+
+```json
+{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }
+```
+
+`vault_free_assets` is sourced live from chain as `IERC20(asset).balanceOf(strategy)` through the EVM RPC datafeed, so the trigger reflects the strategy contract's actual idle balance. `vault_tvl` is derived from yield-source allocations on the subgraph cadence. Both are in the underlying asset's base units.
+
+<Warning>
+Avoid division in trigger expressions. The validator dry-runs expressions against an empty snapshot where values can be zero. `vault_free_assets / vault_tvl > 0.10` can fail with division by zero at create/update time. Use the multiplicative form: `vault_free_assets > 0.10 * vault_tvl`.
+</Warning>
+
+See [Strategy DSL](/operate/strategy/dsl) for rule-tree syntax and variable notes.
+
+## 4. Size the Action
+
+`action_config.size_expr` is evaluated when the rule fires. It must return a positive number at runtime.
+
+For the deposit half, deploy idle assets:
+
+```text
+vault_free_assets
+```
+
+For the withdrawal half, pull back the shortfall to the 7.5% target:
+
+```text
+0.075 * vault_tvl - vault_free_assets
+```
+
+Both expressions are positive when their corresponding trigger passes. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
+
+## 5. Deposit Strategy JSON
+
+These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
+
+```json
+{
+  "id": "deposit-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
+  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
+  "name": "Deposit excess idle into Yield Source A",
+  "indicators": [],
+  "rules": {
+    "type": "EXPR",
+    "expr": "vault_free_assets > 0.10 * vault_tvl"
+  },
+  "action_config": {
+    "action": "DEPOSIT",
+    "size_expr": "vault_free_assets",
+    "objective": "BALANCED",
+    "execution_name": "ApproveAndDeposit4626VaultHook",
+    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
+    "target_address": "0x0000000000000000000000000000000000000001",
+    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
+    "target_type": "erc4626",
+    "reason": "Free reserve above 10% of TVL - deploy idle into Yield Source A"
+  },
+  "conviction_config": { "mode": "BINARY" },
+  "risk_params": {},
+  "max_concurrent": 1
+}
+```
+
+## 6. Withdrawal Strategy JSON
+
+```json
+{
+  "id": "withdraw-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
+  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
+  "name": "Withdraw from Yield Source A to replenish reserve",
+  "indicators": [],
+  "rules": {
+    "type": "EXPR",
+    "expr": "vault_free_assets < 0.05 * vault_tvl"
+  },
+  "action_config": {
+    "action": "WITHDRAWAL",
+    "size_expr": "0.075 * vault_tvl - vault_free_assets",
+    "objective": "BALANCED",
+    "execution_name": "ApproveAndWithdraw4626VaultHook",
+    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
+    "target_address": "0x0000000000000000000000000000000000000001",
+    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
+    "target_type": "erc4626",
+    "reason": "Free reserve below 5% of TVL - pull liquidity back toward 7.5% target"
+  },
+  "conviction_config": { "mode": "BINARY" },
+  "risk_params": {},
+  "max_concurrent": 1
+}
+```
+
+## 7. POST and Run
+
+Each strategy is one create request:
+
+```bash
+curl -X POST https://strategy.superform.xyz/api/v1/strategies \
+  -H "Authorization: Bearer $SUPERFORM_JWT" \
+  -H "Content-Type: application/json" \
+  --data @deposit.json
+```
+
+Repeat with the withdrawal payload. A successful response returns the persisted strategy with `state: "CREATED"`.
+
+Move each strategy to `RUNNING` when the vault has upkeep, merkle proof coverage, whitelisted yield sources, and OMS session-key readiness:
+
+```bash
+curl -X PATCH https://strategy.superform.xyz/api/v1/strategies/{strategy_id}/state \
+  -H "Authorization: Bearer $SUPERFORM_JWT" \
+  -H "Content-Type: application/json" \
+  --data '{"target_state": "RUNNING", "version": 1}'
+```
+
+See [Strategy Engine API](/operate/api/strategy) for endpoint details.
+
+## What to Watch
+
+| Surface | Healthy sign |
+|---------|--------------|
+| Strategy Canvas | Both strategies appear in their lanes with server-assigned priority and `RUNNING` state. |
+| Dashboard | Idle reserve stays between the configured lower and upper bands over time. |
+| Intent History | `DEPOSIT` intents appear when reserve is high and `WITHDRAWAL` intents appear when reserve is low. |
+| Pause Operations | Emergency locks block only strategies that target the locked yield source. |
+
+If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operate/strategy/troubleshooting).

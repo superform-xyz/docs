@@ -106,6 +106,26 @@ While an emergency lock is active:
 
 The engine exposes locks through shard and vault state as `emergency_locks` entries with `strategy_id`, `target_address`, `started_at`, and optional `reason`.
 
+## Yield-Source Whitelist Side Effects
+
+Emergency Exit is tied to yield-source whitelist state.
+
+| Action | Side Effect |
+|--------|-------------|
+| Whitelist add | Provisions a paired `EMERGENCY_EXIT` withdrawal strategy for that target when prerequisites are available. |
+| Whitelist remove | Archives the paired emergency strategy when no lock is active. |
+| Remove while locked | Blocked until the drain is stopped and the lock clears. |
+
+## Failure States
+
+| State | Meaning |
+|-------|---------|
+| No withdrawal hook or proof | Active merkle tree does not authorize the drain. Configure hooks and publish proofs. |
+| `EMERGENCY_LOCK_ACTIVE` | Another emergency drain already holds the target lock. |
+| Duplicate target | A paired emergency strategy already exists for that vault / target. |
+| Read-only banner | Current operator can inspect but cannot arm or stop drains. |
+| Lock data unavailable | UI fails closed and blocks controls until lock state loads. |
+
 ## Control Comparison
 
 | Control | Scope | Onchain Tx? | Typical Use |

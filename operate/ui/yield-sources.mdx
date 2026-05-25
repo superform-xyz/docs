@@ -7,7 +7,7 @@ description: "Whitelist yield sources, pair oracles, and keep emergency-exit cov
 
 Yield Source Management controls where a SuperVault is allowed to deploy capital. Each source is a protocol position, such as an ERC-4626 vault or Pendle PT, paired with an oracle that prices the position back into the vault's underlying asset.
 
-All whitelist mutations use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
+Public detail pages expose Yield Sources as a read-only tab. All whitelist mutations happen in the authenticated Operate surface and use the prepare pattern: Erebor prepares calldata and the manager wallet signs the transaction.
 
 ## Page Layout
 
@@ -56,16 +56,6 @@ POST /api/v1/yield-sources/prepare-update-oracle
 POST /api/v1/yield-sources/prepare-bulk-update-oracle
 ```
 
-## Registry Sync
-
-Registry maintainers can import external provider sources:
-
-```bash
-POST /api/v1/registry/yield-sources/sync
-```
-
-Synced entries may include provider-specific metadata in `provider_data`. Keep `is_active` accurate so inactive sources are hidden from normal operator flows.
-
 ## Source and Oracle Types
 
 | Type | Meaning |
@@ -81,11 +71,8 @@ Synced entries may include provider-specific metadata in `provider_data`. Keep `
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/yield-sources/{chain_id}/{vault_address}` | GET | Whitelisted sources for a vault |
-| `/api/v1/registry/yield-sources` | GET/POST | Browse or create registry source |
-| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET/PUT | Read or update source by chain/address |
-| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete registry source |
-| `/api/v1/registry/yield-sources/sync` | POST | Import provider sources |
-| `/api/v1/registry/oracles` | GET/POST | Browse or create oracles |
+| `/api/v1/registry/yield-sources` | GET | Browse active registry sources for selection |
+| `/api/v1/registry/oracles` | GET | Browse compatible oracles for selection |
 | `/api/v1/yield-sources/prepare-add` | POST | Prepare add transaction |
 | `/api/v1/yield-sources/prepare-remove` | POST | Prepare remove transaction |
 | `/api/v1/yield-sources/prepare-update-oracle` | POST | Prepare oracle update transaction |

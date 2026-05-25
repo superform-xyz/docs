@@ -7,6 +7,8 @@ description: "Add and remove secondary managers and view-only users for your vau
 
 This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (onchain delegates), and view-only users (offchain read access). Primary manager access required.
 
+The public SuperVault detail page exposes roles as read-only context. Adding or removing users requires the authenticated Operate surface and the appropriate manager role.
+
 The full manager list is fetched from `GET /api/v1/users?vault_address={}&chain_id={}&limit=100`.
 
 ## Tab 1: Primary Manager

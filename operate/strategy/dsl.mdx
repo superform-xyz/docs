@@ -1,0 +1,99 @@
+---
+title: "Strategy DSL"
+description: "Rule-tree grammar, expression syntax, variables, and validation behavior for SuperVault strategies."
+---
+
+The Strategy DSL has two layers:
+
+- A boolean `rules` tree that decides whether a strategy should fire.
+- Numeric expressions, such as `size_expr`, that decide how much the strategy should send to OMS.
+
+## Rule Nodes
+
+| Node | Meaning | Shape |
+|------|---------|-------|
+| `EXPR` | Evaluate one boolean expression. | `{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }` |
+| `AND` | All child rules must pass. | `{ "type": "AND", "children": [...] }` |
+| `OR` | At least one child rule must pass. | `{ "type": "OR", "children": [...] }` |
+| `NOT` | Negates one child rule. | `{ "type": "NOT", "child": {...} }` |
+| `VOTE` | N-of-M child rules must pass. | `{ "type": "VOTE", "threshold": 2, "children": [...] }` |
+
+Use shallow rule trees when possible. Deep trees are harder to review and usually indicate that two strategy lanes should be split.
+
+## Expression Guidelines
+
+Expressions are evaluated by the Strategy Engine against the current vault snapshot.
+
+| Pattern | Use |
+|---------|-----|
+| `vault_free_assets > 0.10 * vault_tvl` | Prefer multiplication over division for ratios. |
+| `ys_0xabc_alloc > 0` | Target source has deployed allocation. |
+| `tick_age_seconds > 3600` | Enough time has elapsed since the last tick context. |
+| `vault_pps_stale == 0` | Only run when PPS data is fresh. |
+
+<Warning>
+Avoid division in rule expressions unless the denominator is guaranteed non-zero. The validator dry-runs expressions against an empty snapshot to catch type and parse errors, which means division by zero can reject a strategy before it is saved.
+</Warning>
+
+## Common Variables
+
+Variable availability depends on the datafeed and vault snapshot. Common families include:
+
+| Family | Examples | Meaning |
+|--------|----------|---------|
+| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply` | Vault-level balances and supply. |
+| PPS and timing | `vault_pps`, `vault_pps_age_seconds`, `vault_pps_stale` | Price-per-share state and freshness. |
+| Yield source state | `ys_<address>_alloc`, `ys_<address>_apy`, `ys_<address>_tvl` | Source-specific allocation, yield, and liquidity. |
+| Tick context | `tick_age_seconds`, `tick_block_number`, `tick_timestamp` | Engine tick timing and chain context. |
+| Indicators | Custom aliases configured in `indicators` | Derived signals such as moving averages or momentum scores. |
+
+Source-specific variables normalize addresses before aliasing. When in doubt, inspect the strategy validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
+
+## `size_expr`
+
+`action_config.size_expr` is numeric. It should evaluate to the amount OMS should act on, in the underlying asset's base units.
+
+Rules for sizing:
+
+- It must be positive at runtime.
+- It should be bounded by available liquidity or allocation.
+- It should match the action direction. Deposit sizes should not exceed idle assets; withdrawal sizes should not exceed source allocation.
+- It should be easy to audit from dashboard numbers.
+
+Examples:
+
+```text
+vault_free_assets
+```
+
+```text
+min(vault_free_assets, 0.05 * vault_tvl)
+```
+
+```text
+0.075 * vault_tvl - vault_free_assets
+```
+
+## Conviction Config
+
+`conviction_config` controls how many passing ticks are required before a strategy publishes.
+
+| Mode | Meaning |
+|------|---------|
+| `BINARY` | One passing evaluation is enough. |
+| Scored/graded modes | Require stronger or repeated signal confidence when enabled by the engine configuration. |
+
+Use `BINARY` for simple operational gates. Add stronger conviction only when false positives are expensive and delayed action is acceptable.
+
+## Validation Timing
+
+The Strategy Engine validates at create and update time:
+
+- JSON shape and required fields.
+- Known action names and lane compatibility.
+- Expression parseability.
+- Basic dry-run evaluation.
+- Address formatting.
+- Version conflicts on update.
+
+Runtime checks still apply after validation. A strategy can save successfully and later fail to publish if it lacks a session key, merkle proof, active yield source, or executable OMS route.

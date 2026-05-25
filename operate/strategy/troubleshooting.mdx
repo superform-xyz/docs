@@ -1,0 +1,72 @@
+---
+title: "Strategy Troubleshooting"
+description: "Diagnose why a strategy is not saving, ticking, publishing, or filling."
+---
+
+Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+
+## First Checks
+
+| Question | Where to check |
+|----------|----------------|
+| Is the strategy `RUNNING`? | [Strategy Canvas](/operate/ui/strategy) or `GET /api/v1/strategies/{id}`. |
+| Is the vault active? | [Setup Checklist](/operate/ui/setup-checklist) and [Vault Settings](/operate/ui/vault-settings). |
+| Does OMS have a valid session key? | Strategy Canvas gate and [OMS API](/operate/api/oms#session-keys). |
+| Is the target whitelisted? | [Yield Source Management](/operate/ui/yield-sources). |
+| Is the hook authorized? | [Merkle Trees](/operate/ui/merkle-trees). |
+| Is an emergency lock active? | [Pause Operations](/operate/ui/pause) and engine shard state. |
+
+## Create or Update Rejected
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
+| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
+| `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
+| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
+| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+
+## Strategy Saves but Does Not Tick
+
+| Cause | What to do |
+|-------|------------|
+| State is `CREATED` or `IDLE` | Transition to `RUNNING` after readiness checks. |
+| Vault activation incomplete | Fund upkeep and clear setup checklist blockers. |
+| Kill switch or vault pause active | Review Pause Operations and vault pause status. |
+| Target emergency lock active | Stop the emergency exit only after the incident is resolved. |
+| No shard state | Check Strategy Engine health and shard assignment for the vault. |
+
+## Strategy Ticks but Does Not Publish
+
+| Cause | What to do |
+|-------|------------|
+| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
+| `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
+| Missing session key | Grant or renew OMS session-key authorization. |
+| Missing merkle proof | Generate, sync, and publish the active merkle tree. |
+| Target not whitelisted | Add the yield source and oracle. |
+| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+
+## Intent Publishes but Does Not Fill
+
+| Cause | What to do |
+|-------|------------|
+| OMS route failure | Inspect OMS events for planning or execution errors. |
+| Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
+| Slippage too tight | Review `max_slippage_bps` against current liquidity. |
+| Gas or nonce issue | Check executor wallet state and OMS event details. |
+| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+
+## Useful Endpoints
+
+```bash
+GET /api/v1/strategies/{id}
+PATCH /api/v1/strategies/{id}/state
+GET /api/v1/engine/shards/{vault_id}/state
+GET /api/v1/intents?strategy_id={id}
+GET /api/v1/intents/{intent_id}/events
+GET /api/v1/intents/{intent_id}/fills
+GET /api/v1/fills?strategy_id={id}
+```
+
+If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.

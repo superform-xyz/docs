@@ -141,6 +141,7 @@
                 "group": "Strategy Canvas",
                 "pages": [
                   "operate/ui/strategy",
+                  "operate/ui/strategy-walkthrough",
                   "operate/strategy/quickstart",
                   "operate/strategy/dsl",
                   "operate/strategy/action-config",

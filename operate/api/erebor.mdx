@@ -42,7 +42,7 @@ Public discovery depends on more than deployment. Erebor only surfaces vaults wi
 
 `ConfirmCreateVaultRequest` can include `vault_config.redeem_timelock_seconds` for post-indexing settings.
 
-Listing metadata is handled by the dashboard/catalog layer after vault address resolution. Onchain creation and catalog availability are separate states.
+Distribution metadata is handled by the dashboard/listing layer after vault address resolution. Onchain creation and Superform availability are separate states.
 
 ## Settings and Upkeep
 
@@ -114,19 +114,13 @@ Current upkeep responses use:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/registry/yield-sources` | GET/POST | Browse or create yield sources |
-| `/api/v1/registry/yield-sources/{chain_id}/{address}` | GET/PUT | Read or update source by chain/address |
-| `/api/v1/registry/yield-sources/{id}` | DELETE | Delete source |
-| `/api/v1/registry/yield-sources/sync` | POST | Import provider sources |
-| `/api/v1/registry/oracles` | GET/POST | Browse or create oracles |
-| `/api/v1/registry/oracles/{chain_id}/{oracle_address}` | GET/PUT | Read or update oracle |
-| `/api/v1/registry/oracles/{id}` | DELETE | Delete oracle |
-| `/api/v1/registry/hooks` | GET/POST | Browse or create hooks |
-| `/api/v1/registry/hooks/{id}` | PUT/DELETE | Update or delete hook |
-| `/api/v1/registry/token-assets` | GET/PUT | Browse or upsert token metadata |
+| `/api/v1/registry/yield-sources` | GET | Browse yield sources for operator selection |
+| `/api/v1/registry/oracles` | GET | Browse oracles for operator selection |
+| `/api/v1/registry/hooks` | GET | Browse hooks for merkle config authoring |
+| `/api/v1/registry/token-assets` | GET | Browse token metadata |
 | `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
-Yield source registry entries include active/inactive state and can carry external provider metadata.
+Yield source registry entries include active/inactive state and can carry external provider metadata. Registry create, update, delete, and sync endpoints are registry-maintainer surfaces, not normal third-party operator flows.
 
 ## Yield Source Whitelist
 

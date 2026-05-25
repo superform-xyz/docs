@@ -130,8 +130,7 @@
             "pages": [
               "operate/ui/home",
               "operate/ui/create-vault",
-              "operate/ui/setup-checklist",
-              "operate/ui/catalog-listing"
+              "operate/ui/setup-checklist"
             ]
           },
           {
@@ -165,8 +164,7 @@
           {
             "group": "Distribution",
             "pages": [
-              "operate/ui/distribute",
-              "operate/ui/registry"
+              "operate/ui/distribute"
             ]
           },
           {

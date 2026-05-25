@@ -1,9 +1,9 @@
 ---
 title: "Quickstart"
-description: "Create, list, activate, and operate a SuperVault end to end."
+description: "Create, activate, and operate a SuperVault end to end."
 ---
 
-This guide follows the operator path from vault deployment to a live Superform listing. The launch path is complete when the vault is indexed, funded for upkeep, authorized with hooks, connected to yield sources, backed by at least one strategy, and listed as available in the Superform catalog.
+This guide follows the operator path from vault deployment to a live Superform listing. Use it for sequence; use [Setup Checklist](/operate/ui/setup-checklist) as the canonical readiness source after the vault exists.
 
 Prerequisites: operator access, connected EVM wallet, gas on the deployment chain, provider profile, and the token/yield-source details for the vault.
 
@@ -21,22 +21,15 @@ After review, the modal moves through transaction signing, indexing, optional yi
 </Step>
 
 <Step title="Work through the setup checklist">
-Open **Setup**. Treat it as the canonical go-live checklist:
+Open **Setup**. Treat it as the canonical go-live checklist. It coordinates the required rows for creation, upkeep, hook authorization, yield sources, strategy coverage, and Superform availability.
 
-- Vault is created and readable.
-- Upkeep is staked so automation can run.
-- Hooks are configured in the active root config.
-- Yield sources are whitelisted.
-- At least one strategy exists.
-- The vault is listed and available in the Superform catalog.
-
-The checklist coordinates operational readiness and public discovery. See [Setup Checklist](/operate/ui/setup-checklist).
+Do not maintain a second checklist from this page. If the Setup page disagrees with another surface, Setup wins. See [Setup Checklist](/operate/ui/setup-checklist).
 </Step>
 
 <Step title="Fund upkeep and activate automation">
 Open **Vault Settings → Upkeep**. Fund the required upkeep balance. Erebor marks the vault active and discoverable once the funding gate is satisfied.
 
-Without upkeep, operator pages can still show the vault by direct link, but keeper automation and discoverability remain gated.
+Without upkeep, operator pages can still show the vault by direct link, but keeper automation and public discoverability remain gated. Ethereum L1 vaults currently require at least `100,000 $UP`; non-L1 vaults require at least `1,000 $UP`.
 </Step>
 
 <Step title="Configure hook authorization">
@@ -62,10 +55,10 @@ Open **Strategy Canvas**. Create user-defined strategies for deposits, withdrawa
 Before a strategy can publish intents, the OMS session key must be ready and the active merkle tree must contain the required withdrawal/deposit hooks.
 </Step>
 
-<Step title="List the vault in the catalog">
-Open the catalog/listing flow. Confirm provider IDs, visibility, availability, category, description, and external URL when relevant.
+<Step title="Confirm distribution readiness">
+Open **Distribute**. Confirm the vault has the metadata, visibility, and availability needed for Superform surfaces.
 
-Onchain created means the vault contract exists. Listed and available means the vault is discoverable in Superform surfaces. See [Catalog Listing](/operate/ui/catalog-listing).
+Onchain created means the vault contract exists. Available in Superform means the vault is indexed, activated, configured, and visible to allocator-facing surfaces. See [Distribute](/operate/ui/distribute).
 </Step>
 
 <Step title="Monitor intents and operations">
@@ -74,14 +67,17 @@ Use **Dashboard** for vault health, **Intent History** for execution traces, and
 
 </Steps>
 
-## Go-live checklist
+## Source of Truth
 
-- [ ] Vault contract created, indexed, and readable in dashboard data
-- [ ] Upkeep funded and activation gate cleared
-- [ ] Active hook config exists
-- [ ] Merkle tree generated, proposed onchain by the primary manager, and published
-- [ ] Yield sources whitelisted with correct oracles
-- [ ] At least one strategy exists and intended strategies are `RUNNING`
-- [ ] OMS session key readiness is green
-- [ ] Catalog listing is `listed` and `available`
-- [ ] Intent History shows expected execution or no unexpected failures
+After creation, [Setup Checklist](/operate/ui/setup-checklist) is the source of truth for go-live readiness. This quickstart intentionally avoids duplicating its row logic.
+
+Use the other pages for the work behind each row:
+
+| Work | Page |
+|------|------|
+| Upkeep and activation | [Vault Settings](/operate/ui/vault-settings) |
+| Hook authorization and proof publishing | [Merkle Trees](/operate/ui/merkle-trees) |
+| Yield-source whitelist and oracles | [Yield Sources](/operate/ui/yield-sources) |
+| Strategy authoring and ordering | [Strategy Canvas](/operate/ui/strategy) |
+| Distribution availability | [Distribute](/operate/ui/distribute) |
+| Execution monitoring | [Intent History](/operate/ui/intent-history) |

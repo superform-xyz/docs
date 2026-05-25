@@ -174,20 +174,20 @@
             ]
           },
           {
+            "group": "Automation",
+            "pages": [
+              "operate/automation/overview",
+              "operate/automation/monitoring",
+              "operate/automation/webhooks"
+            ]
+          },
+          {
             "group": "API Reference",
             "pages": [
               "operate/api/overview",
               "operate/api/erebor",
               "operate/api/strategy",
               "operate/api/oms"
-            ]
-          },
-          {
-            "group": "Automation",
-            "pages": [
-              "operate/automation/overview",
-              "operate/automation/monitoring",
-              "operate/automation/webhooks"
             ]
           }
         ]

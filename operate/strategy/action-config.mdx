@@ -10,7 +10,7 @@ description: "Reference for the action_config block that dispatches strategy res
 | Field | Required | Description |
 |-------|----------|-------------|
 | `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
-| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
+| `size_expr` | Yes | Numeric expression for the amount to execute. Units depend on the action: underlying **asset** base units for `DEPOSIT`; yield-source **share** base units for `WITHDRAWAL` (`Redeem4626VaultHook` calls `redeem(shares)`). |
 | `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
 | `execution_name` | Yes | Hook identifier from the hook registry. |
 | `execution_address` | Yes | Hook contract address for the target chain. |
@@ -19,6 +19,11 @@ description: "Reference for the action_config block that dispatches strategy res
 | `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
 | `execution_params` | Optional | Hook-specific encoded parameters. |
 | `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
+| `max_duration_seconds` | Optional | Signal lifespan — how long the published intent stays actionable. The engine clamps to 10–300 seconds. |
+| `allow_order_splitting` | Optional | Whether OMS may split the order into multiple fills. |
+| `venue_allowlist` / `venue_blocklist` | Optional | Restrict execution to, or exclude, specific venues. |
+| `merkle_hook_descriptor` | Optional | Required when the action emits Merkle hook proofs; the engine resolves the proof from Erebor at intent-build time. |
+| `merkle_global_descriptor` | Optional | Global Merkle proof descriptor, used alongside `merkle_hook_descriptor` when needed. |
 | `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
 
 ## Target Requirements
@@ -39,7 +44,7 @@ See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operat
 | Action | Notes |
 |--------|-------|
 | `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
-| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
+| `WITHDRAWAL` | Redeems from a source position via `Redeem4626VaultHook` (`redeem(shares)`), so `size_expr` is in yield-source **share** units. Needs withdrawal hook proof coverage. |
 | `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
 | `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
 | `SWAP` | Requires route/slippage constraints and target authorization. |
@@ -66,7 +71,7 @@ See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operat
 
 Before switching a strategy to `RUNNING`, review:
 
-- The `size_expr` cannot consume more than the vault/source can safely supply.
+- The `size_expr` cannot consume more than the vault/source can safely supply, and its unit matches the hook (asset wei for deposit, share wei for redeem).
 - The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
 - The target has emergency exit coverage if it can hold material liquidity.
 - `max_slippage_bps` matches the liquidity profile of the action.

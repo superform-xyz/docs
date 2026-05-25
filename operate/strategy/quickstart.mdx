@@ -1,7 +1,7 @@
 ---
 title: "Strategy Quickstart"
 description: "Author and POST your first SuperformOS strategy pair."
-agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples are adapted from CI-validated drift-rebalance cookbook payloads and can be used with POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
+agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples are adapted from drift-rebalance cookbook payloads and can be used with POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
 strategy_json:
   - "superman-strategy/testdata/cookbook/drift_rebalance_deposit.json"
   - "superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json"
@@ -16,7 +16,7 @@ A drift-trigger reserve pair:
 
 - A `DEPOSIT` strategy fires when `vault_free_assets` is above 10% of vault TVL.
 - A `WITHDRAWAL` strategy fires when `vault_free_assets` is below 5% of vault TVL.
-- The withdrawal half refills the reserve toward a 7.5% target.
+- The withdrawal half redeems part of the deployed position back into the reserve when idle assets run low.
 
 Two strategies, one yield source, one `EXPR` rule each, no indicators.
 
@@ -75,17 +75,21 @@ For the deposit half, deploy idle assets:
 vault_free_assets
 ```
 
-For the withdrawal half, pull back the shortfall to the 7.5% target:
+For the withdrawal half, redeem part of the deployed position. Withdrawals execute through the ERC-4626 `Redeem4626VaultHook`, which calls `redeem(shares)`, so the size is in **yield-source share units**, not asset units. Size off the position's `ys_<address>_shares`:
 
 ```text
-0.075 * vault_tvl - vault_free_assets
+0.5 * ys_0x0000000000000000000000000000000000000001_shares
 ```
 
-Both expressions are positive when their corresponding trigger passes. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
+<Warning>
+Deposit and withdrawal sizes use different units. A `DEPOSIT` sizes in underlying **asset** base units; a `WITHDRAWAL` through `Redeem4626VaultHook` sizes in yield-source **share** base units. Converting an asset target to shares means dividing by `ys_<address>_pps`, which the validator rejects at create/update time — the dry-run snapshot makes `pps` zero, triggering division by zero. Prefer a share-denominated expression such as a fraction of `ys_<address>_shares`.
+</Warning>
+
+The deposit size is positive whenever idle assets exist; the withdrawal size is positive whenever the position holds shares. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
 
 ## 5. Deposit Strategy JSON
 
-These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
+Replace the vault ID, yield-source address, hook address, and executor address before sending. These payloads pass `StrategyValidator` (shape, identifier, and dry-run checks), but note the validator does **not** confirm that `execution_name` exists in the live hook registry or that `size_expr` units match the hook — verify both against [Action Config](/operate/strategy/action-config).
 
 ```json
 {
@@ -128,14 +132,14 @@ These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebal
   },
   "action_config": {
     "action": "WITHDRAWAL",
-    "size_expr": "0.075 * vault_tvl - vault_free_assets",
+    "size_expr": "0.5 * ys_0x0000000000000000000000000000000000000001_shares",
     "objective": "BALANCED",
-    "execution_name": "ApproveAndWithdraw4626VaultHook",
+    "execution_name": "Redeem4626VaultHook",
     "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
     "target_address": "0x0000000000000000000000000000000000000001",
     "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
     "target_type": "erc4626",
-    "reason": "Free reserve below 5% of TVL - pull liquidity back toward 7.5% target"
+    "reason": "Free reserve below 5% of TVL - redeem half the position to replenish the reserve"
   },
   "conviction_config": { "mode": "BINARY" },
   "risk_params": {},

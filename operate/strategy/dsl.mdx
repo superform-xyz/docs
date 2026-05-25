@@ -27,9 +27,11 @@ Expressions are evaluated by the Strategy Engine against the current vault snaps
 | Pattern | Use |
 |---------|-----|
 | `vault_free_assets > 0.10 * vault_tvl` | Prefer multiplication over division for ratios. |
-| `ys_0xabc_alloc > 0` | Target source has deployed allocation. |
-| `tick_age_seconds > 3600` | Enough time has elapsed since the last tick context. |
-| `vault_pps_stale == 0` | Only run when PPS data is fresh. |
+| `ys_0xabc_amount > 0` | Target source holds a deployed position. |
+| `ys_0xabc_apy > 0.05` | Source yield is above a threshold. |
+| `tick_hour >= 8 && tick_hour < 20` | Restrict actions to a UTC time window. |
+
+In the examples above, `0xabc` stands in for the full lowercase yield-source address.
 
 <Warning>
 Avoid division in rule expressions unless the denominator is guaranteed non-zero. The validator dry-runs expressions against an empty snapshot to catch type and parse errors, which means division by zero can reject a strategy before it is saved.
@@ -41,23 +43,28 @@ Variable availability depends on the datafeed and vault snapshot. Common familie
 
 | Family | Examples | Meaning |
 |--------|----------|---------|
-| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply` | Vault-level balances and supply. |
-| PPS and timing | `vault_pps`, `vault_pps_age_seconds`, `vault_pps_stale` | Price-per-share state and freshness. |
-| Yield source state | `ys_<address>_alloc`, `ys_<address>_apy`, `ys_<address>_tvl` | Source-specific allocation, yield, and liquidity. |
-| Tick context | `tick_age_seconds`, `tick_block_number`, `tick_timestamp` | Engine tick timing and chain context. |
+| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply`, `vault_pps` | Vault-level balances, supply, and price-per-share. |
+| Redeem queue | `vault_redeem_queue_count`, `vault_redeem_queue_value` | Pending redemption pressure on the vault. |
+| Yield source state | `ys_<address>_amount`, `ys_<address>_shares`, `ys_<address>_pps`, `ys_<address>_apy`, `ys_<address>_tvl` | Per-source position (asset amount and shares), price-per-share, yield, and liquidity. Valid metric suffixes: `amount`, `shares`, `pps`, `apy`, `base_apy`, `reward_apy`, `tvl`. |
+| Price | `price` | Latest price sample feeding indicators. |
+| Tick context | `tick_unix`, `tick_unix_ms`, `tick_hour`, `tick_minute`, `tick_second`, `tick_dow`, `tick_day`, `tick_month`, `tick_year` | UTC wall-clock fields injected each tick. No relative/age suffixes exist. |
+| Merkl aggregates | `merkl_<address>_amount`, `merkl_<address>_value_usd` | Claimable Merkl reward aggregates. |
 | Indicators | Custom aliases configured in `indicators` | Derived signals such as moving averages or momentum scores. |
 
-Source-specific variables normalize addresses before aliasing. When in doubt, inspect the strategy validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
+These are the canonical engine snapshot keys. Per-source (`ys_`) and Merkl (`merkl_`) keys require a full lowercase `0x` address and one of the known metric suffixes; any unknown identifier is rejected at create/update time with a position-tagged error. When in doubt, inspect the validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
 
 ## `size_expr`
 
-`action_config.size_expr` is numeric. It should evaluate to the amount OMS should act on, in the underlying asset's base units.
+`action_config.size_expr` is numeric and must evaluate to a positive amount in the **hook's input units**, which depend on the action:
+
+- `DEPOSIT` (e.g. `ApproveAndDeposit4626VaultHook`) sizes in underlying **asset** base units.
+- `WITHDRAWAL` (`Redeem4626VaultHook`) sizes in yield-source **share** base units, because the hook calls `redeem(shares)`.
 
 Rules for sizing:
 
-- It must be positive at runtime.
-- It should be bounded by available liquidity or allocation.
-- It should match the action direction. Deposit sizes should not exceed idle assets; withdrawal sizes should not exceed source allocation.
+- It must be positive at runtime; a value of `0` or less is dropped before reaching OMS.
+- It should be bounded by available liquidity or the held position.
+- It should match the action's unit (assets for deposit, shares for redeem) and direction.
 - It should be easy to audit from dashboard numbers.
 
 Examples:
@@ -71,8 +78,12 @@ min(vault_free_assets, 0.05 * vault_tvl)
 ```
 
 ```text
-0.075 * vault_tvl - vault_free_assets
+0.5 * ys_0xabc_shares
 ```
+
+<Warning>
+Do not convert an asset target to shares by dividing by `ys_<address>_pps`. The validator dry-runs `size_expr` against an empty snapshot where `pps` is `0`, so the division is rejected at create/update time. Size redeems directly off `ys_<address>_shares` instead.
+</Warning>
 
 ## Conviction Config
 
@@ -80,8 +91,8 @@ min(vault_free_assets, 0.05 * vault_tvl)
 
 | Mode | Meaning |
 |------|---------|
-| `BINARY` | One passing evaluation is enough. |
-| Scored/graded modes | Require stronger or repeated signal confidence when enabled by the engine configuration. |
+| `BINARY` | One passing evaluation is enough. This is the default when `conviction_config` is omitted. |
+| Expression-scored | When `conviction_config.expr` is set, a numeric score gates publishing instead of a single pass. |
 
 Use `BINARY` for simple operational gates. Add stronger conviction only when false positives are expensive and delayed action is acceptable.
 
@@ -95,5 +106,7 @@ The Strategy Engine validates at create and update time:
 - Basic dry-run evaluation.
 - Address formatting.
 - Version conflicts on update.
+
+Validation does **not** cover everything. In particular, it does not confirm that `execution_name` exists in the live hook registry, and it does not check that `size_expr` units match the hook (asset wei vs share wei). Verify both against [Action Config](/operate/strategy/action-config).
 
 Runtime checks still apply after validation. A strategy can save successfully and later fail to publish if it lacks a session key, merkle proof, active yield source, or executable OMS route.

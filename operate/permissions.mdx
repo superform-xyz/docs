@@ -3,10 +3,10 @@ title: "Permissions Model"
 description: "Access boundaries for primary managers, secondary managers, view-only users, registry maintainers, session keys, and keepers."
 ---
 
-SuperVaults separates protocol ownership from day-to-day operations. The safest mental model is:
+SuperVaults separates protocol governance, vault accounting, and day-to-day operations. The safest mental model is:
 
-- **Primary manager** owns the vault.
-- **Secondary managers** operate the vault.
+- **Primary manager** is the highest-authority vault operator within protocol, timelock, Merkle, fee, PPS, and accounting constraints.
+- **Secondary managers** execute delegated operational actions within the same onchain constraints.
 - **View-only users** observe the vault.
 - **Registry maintainers** maintain global metadata.
 - **Session keys / keepers** execute narrowly-authorized automation.
@@ -15,15 +15,15 @@ SuperVaults separates protocol ownership from day-to-day operations. The safest 
 
 | Role | Onchain? | Scope | Typical Use |
 |------|----------|-------|-------------|
-| Primary Manager | Yes | Full vault control | Multisig / hardware-backed owner |
-| Secondary Manager | Yes | Operational controls | PM, operations, risk |
+| Primary Manager | Yes | Highest-authority vault operations | Multisig / hardware-backed operator |
+| Secondary Manager | Yes | Delegated operational execution | PM, operations, risk |
 | View Only | No | Read access | Analysts, auditors, monitors |
 | Registry Maintainer | No | Global registry CRUD | Internal registry operations |
 | Session Key / Keeper | Yes, delegated | Specific executable actions | Strategy and OMS automation |
 
 ## Primary Manager
 
-The primary manager is set at vault creation and is the highest-authority vault operator.
+The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets remain in vault contracts and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
 
 Primary manager responsibilities:
 
@@ -35,12 +35,12 @@ Primary manager responsibilities:
 - Merkle root proposal / publish workflows.
 
 <Warning>
-Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker can control the vault.
+Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker may be able to exercise the role's authorized operating powers, subject to protocol checks, timelocks, Merkle allowlists, and accounting constraints.
 </Warning>
 
 ## Secondary Managers
 
-Secondary managers are onchain delegates for operational work.
+Secondary managers are onchain delegates for operational work. They can execute only the actions authorized for their role and, for hook execution, only pre-authorized hook/parameter combinations proven against the active Merkle roots.
 
 They can typically:
 
@@ -50,7 +50,17 @@ They can typically:
 - Pause/unpause operational services.
 - Add view-only collaborators.
 
-They cannot replace the primary manager or take over primary-only settings.
+They cannot unilaterally bypass primary-only settings, timelocks, Merkle validation, PPS checks, fee limits, or vault accounting.
+
+## What Managers Cannot Do
+
+Manager roles are operational roles, not custody of depositor wallets or unrestricted control over vault assets. Managers cannot:
+
+- Withdraw depositor assets to arbitrary wallets outside vault redemption, strategy, or emergency flows enforced by the contracts.
+- Execute arbitrary calldata against yield sources; hook execution must match pre-authorized Merkle leaves and protocol validation.
+- Bypass ERC-7540 redemption accounting, PPS-based calculations, slippage expectations, or share/accounting updates when fulfilling redemptions.
+- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, primary-manager changes, and hook-root updates.
+- Override global protocol constraints such as banned leaves, pause state, validator-secured PPS requirements, or governance-maintained limits.
 
 ## View-Only Users
 

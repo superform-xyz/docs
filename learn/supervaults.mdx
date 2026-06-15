@@ -3,11 +3,11 @@ title: "SuperVaults"
 description: "ERC-7540 tokenized vaults with operator-managed yield strategies, Merkle-verified execution, and validator-secured price-per-share."
 ---
 
-SuperVaults are ERC-7540 tokenized vaults that give operators full programmatic control over yield strategy execution. Depositors supply assets; operators decide where that capital goes: which protocols, in what order, under what conditions.
+SuperVaults are ERC-7540 tokenized vaults that let operators manage yield strategy execution through protocol-bounded roles. Depositors supply assets to vault contracts; operators configure and execute approved strategy actions within Merkle, PPS, fee, slippage, timelock, and accounting constraints.
 
 ## Key Properties
 
-- **Non-custodial** — Depositor funds live in the vault contract, never in operator-controlled wallets
+- **Non-custodial** — Depositor funds live in vault contracts, not operator-controlled wallets
 - **ERC-4626 compatible** — Standard deposit/withdraw interface with async ERC-7540 extensions for cross-chain and illiquid positions
 - **Merkle-verified execution** — Keepers can only call hooks that match leaves in the onchain Merkle tree
 - **Automated operations** — Workers handle any actions, from deposits, redemptions, reward claims, swaps, and transaction management
@@ -23,7 +23,7 @@ SuperVaults are ERC-7540 tokenized vaults that give operators full programmatic 
     Seven automated workers process requests: allocating deposits to configured yield sources, fulfilling redemptions, claiming rewards, and executing swaps.
   </Step>
   <Step title="Operator Manages Strategy">
-    The operator sets allocation priorities, defines automated rebalancing rules, configures Merkle authorization for keeper operations, and monitors vault health.
+    The operator sets allocation priorities, defines automated rebalancing rules, configures Merkle authorization for keeper operations, and monitors vault health within protocol-enforced constraints.
   </Step>
   <Step title="Validators Secure PPS">
     Off-chain validators compute price-per-share, sign EIP-712 attestations, and anyone can submit the update onchain. The oracle accepts updates only with supermajority validator consensus.
@@ -39,6 +39,8 @@ SuperVaults enforce safety at every layer:
 - **Validator-signed price-per-share (PPS)** with quorum, signature, staleness, and deviation checks enforced onchain.
 - **Timelocked sensitive parameters** such as fee changes, PPS expiration threshold updates, active PPS oracle changes after first set, and some governance actions, while other operational controls remain immediate.
 - **Automated emergency controls** provide pause functionality, banned leaves, and emergency withdrawal paths using authorized hooks.
+
+Managers cannot execute arbitrary calldata or withdraw depositor assets to arbitrary destinations. Secondary managers, session keys, and keepers are limited to role-authorized actions and pre-authorized Merkle leaves. Emergency withdrawal hooks are de-risking paths that move positions back through strategy/vault accounting, and redemption fulfillment remains bounded by ERC-7540 request state, PPS, slippage expectations, fee logic, and accounting updates.
 
 ## Efficiency
 

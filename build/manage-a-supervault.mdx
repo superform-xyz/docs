@@ -9,7 +9,7 @@ While SuperVault deployment is permissionless, only SuperVaults whose managers p
 For a guided operating experience, use SuperformOS at [os.superform.xyz](https://os.superform.xyz). See the full [Operate Documentation](/operate) for the complete operational guide.
 </Note>
 
-Once a manager becomes a validated operator, they gain full access to the tooling in [SuperformOS](https://os.superform.xyz).
+Once a manager becomes a validated operator, they gain access to the SuperformOS tooling appropriate for their authorized role in [SuperformOS](https://os.superform.xyz).
 
 ## Creating and Setting Up a Vault
 
@@ -38,7 +38,7 @@ struct FeeConfig {
 
 ## Primary Managers
 
-The primary manager has full control over strategy operations, including the list below as well as the functionality granted to secondary managers.
+The primary manager is the highest-authority operator for strategy operations, including the list below as well as the functionality granted to secondary managers. This is not custody of depositor assets or unrestricted control: actions remain bounded by protocol logic, active Merkle roots, fee and PPS constraints, redemption accounting, and timelocks for sensitive changes.
 
 - Create vaults
 - Update secondary managers
@@ -48,9 +48,9 @@ The primary manager has full control over strategy operations, including the lis
 - Add hooks to the strategy hooks root
 - Update vault performance and management fees
 
-### Control of Primary Managers
+### Primary Manager Changes
 
-If a primary manager is found to be malicious, they can be replaced by either the secondary managers or `SUPER_GOVERNOR` through the following functions of SuperVaultAggregator.
+If a primary manager needs to be replaced, the change can be proposed by an authorized manager and executed only after the applicable timelock, or performed by `SUPER_GOVERNOR` through the following functions of SuperVaultAggregator. These flows are visible onchain and do not bypass vault accounting.
 
 ```solidity
 /// @notice Change the primary manager for a strategy
@@ -74,15 +74,17 @@ function executeChangePrimaryManager(address strategy) external;
 
 ## Secondary Managers
 
-The primary manager can add multiple secondary managers as backup accounts who have partial control over strategy operations.
+The primary manager can add multiple secondary managers as backup accounts with delegated operating permissions. Secondary managers can execute role-authorized actions, but hook execution is limited to hook/parameter combinations proven against active Merkle roots and still subject to protocol checks.
 
 - Skim performance fees
 - Whitelist yield sources
 - Update primary manager
-- Call `executeHooks()` to interact with underlying yield sources
-- Call `executeHooks()` to perform emergency withdrawals
-- Fulfill redeem requests
+- Call `executeHooks()` to interact with underlying yield sources through pre-authorized Merkle leaves
+- Call `executeHooks()` to perform emergency withdrawals as de-risking hooks that return assets through vault strategy accounting
+- Fulfill redeem requests subject to ERC-7540 request state, PPS, slippage expectations, fee deduction, and vault accounting
 - Fulfill cancel redeem requests
+
+Managers cannot execute arbitrary calldata, withdraw depositor assets outside contract-enforced flows, or bypass timelocked/visible changes such as fee updates, hook-root updates, upkeep withdrawals, PPS parameter changes, or primary-manager changes.
 
 The list of secondary managers for a given strategy can be maintained as follows.
 
@@ -133,7 +135,7 @@ Once vaults are created, managers automatically benefit from the list of hooks t
 function proposeStrategyHooksRoot(address strategy, bytes32 newRoot) external validStrategy(strategy)
 ```
 
-Once the hooks required to perform a given yield strategy are available in the hooks root, the managers can run them through `executeHooks()`.
+Once the hooks required to perform a given yield strategy are available in the hooks root, managers can run those authorized hook/parameter combinations through `executeHooks()`.
 
 [SuperformOS](https://os.superform.xyz/) supports hook execution simulations. It is advised to run these before actual execution.
 
@@ -178,7 +180,7 @@ function unpauseStrategy(address strategy) external validStrategy(strategy) {}
 
 ### Fee Configuration
 
-Managers can alter fee parameters through the following functions.
+Managers can alter fee parameters through the following functions, subject to contract caps, accounting rules, and the applicable timelock before execution.
 
 ```solidity
 /// @notice Change the fee recipient when the primary manager is changed
@@ -224,7 +226,7 @@ The ideal frequency at which to skim fees depends on the TVL and PPS of a vault,
 
 ## User Redemptions
 
-User redemption and cancel redemption requests must be fulfilled manually by an authorized operator. It is advised to do so through [SuperformOS](https://os.superform.xyz/) where there is tooling to aid controller sorting and `totalAssetsOut` calculations.
+User redemption and cancel redemption requests must be fulfilled manually by an authorized operator. Fulfillment is bounded by ERC-7540 request state, PPS, fee deduction, slippage expectations from the preceding hook execution, and vault accounting. It is advised to do so through [SuperformOS](https://os.superform.xyz/) where there is tooling to aid controller sorting and `totalAssetsOut` calculations.
 
 ```solidity
 /// @notice Fulfills pending cancel redeem requests by making shares claimable

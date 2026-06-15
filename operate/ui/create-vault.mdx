@@ -19,7 +19,7 @@ You need:
 - A connected wallet with permission to create and manage the vault.
 - The underlying token available in the token registry, or enough metadata to register it.
 - An approved provider record for the vault's listing metadata.
-- The primary manager wallet that will own vault-level controls.
+- The primary manager wallet that will administer vault-level settings within protocol constraints.
 - Fee recipient and fee parameters.
 
 ## Editable Wizard Steps
@@ -46,8 +46,8 @@ The onchain vault name and symbol are protocol identity. The friendly name, cate
 
 Set the primary manager and optional secondary managers.
 
-- The **primary manager** owns vault settings, user management, session keys, and emergency authority.
-- **Secondary managers** can operate the vault but cannot replace the primary manager or change primary-only settings.
+- The **primary manager** administers vault settings, user management, session keys, and emergency authority within protocol constraints.
+- **Secondary managers** can execute delegated vault operations but cannot bypass primary-only settings, Merkle validation, timelocks, or vault accounting.
 
 For production vaults, use a hardware-backed wallet or multisig as the primary manager.
 

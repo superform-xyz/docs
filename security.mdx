@@ -61,8 +61,8 @@ Strategies are automatically paused when:
 | Role | Permission |
 |------|-----------|
 | **SuperGovernor** | Protocol governance with strategy-level overrides; updates global hook root |
-| **Primary Strategist** | Full vault control: hook whitelisting, fees, deposit/redemption processing |
-| **Secondary Strategists** | Day-to-day operations, everything except hook whitelisting and fees |
+| **Primary Strategist** | Highest-authority vault operator for hook-root proposals, fee proposals, and deposit/redemption processing, subject to protocol, timelock, Merkle, PPS, and accounting constraints |
+| **Secondary Strategists** | Delegated day-to-day operations through role-authorized actions and pre-authorized Merkle leaves |
 | **Guardians** | Threat monitoring network with emergency intervention powers such as pause controls |
 | **Validators** | Validators that attest to PPS updates and must satisfy signature and quorum checks before updates are accepted |
 
@@ -86,4 +86,4 @@ Strategies are automatically paused when:
 
 **Guardian Controls** — Guardians retain emergency intervention powers such as pause controls, allowing rapid response to detected threats.
 
-**Emergency Withdrawals** — Managers can perform emergency withdrawals through authorized hooks. Expanding that authorization still requires a hook-root proposal and execution flow before new leaves become active.
+**Emergency Withdrawals** — Managers can perform emergency withdrawals through authorized hooks as de-risking paths back through strategy/vault accounting. Expanding that authorization still requires a hook-root proposal and execution flow before new leaves become active.

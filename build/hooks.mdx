@@ -7,12 +7,15 @@ Hooks are lightweight, permissionless contracts which perform a specific action 
 
 ## Key Concepts
 
-Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This allows for efficient inter-hook communication that avoids the high gas costs associated with permanent storage writes. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
+Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This avoids the gas costs of permanent storage writes between hooks. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
 
 ### Hook Lifecycle
 
-The execution of hooks is a three-step sequence bundled in the hook's `build()` function:
+Each hook runs a three-step internal sequence inside its `build()` function:
+
 `preExecute` → `execution(s)` → `postExecute`
+
+The full protocol flow that wraps that sequence has four steps:
 
 1. **Build** - Frontend selects the addresses and calldata of the hook(s) in a chain.
 2. **Bundle** - SuperBundler splits hooks per chain and wraps each into an ERC-4337 UserOp, storing a Merkle tree.

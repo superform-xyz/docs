@@ -36,7 +36,8 @@ No auth required. Returns all SuperVaults on Base.
 | `availability` | string | `available`, `withdraw_only`, `paused` — always check before presenting deposit UI |
 | `is_supervault_v_2` | boolean | Must be `true` — use `vault_type: "SUPERVAULT"` in bundler calls |
 | `stats_basic.tvl_total` | number | TVL in USD |
-| `stats_basic.reward_rate` | number | Current reward APR as a decimal (e.g. `0.1829` = 18.29%). For SuperStocks vaults, this is the yield figure to display — the underlying token tracks the stock price, so `apy_snapshot_week` is `0`. |
+| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield (decimal). Will grow as vault strategies deploy. Sum with `reward_rate` for total APY. |
+| `stats_basic.reward_rate` | number | Current reward APR as a decimal (e.g. `0.1829` = 18.29%). USDC rewards paid on top of strategy yield. Sum with `apy_snapshot_week` for total APY. |
 | `stats_basic.pps` | number | Price per share in underlying asset units |
 | `stats_basic.pps_usd` | number | Price per share in USD |
 | `assets[]` | array | Underlying asset(s): `address`, `symbol`, `decimals`, `price_usd` |
@@ -414,7 +415,7 @@ Always fetch the live list from `GET /supervaults?chain_id=8453` — addresses a
 
 **Price per share (PPS).** `stats_basic.pps` is the exchange rate between one share and the underlying asset. PPS only increases. Display a user's current value as `assetValue = shares × pps`.
 
-**Reward rate vs APY.** For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), display `stats_basic.reward_rate` — this is the USDC reward yield. The `apy_snapshot_*` fields track price appreciation of the underlying token (NVDAc tracks NVIDIA stock), not a yield rate, and will often read `0` in flat markets. Use `reward_rate` for the APY figure.
+**Total APY for SuperStocks.** Display `stats_basic.apy_snapshot_week + stats_basic.reward_rate` as the total yield figure. `reward_rate` is live USDC rewards paid on top of the vault. `apy_snapshot_week` is strategy yield from the vault's onchain positions — currently near zero as vaults ramp up, but will grow as strategies are deployed. Neither field alone is complete; sum them for the user-facing APY.
 
 **availability.** Always check before rendering deposit or redeem UI: `available`, `withdraw_only`, `deposit_only`, `paused`, `unavailable`.
 

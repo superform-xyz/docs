@@ -5,6 +5,17 @@ description: "Let users deposit into and redeem from SuperVaults. Covers vault d
 
 SuperVaults are ERC-7540 vaults on Base. An integration needs two things: **data** (vault metadata, APY, rewards, user positions) and **transactions** (deposit, redeem). Both paths are documented below with live-verified request and response shapes.
 
+<Info>
+**Quickstart — minimum to go live:**
+
+1. `GET /supervaults?chain_id=8453` → filter to `availability: "available"` and `is_supervault_v_2: true`
+2. Check the user holds the vault's underlying token (`assets[0].address`) with sufficient balance
+3. `POST https://bundler.superform.xyz/hooks/suggest/non-smart-account` with `type: "DEPOSIT"`, source token, vault address, `vault_type: "SUPERVAULT"`
+4. Broadcast the returned `executions[]` in order — execution 0 is `approve`, execution 1 is `deposit`
+
+**To redeem:** POST `type: "REDEEM"` → broadcast → poll `maxWithdraw(account)` on the vault contract → when `> 0`, POST `type: "REDEEM_CLAIM"` → broadcast.
+</Info>
+
 ## Prerequisites
 
 | Item | Value |
@@ -244,13 +255,13 @@ The bundler returns `executions[]` — an ordered list of transactions. Broadcas
   "executions": [
     {
       "type": "DEPOSIT",
-      "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "to": "0xb20000000000000000000078ee7ce2fe4908108c",
       "value": "0",
       "call_data": "0x095ea7b3..."
     },
     {
       "type": "DEPOSIT",
-      "to": "0x11820afe50ea96851ee2bdbae329d97771e41ec6",
+      "to": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
       "value": "0",
       "call_data": "0x6e553f65..."
     }
@@ -259,6 +270,18 @@ The bundler returns `executions[]` — an ordered list of transactions. Broadcas
 ```
 
 Execution 1 (`0x095ea7b3` selector) is `ERC20.approve(vault, amount)`. Execution 2 (`0x6e553f65`) is `ERC4626.deposit(assets, receiver)`. Both are labeled `type: "DEPOSIT"` — use array position to determine order.
+
+<Note>
+**Token decimals.** Always express `amount` in the token's smallest unit. Common values on Base:
+
+| Token | Decimals | Example: 1 token |
+|---|---|---|
+| USDC | 6 | `"1000000"` |
+| WETH / cbBTC | 18 / 8 | `"1000000000000000000"` / `"100000000"` |
+| NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+
+Use `amount_fiat` instead if you only know the USD value — the bundler converts at the current market price.
+</Note>
 
 **Request parameters**
 
@@ -393,19 +416,40 @@ interface ISuperVault {
 
 ---
 
+## Error Reference
+
+All errors return JSON: `{"code": <http_status>, "message": "<reason>"}`.
+
+| HTTP | Message contains | Cause | Fix |
+|---|---|---|---|
+| `401` | `API key is required` | Missing or invalid `x-api-key` header | Add `x-api-key: YOUR_API_KEY` to every bundler request |
+| `400` | `insufficient balance` | `account` does not hold enough of the source token on-chain | Check token balance before calling the bundler; use `GET /balances/{address}` or read on-chain |
+| `400` | `vault share balance not found` | `account` holds no shares in the target vault (for `REDEEM`) | Confirm the user actually holds `superNVDA` / `superUSDC` etc. before requesting redemption |
+| `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on the target | Add `"amount_proportion": 1` to the target object |
+| `400` | `invalid request: failed to validate source amount` | Source `amount` field missing | Supply `"amount": "<raw_wei>"` or `"amount_fiat": <usd>` on sources |
+| `500` | `HOOK_NOT_FOUND` | Stale hook ID passed directly to `/executor/build` | Always go through `/hooks/suggest` or `/hooks/suggest/non-smart-account` first — never hardcode hook IDs |
+
+> Bundler errors are deterministic — retrying an identical request with the same inputs will return the same error. Fix the request before retrying.
+
+---
+
 ## Vault Addresses (Base, chain ID 8453)
 
-| Vault | Symbol | Underlying | Address |
-|---|---|---|---|
-| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` |
-| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` |
-| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` |
-| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` |
-| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` |
-| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` |
-| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851EE2bDbaE329d97771e41eC6` |
-| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fA06931f7B878653A15AECC86145c1af7` |
-| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfC8A6526ffcD8248b8D0f8DAC8037DBE438924CE` |
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` | `0xb20000000000000000000078ee7ce2fe4908108c` |
+| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` | `0xb2000000000000000000001e800a7f5189430cd0` |
+| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` | `0xb2000000000000000000007b9fcbd005511acbd5` |
+| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` | `0xb200000000000000000000c2e324d24d7eecd1fb` |
+| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` | `0xb2000000000000000000002d0ba3164cc74f58b7` |
+| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` | `0xb2000000000000000000008bc8786b856e61707c` |
+| AMZN SuperVault | superAMZN | AMZNc | `0x4855b2756910b7525d5b466292c394669ee74e7e` | `0xb200000000000000000000d9192b6b456483c2e8` |
+| MSFT SuperVault | superMSFT | MSFTc | `0x7778192c7e2c22a27c63d63485699888148d5919` | `0xb200000000000000000000ab99cfa739e253872b` |
+| Stocks USDC SuperVault | superStocksUSDC | USDC | `0x557202e4dea65af6a4460f04044732ce482c8627` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
+| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851ee2bdbae329d97771e41ec6` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
+| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fa06931f7b878653a15aecc86145c1af7` | `0x4200000000000000000000000000000000000006` |
+| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce` | `0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf` |
+| Staked UP Vault | sUP | UP | `0x2c71f70e2ec720ae061ae7e0316fc9654d94f417` | `0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b` |
 
 Always fetch the live list from `GET /supervaults?chain_id=8453` — addresses are stable but the vault set grows.
 

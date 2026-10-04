@@ -84,6 +84,12 @@
             ]
           },
           {
+            "group": "Integrate SuperVaults",
+            "pages": [
+              "build/integrate-supervaults"
+            ]
+          },
+          {
             "group": "Hooks",
             "pages": [
               "build/hooks"

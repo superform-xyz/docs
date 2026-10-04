@@ -1,0 +1,391 @@
+---
+title: "Integrate SuperVaults"
+description: "Display SuperVault data and route user deposits and redemptions. Covers the Superform API for vault discovery, the Bundler for one-call transaction preparation, and direct ERC-7540 contract interaction."
+---
+
+SuperVaults are ERC-7540 vaults managed by curators on Superform. An integration needs two things: **data** (vault metadata, APY, TVL, user positions) and **transactions** (deposit, redeem). Both paths are documented below.
+
+---
+
+## Vault Data
+
+Base URL: `https://persephone.superform.xyz/v1`
+
+All endpoints are public — no API key required.
+
+### List SuperVaults
+
+Returns all active SuperVaults with APY, TVL, rewards, and chain metadata.
+
+```bash
+GET /supervaults
+```
+
+**Query parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `chain_id` | string | Filter by chain ID (e.g. `8453` for Base) |
+| `category` | string | Filter by category (e.g. `rwa` for SuperStocks) |
+
+**Response fields**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Stable vault ID: `{chain_id}_{address}` |
+| `address` | string | Vault contract address |
+| `chain_id` | string | EVM chain ID |
+| `name` | string | Onchain vault name (e.g. `NVDA SuperVault`) |
+| `friendly_name` | string | Display name (e.g. `NVIDIA SuperVault`) |
+| `symbol` | string | Vault share token symbol (e.g. `superNVDA`) |
+| `decimals` | number | Share token decimals |
+| `availability` | string | `available`, `unavailable`, `withdraw_only`, `deposit_only`, `paused` |
+| `stats_basic.apy_snapshot_week` | number | 7-day trailing APY (decimal, multiply by 100 for %) |
+| `stats_basic.tvl_total` | number | Total TVL in USD |
+| `rewards[]` | array | Active reward programs (token address, rate, symbol) |
+| `assets[]` | array | Underlying assets the vault holds |
+
+**Example — filter to Base SuperStocks**
+
+```bash
+GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453&category=rwa
+```
+
+```json
+{
+  "supervaults": [
+    {
+      "id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "chain_id": "8453",
+      "name": "NVDA SuperVault",
+      "friendly_name": "NVIDIA SuperVault",
+      "symbol": "superNVDA",
+      "decimals": 8,
+      "availability": "available",
+      "stats_basic": {
+        "apy_snapshot_week": 0.20,
+        "tvl_total": 423120.25
+      },
+      "rewards": [
+        {
+          "symbol": "USDC",
+          "reward_rate": 0.10,
+          "rate_type": "apy"
+        }
+      ],
+      "assets": [
+        {
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "symbol": "NVDAc",
+          "decimals": 8
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Get a Single Vault
+
+```bash
+GET /vaults/{id}
+```
+
+Returns the same shape as the list, plus `price_per_share` — the current share/asset exchange rate used to convert share balances to underlying asset amounts.
+
+### Get Historical APY and TVL
+
+```bash
+GET /vaults/stats/historical/{ids}?start_ts={unix}&end_ts={unix}&granularity=day
+```
+
+`ids` is a comma-separated list of vault IDs. `granularity` accepts `hour` or `day`.
+
+Returns time-series arrays of APY, TVL, and price-per-share for charting.
+
+### Get User Positions
+
+```bash
+GET /balances/{address}
+```
+
+Returns all vault positions for a wallet address including share balance and estimated asset value.
+
+---
+
+## Transactions
+
+SuperVaults support two integration paths. Use whichever fits your stack.
+
+<CardGroup cols={2}>
+  <Card title="Via Bundler" icon="bolt">
+    One API call returns ready-to-sign calldata. Handles approval, routing, and hook encoding automatically. Recommended for most integrations.
+  </Card>
+  <Card title="Direct ERC-7540" icon="code">
+    Call the vault contracts directly. More control, but requires managing approvals and the two-step async redemption lifecycle yourself.
+  </Card>
+</CardGroup>
+
+---
+
+### Deposit
+
+<CodeGroup>
+
+```bash Bundler
+# Step 1 — Suggest hooks
+# Describe the deposit intent. The bundler resolves the correct hooks,
+# approval steps, and routing automatically.
+POST https://bundler.superform.xyz/hooks/suggest
+Content-Type: application/json
+
+{
+  "account": "0xUSER_SMART_ACCOUNT",
+  "companion_mode": false,
+  "actions": [
+    {
+      "type": "DEPOSIT",
+      "slippage": 50,
+      "sources": [
+        {
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "chain_id": 8453,
+          "amount": "100000000"
+        }
+      ],
+      "targets": [
+        {
+          "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "chain_id": 8453,
+          "vault_type": "SUPERVAULT"
+        }
+      ],
+      "route_type": "OUTPUT",
+      "outputs": []
+    }
+  ]
+}
+
+# Step 2 — Build user operations from the suggested hooks
+POST https://bundler.superform.xyz/executor/build
+Content-Type: application/json
+
+{
+  "account": "0xUSER_SMART_ACCOUNT",
+  "hooks": [ /* hooks array from suggest response */ ]
+}
+
+# Step 3 — Sign the merkle_root from the build response using the user's wallet
+# signature = await wallet.signMessage(build_response.merkle_root)
+
+# Step 4 — Execute
+POST https://bundler.superform.xyz/executor/execute
+Content-Type: application/json
+
+{
+  "expiry": 1234567890,
+  "merkle_root": "0x...",
+  "user_ops": [ /* from build response */ ],
+  "valid_after": "0",
+  "fees_tokens": [ /* from build response */ ],
+  "signature": "0xUSER_SIGNATURE"
+}
+
+# Step 5 — Poll for confirmation
+GET https://bundler.superform.xyz/executor/transactions/{execute_response.id}
+# status: "PENDING" | "CONFIRMED" | "FAILED"
+```
+
+```solidity Direct ERC-7540
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+interface IERC20 {
+    function approve(address spender, uint256 amount) external returns (bool);
+}
+
+interface ISuperVault {
+    // ERC-7540: synchronous deposit, async redemption
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares);
+    function asset() external view returns (address);
+}
+
+contract SuperVaultDepositor {
+    // Deposit NVDAc into the NVDA SuperVault on Base
+    // vault:  0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc
+    // asset:  0xb20000000000000000000078ee7ce2fe4908108c (NVDAc)
+    function depositToNVDA(uint256 assetAmount, address receiver) external {
+        address vault = 0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc;
+        address asset = ISuperVault(vault).asset();
+
+        // Step 1: Approve the vault to spend the user's NVDAc
+        IERC20(asset).approve(vault, assetAmount);
+
+        // Step 2: Deposit — returns superNVDA shares minted to receiver
+        uint256 shares = ISuperVault(vault).deposit(assetAmount, receiver);
+    }
+}
+```
+
+</CodeGroup>
+
+**Bundler response — `executor/build`**
+
+| Field | Description |
+|---|---|
+| `user_ops[]` | ERC-4337 user operations to sign and execute |
+| `merkle_root` | Hash to sign with the user's wallet |
+| `expiry` | Unix timestamp after which this build expires |
+| `fee_breakdown` | Estimated fees (Superform + gas) |
+| `token_balance_changes[]` | Expected asset in / share out preview |
+
+---
+
+### Redemption
+
+SuperVaults use ERC-7540 **async redemptions**. Users request a redemption; Superform's keeper fulfills it (typically within 1 hour); users then claim their assets. The bundler abstracts both steps.
+
+<CodeGroup>
+
+```bash Bundler (request + claim)
+# Step 1 — Request redemption
+# Use type "REDEEM" in the suggest call
+POST https://bundler.superform.xyz/hooks/suggest
+{
+  "account": "0xUSER_SMART_ACCOUNT",
+  "companion_mode": false,
+  "actions": [
+    {
+      "type": "REDEEM",
+      "slippage": 50,
+      "sources": [
+        {
+          "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "chain_id": 8453,
+          "amount": "50000000"
+        }
+      ],
+      "targets": [
+        {
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "chain_id": 8453,
+          "vault_type": "SUPERVAULT"
+        }
+      ],
+      "route_type": "OUTPUT",
+      "outputs": []
+    }
+  ]
+}
+# Build → sign → execute as per deposit flow above.
+
+# Step 2 — Once fulfilled by Superform keeper, claim assets
+# Use type "REDEEM_CLAIM" in a second suggest → build → execute cycle.
+POST https://bundler.superform.xyz/hooks/suggest
+{
+  "account": "0xUSER_SMART_ACCOUNT",
+  "companion_mode": false,
+  "actions": [
+    {
+      "type": "REDEEM_CLAIM",
+      "slippage": 50,
+      "sources": [],
+      "targets": [
+        {
+          "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "chain_id": 8453,
+          "vault_type": "SUPERVAULT"
+        }
+      ],
+      "route_type": "OUTPUT",
+      "outputs": []
+    }
+  ]
+}
+```
+
+```solidity Direct ERC-7540
+interface ISuperVault {
+    // Step 1: Request redemption — moves shares to escrow, queues fulfillment
+    function requestRedeem(
+        uint256 shares,
+        address controller,
+        address owner
+    ) external returns (uint256 requestId);
+
+    // Step 2: Cancel a pending request (before fulfillment)
+    function cancelRedeemRequest(address controller) external;
+
+    // Step 3: Claim fulfilled redemption — only callable after keeper fulfills
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address controller
+    ) external returns (uint256 shares);
+
+    // Read max claimable assets (non-zero only after fulfillment)
+    function maxWithdraw(address controller) external view returns (uint256);
+
+    // Read pending redemption shares
+    function pendingRedeemRequest(address controller) external view returns (uint256);
+}
+
+contract SuperVaultRedeemer {
+    address constant VAULT = 0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc;
+
+    // Step 1 — queue the redemption
+    function requestRedemption(uint256 shares) external {
+        ISuperVault(VAULT).requestRedeem(shares, msg.sender, msg.sender);
+    }
+
+    // Step 3 — after Superform keeper fulfills the request
+    function claimRedemption() external {
+        uint256 claimable = ISuperVault(VAULT).maxWithdraw(msg.sender);
+        require(claimable > 0, "not fulfilled yet");
+        ISuperVault(VAULT).withdraw(claimable, msg.sender, msg.sender);
+    }
+}
+```
+
+</CodeGroup>
+
+**Redemption lifecycle**
+
+| State | How to detect | Next action |
+|---|---|---|
+| Pending | `pendingRedeemRequest(controller) > 0` | Wait for fulfillment |
+| Fulfilled | `maxWithdraw(controller) > 0` | Call `withdraw` or `REDEEM_CLAIM` |
+| Claimed | `maxWithdraw(controller) == 0` | Done |
+
+Superform's keeper fulfills redemption requests within approximately 1 hour under normal operating conditions.
+
+---
+
+## Live Vault Addresses (Base, chain ID 8453)
+
+| Vault | Symbol | Underlying | Address |
+|---|---|---|---|
+| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` |
+| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` |
+| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` |
+| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` |
+| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` |
+| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` |
+| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851EE2bDbaE329d97771e41eC6` |
+| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fA06931f7B878653A15AECC86145c1af7` |
+| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfC8A6526ffcD8248b8D0f8DAC8037DBE438924CE` |
+
+Underlying bStock token addresses on Base follow the pattern `0xb200...{identifier}`. Confirm the current set via `GET /supervaults?chain_id=8453`.
+
+---
+
+## Key Concepts
+
+**Price per share (PPS)** is the exchange rate between vault shares and the underlying asset. It only increases — never decreases — because performance fees are deducted before PPS updates. Use PPS to display a user's current asset value: `assetValue = shares × pps / 10^decimals`.
+
+**Availability** — always check `availability` before presenting deposit or withdraw UI. Possible values: `available`, `unavailable`, `withdraw_only`, `deposit_only`, `paused`.
+
+**Slippage** — pass `slippage` to the bundler suggest call in basis points (50 = 0.5%). For bStock vaults sourcing liquidity from AMM pools, 50–100 bps is appropriate.
+
+**Smart accounts** — Superform uses ERC-4337 smart accounts. The `account` field in bundler calls should be the user's smart account address, not their EOA. If the user doesn't have a smart account yet, the bundler will include account deployment in the user operation.

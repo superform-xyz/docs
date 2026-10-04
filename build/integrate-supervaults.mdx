@@ -48,8 +48,8 @@ GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 | `is_supervault_v_2` | boolean | `true` for all current SuperVaults — use `vault_type: "SUPERVAULT"` in bundler calls |
 | `has_rewards` | boolean | `true` if active Merkl reward campaigns exist for this vault |
 | `stats_basic.tvl_total` | number | TVL in USD |
-| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield (decimal). Sum with `reward_rate` for total APY. |
-| `stats_basic.reward_rate` | number | Merkl reward APR (decimal, e.g. `0.1829` = 18.29%). Sum with `apy_snapshot_week` for total APY. |
+| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield in percentage points. Sum with `reward_rate` for total APY. A value of `-1000000` means no data yet — treat as 0. |
+| `stats_basic.reward_rate` | number | Merkl reward APR in percentage points (e.g. `18.29` = 18.29%). Sum with `apy_snapshot_week` for total APY. |
 | `stats_basic.pps` | number | Price per share in underlying asset units |
 | `stats_basic.pps_usd` | number | Price per share in USD |
 | `assets[]` | array | Underlying assets: `address`, `symbol`, `decimals`, `price_usd` |
@@ -70,7 +70,7 @@ GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
   "stats_basic": {
     "tvl_total": 421256.84,
     "apy_snapshot_week": 0,
-    "reward_rate": 0.1829,
+    "reward_rate": 18.32,
     "pps": 1.0,
     "pps_usd": 233.95
   },
@@ -529,7 +529,7 @@ All addresses verified from `GET /supervaults?chain_id=8453`.
 
 **Price per share (PPS).** `stats_basic.pps` is the share-to-asset exchange rate. PPS only increases. User asset value: `shares * pps`.
 
-**Total APY.** `apy_snapshot_week` (strategy yield) + `reward_rate` (Merkl rewards). For SuperStocks vaults the strategy yield starts near zero and grows as vault strategies deploy.
+**Total APY.** `apy_snapshot_week + reward_rate` — both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values (means no data) before summing.
 
 **Which deposit endpoint.** `/hooks/suggest/non-smart-account` for EOA, Safe, Fireblocks, and custodians — returns raw EVM transactions. `/hooks/suggest` -> `/executor/build` -> `/executor/execute` for ERC-4337 smart accounts. The `CLAIM` action type (reward claiming) requires the smart account path.
 

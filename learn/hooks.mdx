@@ -9,7 +9,7 @@ If you are interested in building hooks, jump straight to [Write a Hook](/build/
 
 ## Key Concepts
 
-Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This allows for efficient inter-hook communication that avoids the high gas costs associated with permanent storage writes. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
+Hooks implement transient storage during the execution of a transaction to temporarily hold state changes. This avoids the gas costs of permanent storage writes between hooks. If any hook in a chain fails, the entire transaction is reverted, ensuring atomicity.
 
 ### Hook Lifecycle
 

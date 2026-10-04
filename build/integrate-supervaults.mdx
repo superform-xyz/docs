@@ -11,7 +11,7 @@ SuperVaults are ERC-7540 vaults on Base. Integrations need vault data and transa
 1. `GET /supervaults?chain_id=8453` → filter to `availability: "available"` and `is_supervault_v_2: true`
 2. Confirm the user holds `assets[0].address` with sufficient balance
 3. `POST /hooks/suggest/non-smart-account` with `type: "DEPOSIT"`, source token, vault address, `vault_type: "SUPERVAULT"`
-4. Broadcast `executions[]` in order — index 0 is `approve`, index 1 is `deposit`
+4. Broadcast `executions[]` in order. Index 0 is `approve`, index 1 is `deposit`
 
 **To redeem:** POST `type: "REDEEM"` → broadcast → poll `maxWithdraw(account)` onchain → when `> 0`, POST `type: "REDEEM_CLAIM"` → broadcast.
 </Info>
@@ -235,7 +235,7 @@ uint256 shares = ISuperVault(0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc)
 
 </CodeGroup>
 
-**Non-smart-account response**
+**non-smart-account response**
 
 ```json
 {
@@ -393,7 +393,7 @@ interface ISuperVault {
 
 ## Rewards
 
-SuperVault rewards are distributed via [Merkl](https://merkl.xyz). Rewards accrue automatically while users hold vault shares — no staking required.
+SuperVault rewards are distributed via [Merkl](https://merkl.xyz). Rewards accrue automatically while users hold vault shares. No staking required.
 
 ### Check if a vault has rewards
 
@@ -499,7 +499,7 @@ All errors return `{"code": <http_status>, "message": "<reason>"}`.
 | `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
 | `500` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first — never hardcode hook IDs |
 
-Bundler errors are deterministic. An identical retry returns the same error — fix the request first.
+Bundler errors are deterministic. An identical retry returns the same error. Fix the request first.
 
 ---
 

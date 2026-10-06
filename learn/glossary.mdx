@@ -1,27 +1,31 @@
 ---
 title: "Glossary"
-description: "Definitions of key terms used throughout the Superform protocol documentation."
+description: "Definitions of key terms used throughout the Superform v2 documentation."
 ---
 
-- **Aggregator** - Registry/oracle contract where new `Vault`, `Strategy`, and `Escrow` clones are permissionlessly deployed and where validators attest to Price‑Per‑Share updates.
-- **Circuit Breaker** - On‑chain guard that pauses swaps or vault actions when oracle‑price dispersion or depeg thresholds are breached.
-- **Depeg Guard** - Absolute price‑deviation threshold for an individual asset in a SuperAsset. If breached, swaps pause and the asset weight decays.
-- **Dispersion Guard** - Parameterised limit on the standard deviation of constituent‑asset prices inside a SuperAsset; tripping it triggers a circuit breaker.
-- [**EIP‑7702**](https://eip7702.io/) - Ethereum standard that allows EOAs to act as smart accounts, enabling existing wallets to interact with account‑abstraction systems without migration.
-- [**ERC‑4337**](https://www.erc4337.io/) - Account‑abstraction standard that lets smart‑contract wallets function like EOAs via a `UserOperation` mempool and bundler system.
-- [**ERC‑7540**](https://eips.ethereum.org/EIPS/eip-7540) - Vault standard defining interfaces for asynchronous deposits and withdrawals.
-- [**ERC‑7579**](https://erc7579.com/) - Modular smart‑account standard enabling plug‑and‑play functionality through a standardised module interface.
-- **Escrow** - Immutable contract that holds idle funds between strategy steps and enforces withdrawal rights.
-- **Hook** - Lightweight, ERC‑7579‑compliant module that performs a single action (e.g., lend, bridge) inside a strategy call‑graph.
-- **Insurance Fund** - Reserve funded by yield earned and swap fees; used to cover shortfalls during black‑swan events.
-- **Ki** - Governance‑set efficiency coefficient that weights a vault's importance when computing incentives.
-- **Price‑Per‑Share (PPS)** - Cumulative value of a SuperVault denominated in its underlying asset; monotonically increasing and signed by validators.
-- **SuperBank** - Coordination contract that routes protocol‑level fees, burns `$UP` for upkeep, and handles escrow/bond commitments.
-- **SuperBundler** - Off‑chain relayer that batches user deposits and executes hook graphs across chains, returning a single receipt.
-- **SuperGovernor** - On‑chain module where `sUP` holders propose and vote on protocol events, such as SuperAsset target weights.
-- **SuperOracle** - Modular oracle‑adapter set providing fair‑market prices and volatility metrics to SuperAssets and circuit breakers.
-- **SuperPosition** - ERC‑20 receipt minted by Vault Banks representing a user's position on the source chain; streams yield back to mainnet.
-- **SuperVault** - Validator‑secured vault template that can run arbitrary hook‑based strategies while exposing deterministic PPS and fee rules.
-- **$UP / sUP** - `$UP` is the utility token of the Superform Protocol; staking it yields `sUP`, granting governance rights. Later protocol phases add validator bonding utility for `$UP`.
-- **Validator** - Actor that signs SuperVault PPS updates and, in future phases, may participate in additional oracle and bonding systems.
-- **Vault Bank** - Chain‑specific deposit contract that mints SuperPositions and handles cross‑chain locking/unlocking for SuperVaults.
+Terms specific to SuperVaults (v2). For legacy SuperAssets (v1) terms, see the [v1 documentation](https://github.com/superform-xyz/whitepapers).
+
+---
+
+- [**EIP-7702**](https://eip7702.io/) — Ethereum standard allowing EOAs to act as smart accounts, enabling existing wallets to use account-abstraction features without migration.
+- [**ERC-4337**](https://www.erc4337.io/) — Account-abstraction standard that lets smart-contract wallets function like EOAs via a `UserOperation` mempool and bundler system.
+- [**ERC-4626**](https://eips.ethereum.org/EIPS/eip-4626) — Tokenized vault standard defining a common deposit/withdraw interface. SuperVaults implement this for synchronous deposits.
+- [**ERC-7540**](https://eips.ethereum.org/EIPS/eip-7540) — Async vault extension to ERC-4626. Defines `requestRedeem` / `requestDeposit` flows for cross-chain or illiquid positions. SuperVaults use ERC-7540 for redemptions.
+- [**ERC-7579**](https://erc7579.com/) — Modular smart-account standard enabling plug-and-play functionality through a standardized module interface. SuperExecutor and SuperValidator are ERC-7579 modules.
+- **Escrow** — Immutable contract that holds user shares during pending redemptions (allowing cancellation) and holds assets during fulfillment until the user claims.
+- **Hook** — Lightweight, ERC-7579-compliant module that performs a single action (lend, bridge, swap, etc.) inside a strategy. Hooks are composable and chainable. All hook executions are Merkle-gated — only pre-authorized hook + parameter combinations can execute.
+- **Keeper** — Automated worker that executes authorized vault actions: allocating deposits, fulfilling redemptions, claiming rewards, swapping, bridging. Keepers operate within Merkle-authorized bounds.
+- **Merkle Root** — Onchain commitment to the set of authorized hook + parameter combinations for a vault. No hook can execute unless its exact call matches a leaf in the active root. Updated via a timelocked proposal flow.
+- **Price Per Share (PPS)** — The exchange rate between one vault share and the underlying asset. `PPS = totalAssets / totalSupply`. Monotonically increasing as yield accrues. Signed by validators and accepted onchain after supermajority consensus.
+- **Primary Manager** — Highest-authority operator for a SuperVault. Proposes Merkle roots, updates fees, manages secondary managers, and authorizes hook configurations. Actions remain bounded by protocol timelocks and accounting constraints.
+- **Secondary Manager** — Delegated operator that can execute day-to-day vault operations (execute hooks, skim fees, whitelist yield sources) within primary-manager-authorized and Merkle-gated bounds.
+- **Session Key** — Narrowly scoped automation credential that allows keepers to execute pre-authorized actions without requiring the manager's primary signing key for each operation.
+- **SuperBundler** — Off-chain service that aggregates user actions into ERC-4337 UserOps, resolves hook sequences, and returns ready-to-broadcast calldata. Accessed via `https://bundler.superform.xyz/`.
+- **SuperGovernor** — Onchain registry and access control hub. Manages role-based permissions, timelocked parameter updates, and emergency intervention powers across all SuperVaults.
+- **SuperVault** — ERC-7540 vault contract that holds depositor assets and issues share tokens. Entry point for deposits and redemption requests.
+- **SuperVaultAggregator** — Factory and registry contract. Creates vault/strategy/escrow triads, records PPS attestations, manages upkeep accounting, and enforces governor-level constraints.
+- **SuperVaultStrategy** — Execution engine paired with each SuperVault. Manages hook authorization via dual Merkle roots, tracks PPS high-water mark, queues and fulfills redemption requests, and enforces fee policies.
+- **$UP / sUP** — `$UP` is the Superform Protocol utility token. Staking it yields `sUP`, which grants governance rights. `$UP` also funds vault upkeep (the gas cost of validator PPS writes) and gains validator-bonding utility in later protocol phases.
+- **Upkeep** — `$UP` balance held by a vault strategy to fund PPS update gas costs. Vaults with zero upkeep stop receiving PPS updates and enter a degraded operating state. L1 vaults require at least 100,000 $UP; non-L1 vaults require at least 1,000 $UP.
+- **Validator** — Off-chain node that independently computes PPS, signs an EIP-712 attestation, and submits it onchain. Updates are accepted only with supermajority (≥ 2/3 weighted) consensus across the active validator set.
+- **Yield Source** — An external protocol (Morpho vault, Aave pool, Pendle PT, etc.) that a SuperVault strategy allocates to. Must be whitelisted by the primary manager and paired with a compatible oracle before keepers can interact with it.

@@ -16,6 +16,18 @@ SuperVaults are ERC-7540 vaults on Base. Integrations need vault data and transa
 **To redeem:** POST `type: "REDEEM"` → broadcast → poll `maxWithdraw(account)` onchain → when `> 0`, POST `type: "REDEEM_CLAIM"` → broadcast.
 </Info>
 
+<CardGroup cols={3}>
+  <Card title="I'm building a wallet or app" icon="wallet">
+    Use `POST /hooks/suggest/non-smart-account` — returns ordered transactions to broadcast. No UserOps. Start at [Deposit](#deposit).
+  </Card>
+  <Card title="I'm a custodian (Fireblocks, Safe)" icon="shield">
+    Same path as wallets — direct EVM transactions, no smart account required. See [Deposit](#deposit) and the [Client Library](/build/sdk).
+  </Card>
+  <Card title="I'm building with ERC-4337" icon="bolt">
+    Use the three-call smart account flow: `suggest` → `build` → `execute`. See the [Deposit](#deposit) Smart account tab.
+  </Card>
+</CardGroup>
+
 ## Prerequisites
 
 | Item | Value |
@@ -23,6 +35,7 @@ SuperVaults are ERC-7540 vaults on Base. Integrations need vault data and transa
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
 | Auth | Persephone is public — no key required. Bundler requires `x-api-key` — contact integrations@superform.xyz |
+| Client Library | [TypeScript + Python copy-paste clients](/build/sdk) — wraps all endpoints below |
 | Chain | Base (chain ID `8453`) |
 
 ---

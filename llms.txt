@@ -1,0 +1,75 @@
+# Superform Docs
+
+> Documentation for SuperVaults — ERC-7540 vaults on Base with Merkle-verified execution and validator-secured price-per-share.
+
+## Notes for LLM Agents
+
+- All SuperVaults covered here are on Base (chain ID 8453) unless otherwise stated.
+- Persephone API base URL: `https://persephone.superform.xyz/v1` — public, no API key required.
+- Bundler API base URL: `https://bundler.superform.xyz/` — requires `x-api-key` header. Contact integrations@superform.xyz to get one.
+- Primary vault discovery: `GET /v1/supervaults?chain_id=8453` — returns all live SuperVaults with APY, TVL, rewards, availability.
+- `vault_type: "SUPERVAULT"` is required on all bundler calls for v2 vaults (`is_supervault_v_2: true`).
+- Non-smart-account deposit (EOA / Safe / Fireblocks / custodian): `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast. Index 0 is `approve`, index 1 is `deposit`.
+- Redemption is async (ERC-7540): `REDEEM` → poll `maxWithdraw(account)` onchain → `REDEEM_CLAIM`.
+- APY fields: `apy_snapshot_week` and `reward_rate` are both in **percentage points** (e.g. `18.29` = 18.29%). A value of `-1000000` is the no-data sentinel — treat as 0.
+- Total APY = `apy_snapshot_week + reward_rate`. For SuperStocks vaults, `reward_rate` is the primary yield today.
+- bStock token decimals: 8. USDC: 6. WETH: 18. cbBTC: 8.
+- Bundler validates on-chain balance before building calldata. Check balance with `GET /v1/balances/{address}` first.
+- Bundler errors are deterministic — fix the request before retrying.
+- The `-1000000` sentinel appears when a vault has insufficient PPS history for the requested window (e.g. newly launched vaults).
+
+## Getting Started
+
+- [What is Superform?](https://docs.superform.xyz/): Protocol overview and navigation hub.
+- [Integrate SuperVaults](https://docs.superform.xyz/build/integrate-supervaults): REST API + Bundler guide — vault discovery, deposit, redemption, rewards. Start here for wallet and custodian integrations.
+- [APY Methodology](https://docs.superform.xyz/learn/apy-methodology): How `apy_snapshot_*` and `reward_rate` are computed, sentinel values, and display guidance.
+- [Client Library](https://docs.superform.xyz/build/sdk): TypeScript and Python copy-paste clients for Persephone + Bundler.
+- [Deployment Addresses](https://docs.superform.xyz/deployment-addresses): All contract addresses across chains.
+
+## Learn
+
+- [Superform Protocol](https://docs.superform.xyz/learn/learn): Core architecture — Superform Core, Periphery, SuperVaults, SuperAssets.
+- [Superform Core](https://docs.superform.xyz/learn/superform-core): Persistent onchain contracts, Merkle-verified execution, ERC-7579 smart accounts.
+- [Smart Accounts](https://docs.superform.xyz/learn/smart-accounts): SuperValidator, SuperExecutor, ERC-4337 / EIP-7702 account abstraction.
+- [Hooks](https://docs.superform.xyz/learn/hooks): Composable action modules (bridge, swap, lend). Classification: INFLOW, OUTFLOW, NONACCOUNTING.
+- [SuperVaults](https://docs.superform.xyz/learn/supervaults): Key properties, how they work, security model, transparency, architecture, yield sources.
+- [Transaction Lifecycle](https://docs.superform.xyz/learn/supervaults/transaction-lifecycle): Deposit, PPS update, strategy management, and redemption flows step by step.
+- [Economics](https://docs.superform.xyz/learn/supervaults/economics): Fee model, PPS mechanics, performance fee accounting.
+- [APY Methodology](https://docs.superform.xyz/learn/apy-methodology): Exact formula, window definitions, sentinel, reward_rate vs apy_snapshot.
+- [$UP Token](https://docs.superform.xyz/learn/usdup): Utility token — upkeep, governance, validator bonding.
+- [Glossary](https://docs.superform.xyz/learn/glossary): Definitions of key v2 terms.
+- [Links](https://docs.superform.xyz/learn/links): Official resources — website, GitHub, audits, whitepaper.
+
+## Build
+
+- [Build Overview](https://docs.superform.xyz/build): Three paths — integrate SuperVaults, write hooks, become a validator.
+- [Integrate SuperVaults](https://docs.superform.xyz/build/integrate-supervaults): Full integrator reference — vault discovery, deposit (non-smart-account and ERC-4337), redemption, Merkl rewards. Includes live-verified request/response shapes and error reference.
+- [Client Library](https://docs.superform.xyz/build/sdk): TypeScript and Python clients wrapping Persephone + Bundler. Copy-paste ready.
+- [Write a Hook](https://docs.superform.xyz/build/hooks): Build custom composable hook contracts — lifecycle, classifications, quickstart, testing.
+- [Operate a SuperVault](https://docs.superform.xyz/build/manage-a-supervault): Onchain vault creation, manager roles, hook execution, fee configuration, redemption fulfillment.
+- [Become a Validator](https://docs.superform.xyz/build/become-a-validator): Join the PPS validator network — infrastructure, node setup, configuration, operations, economics.
+
+## Operate
+
+- [SuperformOS Overview](https://docs.superform.xyz/operate): Operating layer for programmable vaults.
+- [Prerequisites](https://docs.superform.xyz/operate/prerequisites): Access requirements, KYC, $UP staking.
+- [Authentication](https://docs.superform.xyz/operate/authentication): JWT flow, Erebor API auth, programmatic authentication.
+- [Permissions Model](https://docs.superform.xyz/operate/permissions): Primary manager, secondary manager, view-only, registry maintainer, session key roles.
+- [Quickstart](https://docs.superform.xyz/operate/quickstart): End-to-end vault launch — create, upkeep, yield sources, hooks, strategy, distribute.
+- [Create Vault](https://docs.superform.xyz/operate/ui/create-vault): Vault wizard walkthrough.
+- [Setup Checklist](https://docs.superform.xyz/operate/ui/setup-checklist): Canonical go-live readiness checklist.
+- [Strategy DSL](https://docs.superform.xyz/operate/strategy/dsl): Strategy definition language — conditions, actions, ordering.
+- [Merkle Trees](https://docs.superform.xyz/operate/ui/merkle-trees): Hook authorization, root generation, proof publishing.
+- [Yield Sources](https://docs.superform.xyz/operate/ui/yield-sources): Whitelist management, oracle pairing, emergency exit.
+- [Pause Operations](https://docs.superform.xyz/operate/ui/pause): Vault pause, keeper pause, emergency exit.
+- [Erebor API Reference](https://docs.superform.xyz/operate/api/erebor): Full management API — vaults, users, merkle, upkeep.
+- [Strategy Engine API](https://docs.superform.xyz/operate/api/strategy): Strategy CRUD, intent ordering, emergency locks.
+- [OMS API](https://docs.superform.xyz/operate/api/oms): DeFiX intent execution, session keys, hook transactions.
+
+## Security
+
+- [Security](https://docs.superform.xyz/security): Audit list, dual Merkle hook validation, PPS oracle security, access controls, timelocks, circuit breakers.
+
+## Deployments
+
+- [Deployment Addresses](https://docs.superform.xyz/deployment-addresses): SuperVaultAggregator, SuperVault instances, oracles across all chains.

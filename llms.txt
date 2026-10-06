@@ -1,6 +1,6 @@
 # Superform Docs
 
-> Documentation for SuperVaults — ERC-7540 vaults on Base with Merkle-verified execution and validator-secured price-per-share.
+> Documentation for SuperVaults: ERC-7540 vaults on Base with Merkle-verified execution and validator-secured price-per-share.
 
 ## Notes for LLM Agents
 

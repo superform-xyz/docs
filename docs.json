@@ -123,42 +123,47 @@
         "groups": [
           {
             "group": "SuperVaults",
+            "openapi": "https://persephone.superform.xyz/openapi.json",
             "pages": [
-              "openapi/GET /v1/supervaults",
-              "openapi/GET /v1/vaults/{id}",
-              "openapi/GET /v1/vaults/stats/historical/{ids}",
-              "openapi/GET /v1/vaults/rewards"
+              "GET /v1/supervaults",
+              "GET /v1/vaults/{id}",
+              "GET /v1/vaults/stats/historical/{ids}",
+              "GET /v1/vaults/rewards"
             ]
           },
           {
             "group": "Balances",
+            "openapi": "https://persephone.superform.xyz/openapi.json",
             "pages": [
-              "openapi/GET /v1/balances/{address}"
+              "GET /v1/balances/{address}"
             ]
           },
           {
             "group": "Rewards",
+            "openapi": "https://persephone.superform.xyz/openapi.json",
             "pages": [
-              "openapi/GET /v1/rewards/external/claimable/{user_address}",
-              "openapi/GET /v1/rewards/opportunities",
-              "openapi/GET /v1/rewards/summary/{user_address}"
+              "GET /v1/rewards/external/claimable/{user_address}",
+              "GET /v1/rewards/opportunities",
+              "GET /v1/rewards/summary/{user_address}"
             ]
           },
           {
             "group": "Tokens",
+            "openapi": "https://persephone.superform.xyz/openapi.json",
             "pages": [
-              "openapi/GET /v1/fungibles",
-              "openapi/GET /v1/fungibles/{fungible_id}",
-              "openapi/GET /v1/fungibles/by-token/{token_id}",
-              "openapi/GET /v1/fungibles/{fungible_id}/history"
+              "GET /v1/fungibles",
+              "GET /v1/fungibles/{fungible_id}",
+              "GET /v1/fungibles/by-token/{token_id}",
+              "GET /v1/fungibles/{fungible_id}/history"
             ]
           },
           {
             "group": "Reference",
+            "openapi": "https://persephone.superform.xyz/openapi.json",
             "pages": [
-              "openapi/GET /v1/supported/chains",
-              "openapi/GET /v1/providers",
-              "openapi/GET /v1/providers/{id}"
+              "GET /v1/supported/chains",
+              "GET /v1/providers",
+              "GET /v1/providers/{id}"
             ]
           }
         ]

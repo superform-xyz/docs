@@ -55,8 +55,7 @@
             "pages": [
               "learn/supervaults",
               "learn/supervaults/transaction-lifecycle",
-              "learn/supervaults/economics",
-              "learn/apy-methodology"
+              "learn/supervaults/economics"
             ]
           },
           {
@@ -85,15 +84,11 @@
             ]
           },
           {
-            "group": "Integrate SuperVaults",
+            "group": "Earn",
             "pages": [
-              "build/integrate-supervaults"
-            ]
-          },
-          {
-            "group": "Client Library",
-            "pages": [
-              "build/sdk"
+              "build/integrate-supervaults",
+              "build/sdk",
+              "learn/apy-methodology"
             ]
           },
           {

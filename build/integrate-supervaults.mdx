@@ -269,7 +269,7 @@ uint256 shares = ISuperVault(0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc)
 }
 ```
 
-Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.deposit`. Both carry `type: "DEPOSIT"` — use array position, not type, to determine order.
+Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.deposit`. Both carry `type: "DEPOSIT"`. Use array position, not type, to determine order.
 
 <Note>
 **Token decimals.** Express `amount` in the token's smallest unit:
@@ -397,7 +397,7 @@ interface ISuperVault {
 </CodeGroup>
 
 <Warning>
-**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the redemption request. This is expected — shares are in escrow and assets have not yet been freed. Do not interpret a `0` return as "no position." Poll `pendingRedeemRequest(account)` to confirm the request is queued, then poll `maxWithdraw(account)` until it becomes positive before sending the claim.
+**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the redemption request. Shares are in escrow; assets have not yet been freed. Do not interpret a `0` return as "no position." Poll `pendingRedeemRequest(account)` to confirm the request is queued, then poll `maxWithdraw(account)` until it becomes positive before sending the claim.
 </Warning>
 
 **State machine**

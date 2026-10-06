@@ -16,7 +16,7 @@
 - Total APY = `apy_snapshot_week + reward_rate`. For SuperStocks vaults, `reward_rate` is the primary yield today.
 - bStock token decimals: 8. USDC: 6. WETH: 18. cbBTC: 8.
 - Bundler validates on-chain balance before building calldata. Check balance with `GET /v1/balances/{address}` first.
-- Bundler errors are deterministic — fix the request before retrying.
+- Bundler errors are deterministic. Fix the request before retrying.
 - The `-1000000` sentinel appears when a vault has insufficient PPS history for the requested window (e.g. newly launched vaults).
 
 ## Getting Started
@@ -43,7 +43,7 @@
 
 ## Build
 
-- [Build Overview](https://docs.superform.xyz/build): Three paths — integrate SuperVaults, write hooks, become a validator.
+- [Build Overview](https://docs.superform.xyz/build): Three paths: Earn (integrate SuperVaults), write hooks, become a validator.
 - [Integrate SuperVaults](https://docs.superform.xyz/build/integrate-supervaults): Full integrator reference — vault discovery, deposit (non-smart-account and ERC-4337), redemption, Merkl rewards. Includes live-verified request/response shapes and error reference.
 - [Client Library](https://docs.superform.xyz/build/sdk): TypeScript and Python clients wrapping Persephone + Bundler. Copy-paste ready.
 - [Write a Hook](https://docs.superform.xyz/build/hooks): Build custom composable hook contracts — lifecycle, classifications, quickstart, testing.

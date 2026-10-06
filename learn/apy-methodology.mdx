@@ -9,7 +9,7 @@ Understanding exactly how APY fields are calculated prevents display errors and 
 
 ## Price Per Share (PPS)
 
-All APY computations start from **price per share (PPS)** — the exchange rate between one vault share and the underlying asset.
+All APY computations start from **price per share (PPS)**: the exchange rate between one vault share and the underlying asset.
 
 ```
 PPS = totalAssets / totalSupply
@@ -73,7 +73,7 @@ Where:
 - `daily_rewards_usd` = USD value of reward tokens distributed per day to this vault's depositors
 - `vault_tvl_usd` = current vault TVL in USD
 
-This is the reward component on top of strategy yield. It is separate from `apy_snapshot_*` because reward tokens (USDC, UP) are not reflected in PPS — they accrue in Merkl and are claimed separately.
+Separate from `apy_snapshot_*` because reward tokens (USDC, UP) are not reflected in PPS — they accrue in Merkl and are claimed separately.
 
 ---
 

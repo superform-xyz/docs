@@ -828,7 +828,8 @@ interface ISuperVault {
 
     // Poll: 0 while pending, > 0 when fulfilled
     function maxWithdraw(address controller) external view returns (uint256);
-    function pendingRedeemRequest(address controller) external view returns (uint256);
+    // SuperVault always uses REQUEST_ID = 0
+    function pendingRedeemRequest(uint256 requestId, address controller) external view returns (uint256);
 
     // Step B: Claim after maxWithdraw > 0
     function withdraw(uint256 assets, address receiver, address controller)
@@ -963,7 +964,7 @@ All errors return `{"code": <http_status>, "message": "<reason>"}`.
 | `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
 | `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |
 | `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
-| `500` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first — never hardcode hook IDs |
+| `400` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first ; never hardcode hook IDs |
 
 Bundler errors are deterministic. An identical retry returns the same error. Fix the request first.
 
@@ -993,11 +994,11 @@ All addresses verified from `GET /supervaults?chain_id=8453`.
 
 ## Key Concepts
 
-**Price per share (PPS).** `stats_basic.pps` is the share-to-asset exchange rate. PPS only increases. User asset value: `shares * pps`.
+**Price per share (PPS).** `stats_basic.pps` is the share-to-asset exchange rate. PPS increases as yield accrues and steps down at each performance fee-skim event. User asset value: `shares * pps`.
 
-**Total APY.** `apy_snapshot_week + reward_rate` — both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values (means no data) before summing.
+**Total APY.** `apy_snapshot_week + reward_rate`. Both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values before summing. See [APY Methodology](/learn/apy-methodology) for the full formula.
 
-**Which endpoint to use.** `/hooks/suggest/non-smart-account` for deposits and redemptions from EOA, Safe, Fireblocks, and custodians. `/hooks/suggest` → `/executor/build` → `/executor/execute` for ERC-4337 smart accounts and for the `CLAIM` action (reward claiming requires passing Merkl `extra_data` in the targets, which only the smart account flow supports).
+**Which endpoint to use.** `/hooks/suggest/non-smart-account` for deposits, redemptions, and reward claims from EOA, Safe, Fireblocks, and custodians. `/hooks/suggest` → `/executor/build` → `/executor/execute` for ERC-4337 smart accounts. The `CLAIM` action is available on both endpoints; use the smart account flow when your wallet infrastructure supports it.
 
 **Slippage.** Basis points. `50` = 0.5% for bStock vaults. `10` = 0.1% for stablecoin vaults.
 
@@ -1723,7 +1724,7 @@ Where:
 - `daily_rewards_usd` = USD value of reward tokens distributed per day to this vault's depositors
 - `vault_tvl_usd` = current vault TVL in USD
 
-Separate from `apy_snapshot_*` because reward tokens (USDC, UP) are not reflected in PPS — they accrue in Merkl and are claimed separately.
+Separate from `apy_snapshot_*` because reward tokens (USDC, UP) are not reflected in PPS. They accrue in Merkl and are claimed separately.
 
 ---
 

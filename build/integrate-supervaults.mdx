@@ -280,6 +280,7 @@ Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.de
 | WETH | 18 | `"1000000000000000000"` |
 | cbBTC | 8 | `"100000000"` |
 | NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
 
 Use `amount_fiat` instead of `amount` if you only know the USD value.
 </Note>
@@ -388,7 +389,8 @@ interface ISuperVault {
 }
 
 // 1. requestRedeem(shares, msg.sender, msg.sender)
-// 2. Poll maxWithdraw(msg.sender) -- proceed when > 0
+// 2. Poll pendingRedeemRequest(0, msg.sender) > 0 to confirm queued
+//    Poll maxWithdraw(msg.sender) — proceed when > 0 (keeper fulfilled)
 // 3. withdraw(maxWithdraw(msg.sender), receiver, msg.sender)
 ```
 
@@ -459,7 +461,7 @@ GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
 
 ### Claim rewards
 
-Reward claiming requires a smart account (ERC-4337). It is not available on the non-smart-account endpoint.
+Reward claiming uses the smart account `/hooks/suggest` flow (not `/hooks/suggest/non-smart-account`). The reason: the `CLAIM` action requires Merkl proof data in `targets[].extra_data`, which the non-smart-account endpoint's simplified action format does not expose.
 
 ```bash
 POST https://bundler.superform.xyz/hooks/suggest
@@ -548,6 +550,6 @@ All addresses verified from `GET /supervaults?chain_id=8453`.
 
 **Total APY.** `apy_snapshot_week + reward_rate` — both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values (means no data) before summing.
 
-**Which deposit endpoint.** `/hooks/suggest/non-smart-account` for EOA, Safe, Fireblocks, and custodians — returns raw EVM transactions. `/hooks/suggest` -> `/executor/build` -> `/executor/execute` for ERC-4337 smart accounts. The `CLAIM` action type (reward claiming) requires the smart account path.
+**Which endpoint to use.** `/hooks/suggest/non-smart-account` for deposits and redemptions from EOA, Safe, Fireblocks, and custodians. `/hooks/suggest` → `/executor/build` → `/executor/execute` for ERC-4337 smart accounts and for the `CLAIM` action (reward claiming requires passing Merkl `extra_data` in the targets, which only the smart account flow supports).
 
 **Slippage.** Basis points. `50` = 0.5% for bStock vaults. `10` = 0.1% for stablecoin vaults.

@@ -359,7 +359,7 @@ Where `totalAssets` is the sum of:
 - Idle assets held in the strategy contract
 - The TVL value of each whitelisted yield source, computed via its paired oracle
 
-PPS is stored onchain by the `ECDSAPPSOracle` after validators attest with supermajority consensus. It is monotonically increasing — it only goes up as yield accrues and before performance fees are deducted.
+PPS is stored onchain by the `ECDSAPPSOracle` after validators attest with supermajority consensus. PPS increases as yield accrues and decreases at each performance fee-skim event (the fee is deducted from assets before the new PPS is written, stepping PPS down to the high-water mark). Net direction over time is upward when the vault is generating yield.
 
 Persephone tracks PPS hourly from on-chain events and backfills historical points.
 
@@ -526,11 +526,12 @@ Terms specific to SuperVaults (v2). For legacy SuperAssets (v1) terms, see the [
 - [**ERC-4626**](https://eips.ethereum.org/EIPS/eip-4626) — Tokenized vault standard defining a common deposit/withdraw interface. SuperVaults implement this for synchronous deposits.
 - [**ERC-7540**](https://eips.ethereum.org/EIPS/eip-7540) — Async vault extension to ERC-4626. Defines `requestRedeem` / `requestDeposit` flows for cross-chain or illiquid positions. SuperVaults use ERC-7540 for redemptions.
 - [**ERC-7579**](https://erc7579.com/) — Modular smart-account standard enabling plug-and-play functionality through a standardized module interface. SuperExecutor and SuperValidator are ERC-7579 modules.
+- **ECDSAPPSOracle** — Onchain oracle contract that validates PPS updates submitted by validators. Checks EIP-712 signatures, enforces supermajority quorum (≥ 2/3 weighted stake), verifies nonce binding, and forwards accepted updates to the SuperVaultAggregator.
 - **Escrow** — Immutable contract that holds user shares during pending redemptions (allowing cancellation) and holds assets during fulfillment until the user claims.
 - **Hook** — Lightweight, ERC-7579-compliant module that performs a single action (lend, bridge, swap, etc.) inside a strategy. Hooks are composable and chainable. All hook executions are Merkle-gated — only pre-authorized hook + parameter combinations can execute.
 - **Keeper** — Automated worker that executes authorized vault actions: allocating deposits, fulfilling redemptions, claiming rewards, swapping, bridging. Keepers operate within Merkle-authorized bounds.
 - **Merkle Root** — Onchain commitment to the set of authorized hook + parameter combinations for a vault. No hook can execute unless its exact call matches a leaf in the active root. Updated via a timelocked proposal flow.
-- **Price Per Share (PPS)** — The exchange rate between one vault share and the underlying asset. `PPS = totalAssets / totalSupply`. Monotonically increasing as yield accrues. Signed by validators and accepted onchain after supermajority consensus.
+- **Price Per Share (PPS)** — The exchange rate between one vault share and the underlying asset. `PPS = totalAssets / totalSupply`. Increases as yield accrues; steps down at each performance fee-skim event. Net direction is upward when the vault generates yield. Signed by validators and accepted onchain after supermajority consensus.
 - **Primary Manager** — Highest-authority operator for a SuperVault. Proposes Merkle roots, updates fees, manages secondary managers, and authorizes hook configurations. Actions remain bounded by protocol timelocks and accounting constraints.
 - **Secondary Manager** — Delegated operator that can execute day-to-day vault operations (execute hooks, skim fees, whitelist yield sources) within primary-manager-authorized and Merkle-gated bounds.
 - **Session Key** — Narrowly scoped automation credential that allows keepers to execute pre-authorized actions without requiring the manager's primary signing key for each operation.
@@ -896,6 +897,7 @@ Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.de
 | WETH | 18 | `"1000000000000000000"` |
 | cbBTC | 8 | `"100000000"` |
 | NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
 
 Use `amount_fiat` instead of `amount` if you only know the USD value.
 </Note>
@@ -1004,7 +1006,8 @@ interface ISuperVault {
 }
 
 // 1. requestRedeem(shares, msg.sender, msg.sender)
-// 2. Poll maxWithdraw(msg.sender) -- proceed when > 0
+// 2. Poll pendingRedeemRequest(0, msg.sender) > 0 to confirm queued
+//    Poll maxWithdraw(msg.sender) — proceed when > 0 (keeper fulfilled)
 // 3. withdraw(maxWithdraw(msg.sender), receiver, msg.sender)
 ```
 
@@ -1075,7 +1078,7 @@ GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
 
 ### Claim rewards
 
-Reward claiming requires a smart account (ERC-4337). It is not available on the non-smart-account endpoint.
+Reward claiming uses the smart account `/hooks/suggest` flow (not `/hooks/suggest/non-smart-account`). The reason: the `CLAIM` action requires Merkl proof data in `targets[].extra_data`, which the non-smart-account endpoint's simplified action format does not expose.
 
 ```bash
 POST https://bundler.superform.xyz/hooks/suggest
@@ -1164,7 +1167,7 @@ All addresses verified from `GET /supervaults?chain_id=8453`.
 
 **Total APY.** `apy_snapshot_week + reward_rate` — both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values (means no data) before summing.
 
-**Which deposit endpoint.** `/hooks/suggest/non-smart-account` for EOA, Safe, Fireblocks, and custodians — returns raw EVM transactions. `/hooks/suggest` -> `/executor/build` -> `/executor/execute` for ERC-4337 smart accounts. The `CLAIM` action type (reward claiming) requires the smart account path.
+**Which endpoint to use.** `/hooks/suggest/non-smart-account` for deposits and redemptions from EOA, Safe, Fireblocks, and custodians. `/hooks/suggest` → `/executor/build` → `/executor/execute` for ERC-4337 smart accounts and for the `CLAIM` action (reward claiming requires passing Merkl `extra_data` in the targets, which only the smart account flow supports).
 
 **Slippage.** Basis points. `50` = 0.5% for bStock vaults. `10` = 0.1% for stablecoin vaults.
 
@@ -1738,11 +1741,11 @@ async function depositWithErrorHandling(
         if (err.message.includes("target amount") && err.message.includes("not set")) {
           throw new Error(`Missing amount_proportion or amount on target. Add "amount_proportion": 1.`);
         }
-        throw new Error(`Bad request: ${err.message}`);
-      case 500:
         if (err.message.includes("HOOK_NOT_FOUND")) {
           throw new Error("Stale hook ID — always call /hooks/suggest first, never hardcode hook IDs.");
         }
+        throw new Error(`Bad request: ${err.message}`);
+      case 500:
         throw new Error(`Bundler internal error: ${err.message}`);
       default:
         throw new Error(`Unexpected error ${res.status}: ${err.message}`);
@@ -1782,8 +1785,8 @@ def _handle_bundler_error(r: httpx.Response) -> None:
         if "target amount" in message and "not set" in message:
             raise BundlerError(400, "Missing amount_proportion on target. Add amount_proportion=1.")
         raise BundlerError(400, message)
-    if r.status_code == 500 and "HOOK_NOT_FOUND" in message:
-        raise BundlerError(500, "Stale hook ID — always call /hooks/suggest first.")
+    if "HOOK_NOT_FOUND" in message:
+        raise BundlerError(400, "Stale hook ID — always call /hooks/suggest first.")
     raise BundlerError(r.status_code, message)
 ```
 
@@ -1796,7 +1799,7 @@ def _handle_bundler_error(r: httpx.Response) -> None:
 | `400` | `vault share balance not found` | No shares held (for `REDEEM`) |
 | `400` | `target amount...is not set` | Missing `amount_proportion` on target |
 | `400` | `failed to validate source amount` | Missing `sources[].amount` |
-| `500` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
+| `400` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
 
 Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
 
@@ -1811,6 +1814,7 @@ Bundler errors are deterministic. An identical retry returns the same error. Fix
 | WETH | 18 | `"1000000000000000000"` |
 | cbBTC | 8 | `"100000000"` |
 | NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
 | superNVDA, superTSLA, ... (share tokens) | 8 | `"100000000"` |
 
 ---

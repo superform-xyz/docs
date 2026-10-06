@@ -19,7 +19,7 @@ Where `totalAssets` is the sum of:
 - Idle assets held in the strategy contract
 - The TVL value of each whitelisted yield source, computed via its paired oracle
 
-PPS is stored onchain by the `ECDSAPPSOracle` after validators attest with supermajority consensus. It is monotonically increasing — it only goes up as yield accrues and before performance fees are deducted.
+PPS is stored onchain by the `ECDSAPPSOracle` after validators attest with supermajority consensus. PPS increases as yield accrues and decreases at each performance fee-skim event (the fee is deducted from assets before the new PPS is written, stepping PPS down to the high-water mark). Net direction over time is upward when the vault is generating yield.
 
 Persephone tracks PPS hourly from on-chain events and backfills historical points.
 

@@ -567,11 +567,11 @@ async function depositWithErrorHandling(
         if (err.message.includes("target amount") && err.message.includes("not set")) {
           throw new Error(`Missing amount_proportion or amount on target. Add "amount_proportion": 1.`);
         }
-        throw new Error(`Bad request: ${err.message}`);
-      case 500:
         if (err.message.includes("HOOK_NOT_FOUND")) {
           throw new Error("Stale hook ID — always call /hooks/suggest first, never hardcode hook IDs.");
         }
+        throw new Error(`Bad request: ${err.message}`);
+      case 500:
         throw new Error(`Bundler internal error: ${err.message}`);
       default:
         throw new Error(`Unexpected error ${res.status}: ${err.message}`);
@@ -611,8 +611,8 @@ def _handle_bundler_error(r: httpx.Response) -> None:
         if "target amount" in message and "not set" in message:
             raise BundlerError(400, "Missing amount_proportion on target. Add amount_proportion=1.")
         raise BundlerError(400, message)
-    if r.status_code == 500 and "HOOK_NOT_FOUND" in message:
-        raise BundlerError(500, "Stale hook ID — always call /hooks/suggest first.")
+    if "HOOK_NOT_FOUND" in message:
+        raise BundlerError(400, "Stale hook ID — always call /hooks/suggest first.")
     raise BundlerError(r.status_code, message)
 ```
 
@@ -625,7 +625,7 @@ def _handle_bundler_error(r: httpx.Response) -> None:
 | `400` | `vault share balance not found` | No shares held (for `REDEEM`) |
 | `400` | `target amount...is not set` | Missing `amount_proportion` on target |
 | `400` | `failed to validate source amount` | Missing `sources[].amount` |
-| `500` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
+| `400` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
 
 Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
 
@@ -640,4 +640,5 @@ Bundler errors are deterministic. An identical retry returns the same error. Fix
 | WETH | 18 | `"1000000000000000000"` |
 | cbBTC | 8 | `"100000000"` |
 | NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
 | superNVDA, superTSLA, ... (share tokens) | 8 | `"100000000"` |

@@ -119,6 +119,51 @@
         ]
       },
       {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "SuperVaults",
+            "pages": [
+              "openapi/GET /v1/supervaults",
+              "openapi/GET /v1/vaults/{id}",
+              "openapi/GET /v1/vaults/stats/historical/{ids}",
+              "openapi/GET /v1/vaults/rewards"
+            ]
+          },
+          {
+            "group": "Balances",
+            "pages": [
+              "openapi/GET /v1/balances/{address}"
+            ]
+          },
+          {
+            "group": "Rewards",
+            "pages": [
+              "openapi/GET /v1/rewards/external/claimable/{user_address}",
+              "openapi/GET /v1/rewards/opportunities",
+              "openapi/GET /v1/rewards/summary/{user_address}"
+            ]
+          },
+          {
+            "group": "Tokens",
+            "pages": [
+              "openapi/GET /v1/fungibles",
+              "openapi/GET /v1/fungibles/{fungible_id}",
+              "openapi/GET /v1/fungibles/by-token/{token_id}",
+              "openapi/GET /v1/fungibles/{fungible_id}/history"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "openapi/GET /v1/supported/chains",
+              "openapi/GET /v1/providers",
+              "openapi/GET /v1/providers/{id}"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Operate",
         "groups": [
           {
@@ -257,5 +302,6 @@
   "thumbnails": {
     "appearance": "light",
     "background": "/images/docs_3_seo.png"
-  }
+  },
+  "openapi": "https://persephone.superform.xyz/openapi.json"
 }

@@ -22,10 +22,14 @@
 ## Getting Started
 
 - [What is Superform?](https://docs.superform.xyz/): Protocol overview and navigation hub.
-- [Integrate SuperVaults](https://docs.superform.xyz/build/integrate-supervaults): REST API + Bundler guide — vault discovery, deposit, redemption, rewards. Start here for wallet and custodian integrations.
+- [Earn](https://docs.superform.xyz/build/integrate-supervaults): Entry point for wallet and custodian integrations — links to vault data, deposit, redemption, and rewards sub-pages.
+- [Vault Data](https://docs.superform.xyz/build/earn/vault-data): Discover vaults, read APY/TVL, fetch user positions via Persephone API.
+- [Deposit](https://docs.superform.xyz/build/earn/deposit): Non-smart-account and ERC-4337 deposit flows with live-verified request/response shapes.
+- [Redemption](https://docs.superform.xyz/build/earn/redemption): ERC-7540 async lifecycle — request, state machine, claim.
+- [Rewards](https://docs.superform.xyz/build/earn/rewards): Merkl reward discovery and claim transactions.
 - [APY Methodology](https://docs.superform.xyz/learn/apy-methodology): How `apy_snapshot_*` and `reward_rate` are computed, sentinel values, and display guidance.
 - [Client Library](https://docs.superform.xyz/build/sdk): TypeScript and Python copy-paste clients for Persephone + Bundler.
-- [Deployment Addresses](https://docs.superform.xyz/deployment-addresses): All contract addresses across chains.
+- [Deployment Addresses](https://docs.superform.xyz/deployment-addresses): All contract addresses and SuperVault instance addresses across chains.
 
 ## Learn
 
@@ -44,7 +48,11 @@
 ## Build
 
 - [Build Overview](https://docs.superform.xyz/build): Three paths: Earn (integrate SuperVaults), write hooks, become a validator.
-- [Integrate SuperVaults](https://docs.superform.xyz/build/integrate-supervaults): Full integrator reference — vault discovery, deposit (non-smart-account and ERC-4337), redemption, Merkl rewards. Includes live-verified request/response shapes and error reference.
+- [Earn](https://docs.superform.xyz/build/integrate-supervaults): Overview + prerequisites + wallet type routing.
+- [Vault Data](https://docs.superform.xyz/build/earn/vault-data): Vault discovery and user positions.
+- [Deposit](https://docs.superform.xyz/build/earn/deposit): Deposit flows.
+- [Redemption](https://docs.superform.xyz/build/earn/redemption): Async redemption lifecycle.
+- [Rewards](https://docs.superform.xyz/build/earn/rewards): Merkl reward display and claiming.
 - [Client Library](https://docs.superform.xyz/build/sdk): TypeScript and Python clients wrapping Persephone + Bundler. Copy-paste ready.
 - [Write a Hook](https://docs.superform.xyz/build/hooks): Build custom composable hook contracts — lifecycle, classifications, quickstart, testing.
 - [Operate a SuperVault](https://docs.superform.xyz/build/manage-a-supervault): Onchain vault creation, manager roles, hook execution, fee configuration, redemption fulfillment.

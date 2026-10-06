@@ -630,6 +630,20 @@ def _handle_bundler_error(r: httpx.Response) -> None:
 Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
 
 
+## Error Reference
+
+Message-level lookup for the bundler error table. Match against the `message` field in the JSON error response.
+
+| HTTP | Message contains | Cause | Fix |
+|---|---|---|---|
+| `401` | `API key is required` | Missing `x-api-key` header | Add `x-api-key: YOUR_API_KEY` to every bundler request |
+| `400` | `insufficient balance` | `account` doesn't hold enough source token | Check balance first: `GET /balances/{address}` |
+| `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
+| `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |
+| `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
+| `400` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first; never hardcode hook IDs |
+
+
 ---
 
 ## Token Decimals Reference

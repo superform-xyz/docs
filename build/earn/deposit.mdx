@@ -1,0 +1,179 @@
+---
+title: "Deposit"
+description: "Route user deposits into SuperVaults via the Bundler (non-smart-account or ERC-4337) or direct ERC-7540 contract calls."
+---
+
+SuperVaults accept synchronous deposits via `ERC4626.deposit()`. The Bundler handles approval and deposit in one API call.
+
+<CodeGroup>
+
+```bash Non-smart-account (EOA / Safe / Fireblocks / custodian)
+# Returns ordered transactions to broadcast sequentially.
+# Index 0 is ERC20.approve, index 1 is ERC4626.deposit.
+
+POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
+x-api-key: YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "account": "0xUSER_WALLET_ADDRESS",
+  "action": {
+    "type": "DEPOSIT",
+    "slippage": 50,
+    "sources": [
+      {
+        "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+        "chain_id": 8453,
+        "amount": "100000000"
+      }
+    ],
+    "targets": [
+      {
+        "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "chain_id": 8453,
+        "vault_type": "SUPERVAULT",
+        "amount_proportion": 1
+      }
+    ],
+    "route_type": "OUTPUT",
+    "outputs": []
+  }
+}
+```
+
+```bash Smart account (ERC-4337)
+# 1. Suggest hooks
+POST https://bundler.superform.xyz/hooks/suggest
+x-api-key: YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "account": "0xUSER_SMART_ACCOUNT_ADDRESS",
+  "companion_mode": false,
+  "actions": [
+    {
+      "type": "DEPOSIT",
+      "slippage": 50,
+      "sources": [
+        {
+          "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "chain_id": 8453,
+          "amount": "100000000"
+        }
+      ],
+      "targets": [
+        {
+          "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "chain_id": 8453,
+          "vault_type": "SUPERVAULT",
+          "amount_proportion": 1
+        }
+      ],
+      "route_type": "OUTPUT",
+      "outputs": []
+    }
+  ]
+}
+
+# 2. Build UserOps
+POST https://bundler.superform.xyz/executor/build
+x-api-key: YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "account": "0xUSER_SMART_ACCOUNT_ADDRESS",
+  "hooks": [ /* hooks[] from suggest response */ ],
+  "fee_tokens_to_use": [ /* from suggest response */ ],
+  "token_balance_changes": [ /* from suggest response */ ],
+  "signer_type": "EIP4337"
+}
+
+# 3. Sign merkle_root then execute
+# signature = wallet.signMessage(build_response.merkle_root)
+
+POST https://bundler.superform.xyz/executor/execute
+x-api-key: YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "expiry": 1234567890,
+  "merkle_root": "0x...",
+  "user_ops": [ /* from build response */ ],
+  "valid_after": "0",
+  "fees_tokens": [ /* from build response */ ],
+  "signature": "0xUSER_SIGNATURE"
+}
+
+# 4. Poll
+GET https://bundler.superform.xyz/executor/transactions/{id}
+# status: "PENDING" | "CONFIRMED" | "FAILED"
+```
+
+```solidity Direct (ERC-7540)
+// Two transactions: approve then deposit.
+
+IERC20(0xb20000000000000000000078ee7ce2fe4908108c)
+    .approve(
+        0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc,
+        100000000 // 1 NVDAc (8 decimals)
+    );
+
+// deposit(uint256 assets, address receiver) returns uint256 shares
+uint256 shares = ISuperVault(0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc)
+    .deposit(100000000, receiverAddress);
+```
+
+</CodeGroup>
+
+**non-smart-account response**
+
+```json
+{
+  "executions": [
+    {
+      "type": "DEPOSIT",
+      "to": "0xb20000000000000000000078ee7ce2fe4908108c",
+      "value": "0",
+      "call_data": "0x095ea7b3..."
+    },
+    {
+      "type": "DEPOSIT",
+      "to": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "value": "0",
+      "call_data": "0x6e553f65..."
+    }
+  ]
+}
+```
+
+Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.deposit`. Both carry `type: "DEPOSIT"`. Use array position to determine order.
+
+**Request parameters**
+
+| Field | Required | Description |
+|---|---|---|
+| `account` | ✅ | Wallet address holding the source token |
+| `action.type` | ✅ | `DEPOSIT` |
+| `action.slippage` | ✅ | Basis points (`50` = 0.5%) |
+| `sources[].address` | ✅ | Underlying token address |
+| `sources[].chain_id` | ✅ | `8453` |
+| `sources[].amount` | ✅ | Raw token amount in smallest unit. Use `amount_fiat` for USD value |
+| `targets[].address` | ✅ | Vault contract address |
+| `targets[].vault_type` | ✅ | `"SUPERVAULT"` |
+| `targets[].amount_proportion` | ✅ | `1` to route 100% of source |
+
+> The bundler validates on-chain balance before building. Check the user's balance first (`GET /balances/{address}`) to avoid an unnecessary API round-trip.
+
+<Note>
+**Token decimals.** Express `amount` in the token's smallest unit:
+
+| Token | Decimals | 1 token |
+|---|---|---|
+| USDC | 6 | `"1000000"` |
+| WETH | 18 | `"1000000000000000000"` |
+| cbBTC | 8 | `"100000000"` |
+| NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
+
+Use `amount_fiat` instead of `amount` if you only know the USD value.
+</Note>

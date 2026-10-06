@@ -87,6 +87,10 @@
             "group": "Earn",
             "pages": [
               "build/integrate-supervaults",
+              "build/earn/vault-data",
+              "build/earn/deposit",
+              "build/earn/redemption",
+              "build/earn/rewards",
               "build/sdk",
               "learn/apy-methodology"
             ]

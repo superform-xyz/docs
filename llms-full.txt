@@ -1,6 +1,6 @@
 # Superform Documentation
 
-> All documentation pages concatenated in navigation order. See https://docs.superform.xyz/llms.txt for the structured index.
+> All documentation pages in navigation order. See https://docs.superform.xyz/llms.txt for the structured index.
 
 # What is Superform?
 
@@ -446,34 +446,16 @@ Source: https://docs.superform.xyz/build
 
 ---
 
-# Integrate SuperVaults
+# Earn
 
 Source: https://docs.superform.xyz/build/integrate-supervaults
 
-SuperVaults are ERC-7540 vaults on Base. Integrations need vault data and transaction calldata. Both are available without running any onchain infrastructure.
+SuperVaults are ERC-7540 vaults on Base with automated strategy management and validator-secured pricing. An integration covers three areas:
 
-<Info>
-**Minimum to integrate deposits:**
-
-1. `GET /supervaults?chain_id=8453` → filter to `availability: "available"` and `is_supervault_v_2: true`
-2. Confirm the user holds `assets[0].address` with sufficient balance
-3. `POST /hooks/suggest/non-smart-account` with `type: "DEPOSIT"`, source token, vault address, `vault_type: "SUPERVAULT"`
-4. Broadcast `executions[]` in order. Index 0 is `approve`, index 1 is `deposit`
-
-**To redeem:** POST `type: "REDEEM"` → broadcast → poll `maxWithdraw(account)` onchain → when `> 0`, POST `type: "REDEEM_CLAIM"` → broadcast.
-</Info>
-
-<CardGroup cols={3}>
-  <Card title="I'm building a wallet or app" icon="wallet">
-    Use `POST /hooks/suggest/non-smart-account` — returns ordered transactions to broadcast. No UserOps. Start at [Deposit](#deposit).
-  </Card>
-  <Card title="I'm a custodian (Fireblocks, Safe)" icon="shield">
-    Same path as wallets — direct EVM transactions, no smart account required. See [Deposit](#deposit) and the [Client Library](/build/sdk).
-  </Card>
-  <Card title="I'm building with ERC-4337" icon="bolt">
-    Use the three-call smart account flow: `suggest` → `build` → `execute`. See the [Deposit](#deposit) Smart account tab.
-  </Card>
-</CardGroup>
+1. **[Vault Data](/build/earn/vault-data)** — discover vaults, read APY and TVL, fetch user positions
+2. **[Deposit](/build/earn/deposit)** — route user deposits via the Bundler or direct contract calls
+3. **[Redemption](/build/earn/redemption)** — async ERC-7540 request and claim lifecycle
+4. **[Rewards](/build/earn/rewards)** — display accruing Merkl rewards and submit claim transactions
 
 ## Prerequisites
 
@@ -481,21 +463,34 @@ SuperVaults are ERC-7540 vaults on Base. Integrations need vault data and transa
 |---|---|
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
-| Auth | Persephone is public — no key required. Bundler requires `x-api-key` — contact integrations@superform.xyz |
-| Client Library | [TypeScript + Python copy-paste clients](/build/sdk) — wraps all endpoints below |
+| Auth | Persephone is public. Bundler requires `x-api-key` — contact integrations@superform.xyz |
 | Chain | Base (chain ID `8453`) |
+| Client Library | [TypeScript + Python copy-paste clients](/build/sdk) |
+
+## Wallet type
+
+| Your wallet | Path |
+|---|---|
+| EOA, Safe, Fireblocks, custodian | `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast |
+| ERC-4337 smart account | `POST /hooks/suggest` → `/executor/build` → `/executor/execute` |
+
+All current SuperVaults use `vault_type: "SUPERVAULT"` (when `is_supervault_v_2: true`).
 
 ---
 
-## Vault Discovery
+# Vault Data
 
-### List vaults
+Source: https://docs.superform.xyz/build/earn/vault-data
+
+Base URL: `https://persephone.superform.xyz/v1` — public, no API key required.
+
+## List vaults
 
 ```bash
 GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 ```
 
-**Response fields**
+**Key response fields**
 
 | Field | Type | Description |
 |---|---|---|
@@ -505,16 +500,16 @@ GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 | `symbol` | string | Share token symbol (e.g. `superNVDA`) |
 | `decimals` | number | Share token decimals |
 | `availability` | string | `available`, `withdraw_only`, `deposit_only`, `paused`, `unavailable` — always check before presenting UI |
-| `is_supervault_v_2` | boolean | `true` for all current SuperVaults — use `vault_type: "SUPERVAULT"` in bundler calls |
-| `has_rewards` | boolean | `true` if active Merkl reward campaigns exist for this vault |
+| `is_supervault_v_2` | boolean | `true` for all current SuperVaults |
+| `has_rewards` | boolean | `true` if active Merkl reward campaigns exist |
 | `stats_basic.tvl_total` | number | TVL in USD |
-| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield in percentage points. Sum with `reward_rate` for total APY. A value of `-1000000` means no data yet — treat as 0. |
-| `stats_basic.reward_rate` | number | Merkl reward APR in percentage points (e.g. `18.29` = 18.29%). Sum with `apy_snapshot_week` for total APY. |
+| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield in percentage points. A value of `-1000000` means no data yet — treat as 0. |
+| `stats_basic.reward_rate` | number | Merkl reward APR in percentage points. Sum with `apy_snapshot_week` for total APY. |
 | `stats_basic.pps` | number | Price per share in underlying asset units |
 | `stats_basic.pps_usd` | number | Price per share in USD |
 | `assets[]` | array | Underlying assets: `address`, `symbol`, `decimals`, `price_usd` |
 
-**Example**
+**Example response**
 
 ```json
 {
@@ -530,7 +525,7 @@ GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
   "stats_basic": {
     "tvl_total": 421256.84,
     "apy_snapshot_week": 0,
-    "reward_rate": 18.32,
+    "reward_rate": 18.29,
     "pps": 1.0,
     "pps_usd": 233.95
   },
@@ -545,7 +540,7 @@ GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 }
 ```
 
-### Single vault
+## Single vault
 
 ```bash
 GET https://persephone.superform.xyz/v1/vaults/{id}
@@ -553,15 +548,15 @@ GET https://persephone.superform.xyz/v1/vaults/{id}
 
 `id` format: `{chain_id}_{vault_address}`. Same response shape as the list.
 
-### Historical APY and TVL
+## Historical APY and TVL
 
 ```bash
 GET https://persephone.superform.xyz/v1/vaults/stats/historical/{ids}?start_ts=1727740800&end_ts=1728345600&granularity=day
 ```
 
-`ids`: comma-separated vault IDs. `granularity`: `hour` or `day`.
+`ids`: comma-separated vault IDs. `granularity`: `hour` or `day`. Returns time-series of `pps`, `tvl_total`, `apy_snapshot_week`, and `reward_rate` for charting.
 
-### User positions
+## User positions
 
 ```bash
 GET https://persephone.superform.xyz/v1/balances/{address}
@@ -569,15 +564,25 @@ GET https://persephone.superform.xyz/v1/balances/{address}
 
 Returns all vault positions for a wallet: share balance, USD value, vault metadata.
 
+## Price per share
+
+`stats_basic.pps` is the exchange rate between one vault share and the underlying asset. It increases as yield accrues and steps down at each performance fee-skim event. Display user balance as `shares * pps`.
+
+For the full APY formula, how `apy_snapshot_week` is computed, and how to handle the `-1000000` sentinel, see [APY Methodology](/learn/apy-methodology).
+
 ---
 
-## Deposit
+# Deposit
+
+Source: https://docs.superform.xyz/build/earn/deposit
+
+SuperVaults accept synchronous deposits via `ERC4626.deposit()`. The Bundler handles approval and deposit in one API call.
 
 <CodeGroup>
 
 ```bash Non-smart-account (EOA / Safe / Fireblocks / custodian)
-# One call returns ordered transactions to broadcast sequentially.
-# Handles approval and deposit automatically.
+# Returns ordered transactions to broadcast sequentially.
+# Index 0 is ERC20.approve, index 1 is ERC4626.deposit.
 
 POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
 x-api-key: YOUR_API_KEY
@@ -610,8 +615,6 @@ Content-Type: application/json
 ```
 
 ```bash Smart account (ERC-4337)
-# Three-call flow: suggest -> build -> sign -> execute.
-
 # 1. Suggest hooks
 POST https://bundler.superform.xyz/hooks/suggest
 x-api-key: YOUR_API_KEY
@@ -716,7 +719,23 @@ uint256 shares = ISuperVault(0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc)
 }
 ```
 
-Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.deposit`. Both carry `type: "DEPOSIT"`. Use array position, not type, to determine order.
+Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.deposit`. Both carry `type: "DEPOSIT"`. Use array position to determine order.
+
+**Request parameters**
+
+| Field | Required | Description |
+|---|---|---|
+| `account` | ✅ | Wallet address holding the source token |
+| `action.type` | ✅ | `DEPOSIT` |
+| `action.slippage` | ✅ | Basis points (`50` = 0.5%) |
+| `sources[].address` | ✅ | Underlying token address |
+| `sources[].chain_id` | ✅ | `8453` |
+| `sources[].amount` | ✅ | Raw token amount in smallest unit. Use `amount_fiat` for USD value |
+| `targets[].address` | ✅ | Vault contract address |
+| `targets[].vault_type` | ✅ | `"SUPERVAULT"` |
+| `targets[].amount_proportion` | ✅ | `1` to route 100% of source |
+
+> The bundler validates on-chain balance before building. Check the user's balance first (`GET /balances/{address}`) to avoid an unnecessary API round-trip.
 
 <Note>
 **Token decimals.** Express `amount` in the token's smallest unit:
@@ -732,27 +751,17 @@ Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.de
 Use `amount_fiat` instead of `amount` if you only know the USD value.
 </Note>
 
-**Request parameters**
-
-| Field | Required | Description |
-|---|---|---|
-| `account` | ✅ | Wallet address holding the source token |
-| `action.type` | ✅ | `DEPOSIT` |
-| `action.slippage` | ✅ | Basis points (`50` = 0.5%) |
-| `sources[].address` | ✅ | Underlying token address |
-| `sources[].chain_id` | ✅ | `8453` |
-| `sources[].amount` | ✅ | Raw token amount. Use `amount_fiat` for USD value |
-| `targets[].address` | ✅ | Vault contract address |
-| `targets[].vault_type` | ✅ | `"SUPERVAULT"` |
-| `targets[].amount_proportion` | ✅ | `1` to route 100% of source |
-
-> The bundler validates on-chain balance before building. Check the user's balance first (`GET /balances/{address}`) to avoid an unnecessary API round-trip.
-
 ---
 
-## Redemption
+# Redemption
 
-SuperVaults use ERC-7540 async redemptions. Request -> keeper fulfills (~1 hour) -> claim.
+Source: https://docs.superform.xyz/build/earn/redemption
+
+SuperVaults use ERC-7540 async redemptions. Shares go into escrow on request; a keeper fulfills within ~1 hour; the user then claims assets.
+
+<Warning>
+**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the request. Shares are in escrow; assets have not yet been freed. Poll `pendingRedeemRequest(0, account)` to confirm the request is queued, then poll `maxWithdraw(account)` until positive before sending the claim.
+</Warning>
 
 <CodeGroup>
 
@@ -828,8 +837,10 @@ interface ISuperVault {
 
     // Poll: 0 while pending, > 0 when fulfilled
     function maxWithdraw(address controller) external view returns (uint256);
+
     // SuperVault always uses REQUEST_ID = 0
-    function pendingRedeemRequest(uint256 requestId, address controller) external view returns (uint256);
+    function pendingRedeemRequest(uint256 requestId, address controller)
+        external view returns (uint256);
 
     // Step B: Claim after maxWithdraw > 0
     function withdraw(uint256 assets, address receiver, address controller)
@@ -838,35 +849,33 @@ interface ISuperVault {
 
 // 1. requestRedeem(shares, msg.sender, msg.sender)
 // 2. Poll pendingRedeemRequest(0, msg.sender) > 0 to confirm queued
-//    Poll maxWithdraw(msg.sender) — proceed when > 0 (keeper fulfilled)
+//    Poll maxWithdraw(msg.sender) -- proceed when > 0 (keeper fulfilled)
 // 3. withdraw(maxWithdraw(msg.sender), receiver, msg.sender)
 ```
 
 </CodeGroup>
 
-<Warning>
-**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the redemption request. Shares are in escrow; assets have not yet been freed. Do not interpret a `0` return as "no position." Poll `pendingRedeemRequest(account)` to confirm the request is queued, then poll `maxWithdraw(account)` until it becomes positive before sending the claim.
-</Warning>
-
 **State machine**
 
 | State | How to detect | Next action |
 |---|---|---|
-| Pending | `pendingRedeemRequest(account) > 0` and `maxWithdraw(account) == 0` | Wait for keeper (~1 hour) |
+| Pending | `pendingRedeemRequest(0, account) > 0` and `maxWithdraw(account) == 0` | Wait for keeper (~1 hour) |
 | Fulfilled | `maxWithdraw(account) > 0` | Send `REDEEM_CLAIM` or call `withdraw()` |
-| Claimed | `maxWithdraw(account) == 0` and `pendingRedeemRequest(account) == 0` | Done |
+| Claimed | `maxWithdraw(account) == 0` and `pendingRedeemRequest(0, account) == 0` | Done |
 
 ---
 
-## Rewards
+# Rewards
 
-SuperVault rewards are distributed via [Merkl](https://merkl.xyz). Rewards accrue automatically while users hold vault shares. No staking required.
+Source: https://docs.superform.xyz/build/earn/rewards
 
-### Check if a vault has rewards
+SuperVault rewards are distributed via [Merkl](https://merkl.xyz). They accrue automatically while users hold vault shares — no staking required.
 
-`has_rewards: true` on the vault response means an active Merkl campaign exists. `stats_basic.reward_rate` is the current reward APR.
+## Check if a vault has rewards
 
-### Check claimable rewards for a user
+`has_rewards: true` on the vault response means an active Merkl campaign exists. `stats_basic.reward_rate` is the current reward APR in percentage points.
+
+## Check claimable rewards for a user
 
 ```bash
 GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
@@ -907,100 +916,45 @@ GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
 }
 ```
 
-### Claim rewards
+## Claim rewards
 
-Reward claiming uses the smart account `/hooks/suggest` flow (not `/hooks/suggest/non-smart-account`). The reason: the `CLAIM` action requires Merkl proof data in `targets[].extra_data`, which the non-smart-account endpoint's simplified action format does not expose.
+The `CLAIM` action is available on both `/hooks/suggest/non-smart-account` and the smart account flow. Use whichever matches your wallet infrastructure.
 
 ```bash
-POST https://bundler.superform.xyz/hooks/suggest
+POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
 x-api-key: YOUR_API_KEY
 Content-Type: application/json
 
 {
-  "account": "0xUSER_SMART_ACCOUNT_ADDRESS",
-  "companion_mode": false,
-  "actions": [
-    {
-      "type": "CLAIM",
-      "slippage": 0,
-      "sources": [],
-      "outputs": [
-        {
-          "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-          "chain_id": 8453,
-          "amount": "14230000"
-        }
-      ],
-      "targets": [
-        {
-          "address": "0xUSER_SMART_ACCOUNT_ADDRESS",
-          "chain_id": 8453,
-          "tags": ["merkl"],
-          "extra_data": "0x..."
-        }
-      ],
-      "route_type": "OUTPUT"
-    }
-  ]
+  "account": "0xUSER_WALLET_ADDRESS",
+  "action": {
+    "type": "CLAIM",
+    "slippage": 0,
+    "sources": [],
+    "outputs": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "chain_id": 8453,
+        "amount": "14230000"
+      }
+    ],
+    "targets": [
+      {
+        "address": "0xUSER_WALLET_ADDRESS",
+        "chain_id": 8453,
+        "tags": ["merkl"],
+        "extra_data": "0x..."
+      }
+    ],
+    "route_type": "OUTPUT"
+  }
 }
-# Then: build -> sign -> execute (same flow as smart account deposit)
 ```
 
-- `outputs[].amount` = `provider_claim_amount` from the claimable response
+- `outputs[].amount` = `provider_claim_amount` from the claimable response (cumulative, not delta)
 - `targets[].extra_data` = `rewards[].extra_data` (Merkl proof)
 - `targets[].tags: ["merkl"]` is required
 - Max 7 reward tokens per claim call
-
----
-
-## Error Reference
-
-All errors return `{"code": <http_status>, "message": "<reason>"}`.
-
-| HTTP | Message contains | Cause | Fix |
-|---|---|---|---|
-| `401` | `API key is required` | Missing `x-api-key` header | Add `x-api-key: YOUR_API_KEY` to every bundler request |
-| `400` | `insufficient balance` | `account` doesn't hold enough source token | Check balance first: `GET /balances/{address}` |
-| `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
-| `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |
-| `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
-| `400` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first ; never hardcode hook IDs |
-
-Bundler errors are deterministic. An identical retry returns the same error. Fix the request first.
-
----
-
-## Vault Addresses (Base, chain ID 8453)
-
-All addresses verified from `GET /supervaults?chain_id=8453`.
-
-| Vault | Symbol | Underlying | Vault address | Underlying address |
-|---|---|---|---|---|
-| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` | `0xb20000000000000000000078ee7ce2fe4908108c` |
-| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` | `0xb2000000000000000000001e800a7f5189430cd0` |
-| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` | `0xb2000000000000000000007b9fcbd005511acbd5` |
-| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` | `0xb200000000000000000000c2e324d24d7eecd1fb` |
-| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` | `0xb2000000000000000000002d0ba3164cc74f58b7` |
-| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` | `0xb2000000000000000000008bc8786b856e61707c` |
-| AMZN SuperVault | superAMZN | AMZNc | `0x4855b2756910b7525d5b466292c394669ee74e7e` | `0xb200000000000000000000d9192b6b456483c2e8` |
-| MSFT SuperVault | superMSFT | MSFTc | `0x7778192c7e2c22a27c63d63485699888148d5919` | `0xb200000000000000000000ab99cfa739e253872b` |
-| Stocks USDC SuperVault | superStocksUSDC | USDC | `0x557202e4dea65af6a4460f04044732ce482c8627` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
-| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851ee2bdbae329d97771e41ec6` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
-| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fa06931f7b878653a15aecc86145c1af7` | `0x4200000000000000000000000000000000000006` |
-| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce` | `0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf` |
-| Staked UP Vault | sUP | UP | `0x2c71f70e2ec720ae061ae7e0316fc9654d94f417` | `0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b` |
-
----
-
-## Key Concepts
-
-**Price per share (PPS).** `stats_basic.pps` is the share-to-asset exchange rate. PPS increases as yield accrues and steps down at each performance fee-skim event. User asset value: `shares * pps`.
-
-**Total APY.** `apy_snapshot_week + reward_rate`. Both fields are in percentage points (e.g. `3.77` = 3.77%). For SuperStocks vaults, `reward_rate` is the primary yield source today; `apy_snapshot_week` grows as vault strategies deploy. Filter out `-1000000` sentinel values before summing. See [APY Methodology](/learn/apy-methodology) for the full formula.
-
-**Which endpoint to use.** `/hooks/suggest/non-smart-account` for deposits, redemptions, and reward claims from EOA, Safe, Fireblocks, and custodians. `/hooks/suggest` → `/executor/build` → `/executor/execute` for ERC-4337 smart accounts. The `CLAIM` action is available on both endpoints; use the smart account flow when your wallet infrastructure supports it.
-
-**Slippage.** Basis points. `50` = 0.5% for bStock vaults. `10` = 0.1% for stablecoin vaults.
 
 ---
 
@@ -1633,6 +1587,20 @@ def _handle_bundler_error(r: httpx.Response) -> None:
 | `400` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
 
 Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
+
+
+## Error Reference
+
+Message-level lookup for the bundler error table. Match against the `message` field in the JSON error response.
+
+| HTTP | Message contains | Cause | Fix |
+|---|---|---|---|
+| `401` | `API key is required` | Missing `x-api-key` header | Add `x-api-key: YOUR_API_KEY` to every bundler request |
+| `400` | `insufficient balance` | `account` doesn't hold enough source token | Check balance first: `GET /balances/{address}` |
+| `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
+| `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |
+| `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
+| `400` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first; never hardcode hook IDs |
 
 
 ---
@@ -7589,6 +7557,26 @@ Individual vault, strategy, and escrow addresses vary per deployment. To look up
 | Robinhood Chain (LayerZero OFT) | `0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E` |
 | Flare (LayerZero OFT) | [`0xe030A89fd2b7f858c8aA47725679CA25D467dFD1`](https://flare-explorer.flare.network/address/0xe030A89fd2b7f858c8aA47725679CA25D467dFD1) |
 | sUP (Base staking vault) | [`0x2c71f70e2Ec720AE061Ae7E0316fC9654d94f417`](https://basescan.org/address/0x2c71f70e2Ec720AE061Ae7E0316fC9654d94f417) |
+
+## SuperVault Instances (Base, chain ID 8453)
+
+All addresses verified from `GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453`.
+
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` | `0xb20000000000000000000078ee7ce2fe4908108c` |
+| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` | `0xb2000000000000000000001e800a7f5189430cd0` |
+| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` | `0xb2000000000000000000007b9fcbd005511acbd5` |
+| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` | `0xb200000000000000000000c2e324d24d7eecd1fb` |
+| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` | `0xb2000000000000000000002d0ba3164cc74f58b7` |
+| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` | `0xb2000000000000000000008bc8786b856e61707c` |
+| AMZN SuperVault | superAMZN | AMZNc | `0x4855b2756910b7525d5b466292c394669ee74e7e` | `0xb200000000000000000000d9192b6b456483c2e8` |
+| MSFT SuperVault | superMSFT | MSFTc | `0x7778192c7e2c22a27c63d63485699888148d5919` | `0xb200000000000000000000ab99cfa739e253872b` |
+| Stocks USDC SuperVault | superStocksUSDC | USDC | `0x557202e4dea65af6a4460f04044732ce482c8627` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
+| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851ee2bdbae329d97771e41ec6` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
+| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fa06931f7b878653a15aecc86145c1af7` | `0x4200000000000000000000000000000000000006` |
+| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce` | `0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf` |
+| Staked UP Vault | sUP | UP | `0x2c71f70e2ec720ae061ae7e0316fc9654d94f417` | `0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b` |
 
 ---
 

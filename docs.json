@@ -87,6 +87,7 @@
             "group": "Earn",
             "pages": [
               "build/integrate-supervaults",
+              "build/earn/quickstart",
               "build/earn/vault-data",
               "build/earn/deposit",
               "build/earn/redemption",

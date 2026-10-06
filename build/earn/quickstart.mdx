@@ -10,7 +10,7 @@ Use this page when you want the fastest working integration. It skips deep expla
 <Steps>
 
 <Step title="Get a Bundler API key">
-Email integrations@superform.xyz to request an `x-api-key`. The Persephone API (vault data) is public — no key needed for reads.
+Email integrations@superform.xyz to request an `x-api-key`. The Persephone API (vault data) is public with no key required.
 </Step>
 
 <Step title="Pick a vault">
@@ -22,7 +22,7 @@ curl https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 
 Filter to `availability: "available"` and `is_supervault_v_2: true`. Pick a vault address and note its `assets[0].address` (the token your user will deposit).
 
-Example — NVDA SuperVault:
+Example (NVDA SuperVault):
 - Vault: `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`
 - Underlying token (NVDAc): `0xb20000000000000000000078ee7ce2fe4908108c`
 - Decimals: 8
@@ -71,7 +71,7 @@ curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
   }'
 ```
 
-The response contains `executions[]` — an ordered list of transactions to broadcast.
+The response contains `executions[]`, an ordered list of transactions to broadcast.
 </Step>
 
 <Step title="Broadcast">

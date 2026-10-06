@@ -450,10 +450,10 @@ Source: https://docs.superform.xyz/build/integrate-supervaults
 
 An integration covers three areas:
 
-1. **[Vault Data](/build/earn/vault-data)** — discover vaults, read APY and TVL, fetch user positions
-2. **[Deposit](/build/earn/deposit)** — route user deposits via the Bundler or direct contract calls
-3. **[Redemption](/build/earn/redemption)** — async ERC-7540 request and claim lifecycle
-4. **[Rewards](/build/earn/rewards)** — display accruing Merkl rewards and submit claim transactions
+1. **[Vault Data](/build/earn/vault-data)**: discover vaults, read APY and TVL, fetch user positions
+2. **[Deposit](/build/earn/deposit)**: route user deposits via the Bundler or direct contract calls
+3. **[Redemption](/build/earn/redemption)**: async ERC-7540 request and claim lifecycle
+4. **[Rewards](/build/earn/rewards)**: display accruing Merkl rewards and submit claim transactions
 
 ## Prerequisites
 
@@ -461,7 +461,7 @@ An integration covers three areas:
 |---|---|
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
-| Auth | Persephone is public. Bundler requires `x-api-key` — contact integrations@superform.xyz |
+| Auth | Persephone is public. Bundler requires `x-api-key`. Contact integrations@superform.xyz to get one. |
 | Chain | Base (chain ID `8453`) |
 | Client Library | [TypeScript + Python copy-paste clients](/build/sdk) |
 
@@ -469,7 +469,7 @@ An integration covers three areas:
 
 | Your wallet | Path |
 |---|---|
-| EOA, Safe, Fireblocks, custodian | `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast |
+| EOA, Safe, Fireblocks, custodian | `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` |
 | ERC-4337 smart account | `POST /hooks/suggest` → `/executor/build` → `/executor/execute` |
 
 All current SuperVaults use `vault_type: "SUPERVAULT"` (when `is_supervault_v_2: true`).
@@ -487,7 +487,7 @@ Use this page when you want the fastest working integration. It skips deep expla
 <Steps>
 
 <Step title="Get a Bundler API key">
-Email integrations@superform.xyz to request an `x-api-key`. The Persephone API (vault data) is public — no key needed for reads.
+Email integrations@superform.xyz to request an `x-api-key`. The Persephone API (vault data) is public with no key required.
 </Step>
 
 <Step title="Pick a vault">
@@ -499,7 +499,7 @@ curl https://persephone.superform.xyz/v1/supervaults?chain_id=8453
 
 Filter to `availability: "available"` and `is_supervault_v_2: true`. Pick a vault address and note its `assets[0].address` (the token your user will deposit).
 
-Example — NVDA SuperVault:
+Example (NVDA SuperVault):
 - Vault: `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`
 - Underlying token (NVDAc): `0xb20000000000000000000078ee7ce2fe4908108c`
 - Decimals: 8
@@ -548,7 +548,7 @@ curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
   }'
 ```
 
-The response contains `executions[]` — an ordered list of transactions to broadcast.
+The response contains `executions[]`, an ordered list of transactions to broadcast.
 </Step>
 
 <Step title="Broadcast">
@@ -578,7 +578,7 @@ After `executions[1]` confirms, the user holds `superNVDA` shares and their depo
 
 Source: https://docs.superform.xyz/build/earn/vault-data
 
-Base URL: `https://persephone.superform.xyz/v1` — public, no API key required.
+Base URL: `https://persephone.superform.xyz/v1`. No API key required.
 
 ## List vaults
 
@@ -965,7 +965,7 @@ interface ISuperVault {
 
 Source: https://docs.superform.xyz/build/earn/rewards
 
-SuperVault rewards are distributed via [Merkl](https://merkl.xyz). They accrue automatically while users hold vault shares — no staking required.
+SuperVault rewards are distributed via [Merkl](https://merkl.xyz). They accrue automatically while users hold vault shares. No staking required.
 
 ## Check if a vault has rewards
 
@@ -1770,7 +1770,7 @@ Where:
 
 **Units:** percentage points. `18.29` = 18.29% annualized. Do **not** multiply by 100 again.
 
-**This is pure price appreciation.** It measures how much the vault's share value grew relative to the underlying asset — it does not include Merkl reward tokens, which are tracked separately in `reward_rate`.
+**This is pure price appreciation.** It measures how much the vault's share value grew relative to the underlying asset. It does not include Merkl reward tokens, which are tracked separately in `reward_rate`.
 
 ---
 
@@ -1800,7 +1800,7 @@ Display total APY as:
 total_apy = apy_snapshot_week + reward_rate
 ```
 
-For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), `reward_rate` is the primary yield today. `apy_snapshot_week` reflects any realized strategy yield — it will be near zero while vaults are in early operation and grow as strategies are deployed.
+For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), `reward_rate` is the primary yield today. `apy_snapshot_week` reflects realized strategy yield; it will be near zero while vaults are in early operation and grows as strategies are deployed.
 
 For stablecoin vaults (`superUSDC`, `superStocksUSDC`), both fields are meaningful and should be summed.
 

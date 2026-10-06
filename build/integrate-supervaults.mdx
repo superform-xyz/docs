@@ -5,10 +5,10 @@ description: "Integrate SuperVault deposits, redemptions, and reward claiming in
 
 An integration covers three areas:
 
-1. **[Vault Data](/build/earn/vault-data)** — discover vaults, read APY and TVL, fetch user positions
-2. **[Deposit](/build/earn/deposit)** — route user deposits via the Bundler or direct contract calls
-3. **[Redemption](/build/earn/redemption)** — async ERC-7540 request and claim lifecycle
-4. **[Rewards](/build/earn/rewards)** — display accruing Merkl rewards and submit claim transactions
+1. **[Vault Data](/build/earn/vault-data)**: discover vaults, read APY and TVL, fetch user positions
+2. **[Deposit](/build/earn/deposit)**: route user deposits via the Bundler or direct contract calls
+3. **[Redemption](/build/earn/redemption)**: async ERC-7540 request and claim lifecycle
+4. **[Rewards](/build/earn/rewards)**: display accruing Merkl rewards and submit claim transactions
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ An integration covers three areas:
 |---|---|
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
-| Auth | Persephone is public. Bundler requires `x-api-key` — contact integrations@superform.xyz |
+| Auth | Persephone is public. Bundler requires `x-api-key`. Contact integrations@superform.xyz to get one. |
 | Chain | Base (chain ID `8453`) |
 | Client Library | [TypeScript + Python copy-paste clients](/build/sdk) |
 
@@ -24,7 +24,7 @@ An integration covers three areas:
 
 | Your wallet | Path |
 |---|---|
-| EOA, Safe, Fireblocks, custodian | `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast |
+| EOA, Safe, Fireblocks, custodian | `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` |
 | ERC-4337 smart account | `POST /hooks/suggest` → `/executor/build` → `/executor/execute` |
 
 All current SuperVaults use `vault_type: "SUPERVAULT"` (when `is_supervault_v_2: true`).

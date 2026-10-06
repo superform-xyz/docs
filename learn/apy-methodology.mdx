@@ -55,7 +55,7 @@ Where:
 
 **Units:** percentage points. `18.29` = 18.29% annualized. Do **not** multiply by 100 again.
 
-**This is pure price appreciation.** It measures how much the vault's share value grew relative to the underlying asset — it does not include Merkl reward tokens, which are tracked separately in `reward_rate`.
+**This is pure price appreciation.** It measures how much the vault's share value grew relative to the underlying asset. It does not include Merkl reward tokens, which are tracked separately in `reward_rate`.
 
 ---
 
@@ -85,7 +85,7 @@ Display total APY as:
 total_apy = apy_snapshot_week + reward_rate
 ```
 
-For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), `reward_rate` is the primary yield today. `apy_snapshot_week` reflects any realized strategy yield — it will be near zero while vaults are in early operation and grow as strategies are deployed.
+For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), `reward_rate` is the primary yield today. `apy_snapshot_week` reflects realized strategy yield; it will be near zero while vaults are in early operation and grows as strategies are deployed.
 
 For stablecoin vaults (`superUSDC`, `superStocksUSDC`), both fields are meaningful and should be summed.
 

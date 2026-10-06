@@ -5,8 +5,8 @@
 ## Notes for LLM Agents
 
 - All SuperVaults covered here are on Base (chain ID 8453) unless otherwise stated.
-- Persephone API base URL: `https://persephone.superform.xyz/v1` — public, no API key required.
-- Bundler API base URL: `https://bundler.superform.xyz/` — requires `x-api-key` header. Contact integrations@superform.xyz to get one.
+- Persephone API base URL: `https://persephone.superform.xyz/v1` — fully public, no API key required for any endpoint.
+- Bundler API base URL: `https://bundler.superform.xyz/` — requires `x-api-key` for deposit/redeem calldata generation. Contact integrations@superform.xyz.
 - Primary vault discovery: `GET /v1/supervaults?chain_id=8453` — returns all live SuperVaults with APY, TVL, rewards, availability.
 - `vault_type: "SUPERVAULT"` is required on all bundler calls for v2 vaults (`is_supervault_v_2: true`).
 - Non-smart-account deposit (EOA / Safe / Fireblocks / custodian): `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast. Index 0 is `approve`, index 1 is `deposit`.

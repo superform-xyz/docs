@@ -461,7 +461,7 @@ An integration covers three areas:
 |---|---|
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
-| Auth | Persephone is public. Bundler requires `x-api-key`. Contact integrations@superform.xyz to get one. |
+| Auth | Both APIs are public — no key required for reads. Bundler requires `x-api-key` for write operations (deposit/redeem calldata). Contact integrations@superform.xyz. |
 | Chain | Base (chain ID `8453`) |
 | Client Library | [TypeScript + Python copy-paste clients](/build/sdk) |
 
@@ -487,7 +487,7 @@ Use this page when you want the fastest working integration. It skips deep expla
 <Steps>
 
 <Step title="Get a Bundler API key">
-Email integrations@superform.xyz to request an `x-api-key`. The Persephone API (vault data) is public with no key required.
+The Persephone API (vault data) is fully public — no key needed. The Bundler (`bundler.superform.xyz`) requires an `x-api-key` for deposit and redemption calldata. Email integrations@superform.xyz to request one.
 </Step>
 
 <Step title="Pick a vault">
@@ -578,7 +578,7 @@ After `executions[1]` confirms, the user holds `superNVDA` shares and their depo
 
 Source: https://docs.superform.xyz/build/earn/vault-data
 
-Base URL: `https://persephone.superform.xyz/v1`. No API key required.
+Base URL: `https://persephone.superform.xyz/v1`. No API key required for any read endpoint.
 
 ## List vaults
 

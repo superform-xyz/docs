@@ -14,7 +14,6 @@ SuperVaults use ERC-7540 async redemptions. Shares go into escrow on request; a 
 ```bash Non-smart-account
 # Step A: Request redemption
 POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
-x-api-key: YOUR_API_KEY
 Content-Type: application/json
 
 {
@@ -46,7 +45,6 @@ Content-Type: application/json
 
 # Step B: Claim after fulfillment
 POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
-x-api-key: YOUR_API_KEY
 Content-Type: application/json
 
 {

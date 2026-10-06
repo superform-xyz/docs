@@ -1,6 +1,6 @@
 ---
 title: "Client Library"
-description: "TypeScript and Python copy-paste clients for Persephone and the Bundler. No external dependencies beyond fetch/httpx."
+description: "TypeScript and Python copy-paste clients for Persephone and the Bundler. Both APIs are fully public — no API key required."
 ---
 
 Copy-paste clients for Persephone and the Bundler. No package to install. Thin wrappers around `fetch` (TypeScript) and `httpx` (Python) you can drop into your project.
@@ -71,7 +71,6 @@ export async function getClaimableRewards(address: string) {
  * Index 0 is ERC20.approve, index 1 is ERC4626.deposit.
  */
 export async function buildDeposit(
-  apiKey: string,
   account: string,
   sourceTokenAddress: string,
   sourceChainId: number,
@@ -81,7 +80,7 @@ export async function buildDeposit(
 ): Promise<Execution[]> {
   const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       account,
       action: {
@@ -108,7 +107,6 @@ export async function buildDeposit(
  * When > 0, call buildRedeemClaim.
  */
 export async function buildRedeem(
-  apiKey: string,
   account: string,
   vaultAddress: string,
   vaultChainId: number,
@@ -117,7 +115,7 @@ export async function buildRedeem(
 ): Promise<Execution[]> {
   const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       account,
       action: {
@@ -140,7 +138,6 @@ export async function buildRedeem(
 
 /** Build a redemption claim after the keeper has fulfilled the request. */
 export async function buildRedeemClaim(
-  apiKey: string,
   account: string,
   vaultAddress: string,
   vaultChainId: number,
@@ -149,7 +146,7 @@ export async function buildRedeemClaim(
 ): Promise<Execution[]> {
   const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       account,
       action: {
@@ -265,8 +262,7 @@ BUNDLER = "https://bundler.superform.xyz"
 
 
 class SuperformClient:
-    def __init__(self, bundler_api_key: str, timeout: int = 15):
-        self.api_key = bundler_api_key
+    def __init__(self, timeout: int = 15):
         self.http = httpx.Client(timeout=timeout)
 
     # ── Vault Data ───────────────────────────────────────────────────────────
@@ -331,7 +327,7 @@ class SuperformClient:
         """
         r = self.http.post(
             f"{BUNDLER}/hooks/suggest/non-smart-account",
-            headers={"x-api-key": self.api_key},
+            headers={},
             json={
                 "account": account,
                 "action": {
@@ -363,7 +359,7 @@ class SuperformClient:
         """
         r = self.http.post(
             f"{BUNDLER}/hooks/suggest/non-smart-account",
-            headers={"x-api-key": self.api_key},
+            headers={},
             json={
                 "account": account,
                 "action": {
@@ -391,7 +387,7 @@ class SuperformClient:
         """Claim a fulfilled redemption (after maxWithdraw(account) > 0)."""
         r = self.http.post(
             f"{BUNDLER}/hooks/suggest/non-smart-account",
-            headers={"x-api-key": self.api_key},
+            headers={},
             json={
                 "account": account,
                 "action": {
@@ -465,7 +461,6 @@ for (const vault of stocks) {
 import { buildDeposit } from "./superform";
 
 const executions = await buildDeposit(
-  process.env.BUNDLER_API_KEY!,
   "0xYOUR_WALLET",
   "0xb20000000000000000000078ee7ce2fe4908108c", // NVDAc
   8453,
@@ -486,7 +481,7 @@ for (const tx of executions) {
 ```python
 from superform import SuperformClient
 
-with SuperformClient(bundler_api_key="YOUR_KEY") as sf:
+with SuperformClient() as sf:
     executions = sf.build_deposit(
         account="0xYOUR_WALLET",
         source_token="0xb20000000000000000000078ee7ce2fe4908108c",  # NVDAc
@@ -506,7 +501,7 @@ with SuperformClient(bundler_api_key="YOUR_KEY") as sf:
 ```python
 from superform import SuperformClient
 
-with SuperformClient(bundler_api_key="YOUR_KEY") as sf:
+with SuperformClient() as sf:
     rewards = sf.get_claimable_rewards("0xYOUR_WALLET")
     print(f"Total claimable: ${rewards['total_earned_value_usd']:.2f}")
     for chain in rewards["rewards"]:
@@ -528,7 +523,6 @@ interface BundlerError {
 }
 
 async function depositWithErrorHandling(
-  apiKey: string,
   account: string,
   tokenAddress: string,
   chainId: number,
@@ -537,7 +531,7 @@ async function depositWithErrorHandling(
 ): Promise<Execution[]> {
   const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       account,
       action: {
@@ -555,8 +549,6 @@ async function depositWithErrorHandling(
     const err: BundlerError = await res.json().catch(() => ({ code: res.status, message: res.statusText }));
 
     switch (res.status) {
-      case 401:
-        throw new Error("Missing or invalid x-api-key. Contact integrations@superform.xyz.");
       case 400:
         if (err.message.includes("insufficient balance")) {
           throw new Error(`Wallet does not hold enough of the source token. Check balance before calling the bundler.`);
@@ -601,8 +593,6 @@ def _handle_bundler_error(r: httpx.Response) -> None:
     except Exception:
         message = r.text
 
-    if r.status_code == 401:
-        raise BundlerError(401, "Missing or invalid x-api-key. Contact integrations@superform.xyz.")
     if r.status_code == 400:
         if "insufficient balance" in message:
             raise BundlerError(400, "Wallet does not hold enough of the source token. Check balance first.")
@@ -620,7 +610,6 @@ def _handle_bundler_error(r: httpx.Response) -> None:
 
 | HTTP | Message contains | Cause |
 |---|---|---|
-| `401` | `API key is required` | Missing `x-api-key` header |
 | `400` | `insufficient balance` | Source wallet balance too low |
 | `400` | `vault share balance not found` | No shares held (for `REDEEM`) |
 | `400` | `target amount...is not set` | Missing `amount_proportion` on target |
@@ -636,7 +625,6 @@ Message-level lookup for the bundler error table. Match against the `message` fi
 
 | HTTP | Message contains | Cause | Fix |
 |---|---|---|---|
-| `401` | `API key is required` | Missing `x-api-key` header | Add `x-api-key: YOUR_API_KEY` to every bundler request |
 | `400` | `insufficient balance` | `account` doesn't hold enough source token | Check balance first: `GET /balances/{address}` |
 | `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
 | `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |

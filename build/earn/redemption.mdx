@@ -1,0 +1,108 @@
+---
+title: "Redemption"
+description: "ERC-7540 async redemption lifecycle: request, fulfillment, and claim."
+---
+
+SuperVaults use ERC-7540 async redemptions. Shares go into escrow on request; a keeper fulfills within ~1 hour; the user then claims assets.
+
+<Warning>
+**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the request. Shares are in escrow; assets have not yet been freed. Poll `pendingRedeemRequest(0, account)` to confirm the request is queued, then poll `maxWithdraw(account)` until positive before sending the claim.
+</Warning>
+
+<CodeGroup>
+
+```bash Non-smart-account
+# Step A: Request redemption
+POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
+Content-Type: application/json
+
+{
+  "account": "0xUSER_WALLET_ADDRESS",
+  "action": {
+    "type": "REDEEM",
+    "slippage": 50,
+    "sources": [],
+    "targets": [
+      {
+        "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "chain_id": 8453,
+        "vault_type": "SUPERVAULT",
+        "amount": "100000000"
+      }
+    ],
+    "outputs": [
+      {
+        "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+        "chain_id": 8453,
+        "amount_proportion": 1
+      }
+    ],
+    "route_type": "OUTPUT"
+  }
+}
+# Broadcast executions[] in order.
+# Poll maxWithdraw(account) on the vault contract until > 0.
+
+# Step B: Claim after fulfillment
+POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
+Content-Type: application/json
+
+{
+  "account": "0xUSER_WALLET_ADDRESS",
+  "action": {
+    "type": "REDEEM_CLAIM",
+    "slippage": 50,
+    "sources": [],
+    "targets": [
+      {
+        "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "chain_id": 8453,
+        "vault_type": "SUPERVAULT",
+        "amount": "100000000"
+      }
+    ],
+    "outputs": [
+      {
+        "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+        "chain_id": 8453,
+        "amount_proportion": 1
+      }
+    ],
+    "route_type": "OUTPUT"
+  }
+}
+```
+
+```solidity Direct (ERC-7540)
+interface ISuperVault {
+    // Step A: Queue redemption
+    function requestRedeem(uint256 shares, address controller, address owner)
+        external returns (uint256 requestId);
+
+    // Poll: 0 while pending, > 0 when fulfilled
+    function maxWithdraw(address controller) external view returns (uint256);
+
+    // SuperVault always uses REQUEST_ID = 0
+    function pendingRedeemRequest(uint256 requestId, address controller)
+        external view returns (uint256);
+
+    // Step B: Claim after maxWithdraw > 0
+    function withdraw(uint256 assets, address receiver, address controller)
+        external returns (uint256 shares);
+}
+
+// 1. requestRedeem(shares, msg.sender, msg.sender)
+// 2. Poll pendingRedeemRequest(0, msg.sender) > 0 to confirm queued
+//    Poll maxWithdraw(msg.sender) -- proceed when > 0 (keeper fulfilled)
+// 3. withdraw(maxWithdraw(msg.sender), receiver, msg.sender)
+```
+
+</CodeGroup>
+
+**State machine**
+
+| State | How to detect | Next action |
+|---|---|---|
+| Pending | `pendingRedeemRequest(0, account) > 0` and `maxWithdraw(account) == 0` | Wait for keeper (~1 hour) |
+| Fulfilled | `maxWithdraw(account) > 0` | Send `REDEEM_CLAIM` or call `withdraw()` |
+| Claimed | `maxWithdraw(account) == 0` and `pendingRedeemRequest(0, account) == 0` | Done |

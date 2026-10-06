@@ -1,0 +1,152 @@
+---
+title: "APY Methodology"
+description: "How apy_snapshot_week, apy_snapshot_day, reward_rate, and the -1000000 sentinel are computed for SuperVaults."
+---
+
+Understanding exactly how APY fields are calculated prevents display errors and incorrect integrations. This page documents the formulas, data sources, and edge cases from the Persephone pricing service.
+
+---
+
+## Price Per Share (PPS)
+
+All APY computations start from **price per share (PPS)**: the exchange rate between one vault share and the underlying asset.
+
+```
+PPS = totalAssets / totalSupply
+```
+
+Where `totalAssets` is the sum of:
+- Idle assets held in the strategy contract
+- The TVL value of each whitelisted yield source, computed via its paired oracle
+
+PPS is stored onchain by the `ECDSAPPSOracle` after validators attest with supermajority consensus. PPS increases as yield accrues and decreases at each performance fee-skim event (the fee is deducted from assets before the new PPS is written, stepping PPS down to the high-water mark). Net direction over time is upward when the vault is generating yield.
+
+Persephone tracks PPS hourly from on-chain events and backfills historical points.
+
+---
+
+## apy_snapshot_* Fields
+
+The `stats_basic` object on every vault exposes four trailing APY windows:
+
+| Field | Window | Description |
+|---|---|---|
+| `apy_snapshot_now` | 1 hour | PPS change over the last hour, annualized |
+| `apy_snapshot_day` | 24 hours | PPS change over the last 24 hours, annualized |
+| `apy_snapshot_week` | 7 days | PPS change over the last 7 days, annualized |
+| `apy_snapshot_month` | 30 days | PPS change over the last 30 days, annualized |
+
+**Formula:**
+
+```
+apy = ((currentPPS / previousPPS) ^ (31,536,000 / windowSeconds)) - 1
+```
+
+Expressed as a **percentage** (multiply by 100, rounded to 4 decimal places):
+
+```
+apy_snapshot_week = ((pps_now / pps_7d_ago) ^ (31536000 / 604800) - 1) × 100
+```
+
+Where:
+- `pps_now` = current PPS from the latest hourly record
+- `pps_7d_ago` = PPS from 7 days (604,800 seconds) prior
+- `31,536,000` = seconds in a year
+
+**Units:** percentage points. `18.29` = 18.29% annualized. Do **not** multiply by 100 again.
+
+**This is pure price appreciation.** It measures how much the vault's share value grew relative to the underlying asset. It does not include Merkl reward tokens, which are tracked separately in `reward_rate`.
+
+---
+
+## reward_rate
+
+`stats_basic.reward_rate` is the current Merkl reward APR in **percentage points**.
+
+It is computed by Persephone's Merkl sync service from live Merkl campaign data:
+
+```
+reward_rate = (daily_rewards_usd / vault_tvl_usd) × 365 × 100
+```
+
+Where:
+- `daily_rewards_usd` = USD value of reward tokens distributed per day to this vault's depositors
+- `vault_tvl_usd` = current vault TVL in USD
+
+Separate from `apy_snapshot_*` because reward tokens (USDC, UP) are not reflected in PPS. They accrue in Merkl and are claimed separately.
+
+---
+
+## Total APY
+
+Display total APY as:
+
+```
+total_apy = apy_snapshot_week + reward_rate
+```
+
+For SuperStocks vaults (`superNVDA`, `superTSLA`, etc.), `reward_rate` is the primary yield today. `apy_snapshot_week` reflects realized strategy yield; it will be near zero while vaults are in early operation and grows as strategies are deployed.
+
+For stablecoin vaults (`superUSDC`, `superStocksUSDC`), both fields are meaningful and should be summed.
+
+---
+
+## The -1000000 Sentinel
+
+Any APY field may return `-1000000` (the Persephone no-data sentinel constant).
+
+```go
+const DatamatNoDataSentinel = -1_000_000
+```
+
+This value appears when:
+- The vault has insufficient PPS history for the requested window (e.g. launched less than 7 days ago for `apy_snapshot_week`)
+- The computed APY is mathematically invalid (zero PPS, NaN, or infinity)
+- The vault had no PPS update during the measurement window
+
+**Always filter before displaying:**
+
+```typescript
+function displayApy(rawValue: number): string {
+  if (rawValue === -1000000 || rawValue < -999999) return "—";
+  return rawValue.toFixed(2) + "%";
+}
+```
+
+**Never pass the sentinel to arithmetic.** Summing `-1000000 + 18.29` gives a nonsense result.
+
+---
+
+## TVL
+
+`stats_basic.tvl_total` is in **USD**, computed as:
+
+```
+tvl_total = (totalAssets / 10^decimals) × asset_price_usd
+```
+
+Where `asset_price_usd` is fetched from the Persephone token pricing service.
+
+TVL is updated on every hourly PPS snapshot.
+
+---
+
+## Historical Data
+
+```bash
+GET https://persephone.superform.xyz/v1/vaults/stats/historical/{ids}?start_ts={unix}&end_ts={unix}&granularity=day
+```
+
+Returns time-series of `pps`, `tvl_total`, `apy_snapshot_week`, and `reward_rate` per day or hour. Use for charts and performance history.
+
+---
+
+## Display Guidance
+
+| Field | Units | Display |
+|---|---|---|
+| `apy_snapshot_week` | % points | `apy_snapshot_week.toFixed(2) + "%"` — if `-1000000`, show `"—"` |
+| `reward_rate` | % points | `reward_rate.toFixed(2) + "%"` — if `0` and `has_rewards: false`, show `"—"` |
+| `stats_basic.pps` | underlying asset units | `(shares × pps).toFixed(6)` for user balance |
+| `stats_basic.pps_usd` | USD | `"$" + (shares × pps_usd).toFixed(2)` for USD balance |
+| `tvl_total` | USD | `"$" + (tvl_total / 1e6).toFixed(2) + "M"` for display |

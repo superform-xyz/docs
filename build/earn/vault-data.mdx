@@ -1,0 +1,92 @@
+---
+title: "Vault Data"
+description: "Discover SuperVaults and read APY, TVL, historical performance, and user positions from the Persephone API."
+---
+
+Base URL: `https://persephone.superform.xyz/v1`. No API key required for any read endpoint.
+
+## List vaults
+
+```bash
+GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453
+```
+
+**Key response fields**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Stable vault ID: `{chain_id}_{address}` |
+| `address` | string | Vault contract address |
+| `name` | string | Onchain name (e.g. `NVDA SuperVault`) |
+| `symbol` | string | Share token symbol (e.g. `superNVDA`) |
+| `decimals` | number | Share token decimals |
+| `availability` | string | `available`, `withdraw_only`, `deposit_only`, `paused`, `unavailable` — always check before presenting UI |
+| `is_supervault_v_2` | boolean | `true` for all current SuperVaults |
+| `has_rewards` | boolean | `true` if active Merkl reward campaigns exist |
+| `stats_basic.tvl_total` | number | TVL in USD |
+| `stats_basic.apy_snapshot_week` | number | 7-day trailing strategy yield in percentage points. A value of `-1000000` means no data yet — treat as 0. |
+| `stats_basic.reward_rate` | number | Merkl reward APR in percentage points. Sum with `apy_snapshot_week` for total APY. |
+| `stats_basic.pps` | number | Price per share in underlying asset units |
+| `stats_basic.pps_usd` | number | Price per share in USD |
+| `assets[]` | array | Underlying assets: `address`, `symbol`, `decimals`, `price_usd` |
+
+**Example response**
+
+```json
+{
+  "id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+  "address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+  "chain_id": "8453",
+  "name": "NVDA SuperVault",
+  "symbol": "superNVDA",
+  "decimals": 8,
+  "availability": "available",
+  "is_supervault_v_2": true,
+  "has_rewards": true,
+  "stats_basic": {
+    "tvl_total": 421256.84,
+    "apy_snapshot_week": 0,
+    "reward_rate": 18.29,
+    "pps": 1.0,
+    "pps_usd": 233.95
+  },
+  "assets": [
+    {
+      "address": "0xb20000000000000000000078ee7ce2fe4908108c",
+      "symbol": "NVDAc",
+      "decimals": 8,
+      "price_usd": 233.95
+    }
+  ]
+}
+```
+
+## Single vault
+
+```bash
+GET https://persephone.superform.xyz/v1/vaults/{id}
+```
+
+`id` format: `{chain_id}_{vault_address}`. Same response shape as the list.
+
+## Historical APY and TVL
+
+```bash
+GET https://persephone.superform.xyz/v1/vaults/stats/historical/{ids}?start_ts=1727740800&end_ts=1728345600&granularity=day
+```
+
+`ids`: comma-separated vault IDs. `granularity`: `hour` or `day`. Returns time-series of `pps`, `tvl_total`, `apy_snapshot_week`, and `reward_rate` for charting.
+
+## User positions
+
+```bash
+GET https://persephone.superform.xyz/v1/balances/{address}
+```
+
+Returns all vault positions for a wallet: share balance, USD value, vault metadata.
+
+## Price per share
+
+`stats_basic.pps` is the exchange rate between one vault share and the underlying asset. It increases as yield accrues and steps down at each performance fee-skim event. Display user balance as `shares * pps`.
+
+For the full APY formula, how `apy_snapshot_week` is computed, and how to handle the `-1000000` sentinel, see [APY Methodology](/learn/apy-methodology).

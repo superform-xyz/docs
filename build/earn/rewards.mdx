@@ -1,0 +1,90 @@
+---
+title: "Rewards"
+description: "Display accruing Merkl rewards and submit claim transactions for SuperVault depositors."
+---
+
+SuperVault rewards are distributed via [Merkl](https://merkl.xyz). They accrue automatically while users hold vault shares. No staking required.
+
+## Check if a vault has rewards
+
+`has_rewards: true` on the vault response means an active Merkl campaign exists. `stats_basic.reward_rate` is the current reward APR in percentage points.
+
+## Check claimable rewards for a user
+
+```bash
+GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
+```
+
+| Field | Description |
+|---|---|
+| `chain_id` | Chain the reward is claimable on |
+| `extra_data` | Merkl proof — required in the claim bundler call |
+| `tokens[].address` | Reward token contract address |
+| `tokens[].amount` | Currently claimable amount (resets to 0 after claim) |
+| `tokens[].provider_claim_amount` | Cumulative earned — use this as the `amount` in the bundler claim |
+| `tokens[].symbol` | Token symbol (e.g. `USDC`) |
+| `tokens[].value_usd` | USD value of claimable amount |
+| `total_earned_value_usd` | Lifetime earned across all tokens |
+
+**Example response**
+
+```json
+{
+  "total_earned_value_usd": 14.23,
+  "rewards": [
+    {
+      "chain_id": "8453",
+      "extra_data": "0x...",
+      "tokens": [
+        {
+          "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "symbol": "USDC",
+          "decimals": 6,
+          "amount": "14230000",
+          "provider_claim_amount": "14230000",
+          "value_usd": 14.23
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Claim rewards
+
+The `CLAIM` action is available on both `/hooks/suggest/non-smart-account` and the smart account flow. Use whichever matches your wallet infrastructure.
+
+```bash
+POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
+Content-Type: application/json
+
+{
+  "account": "0xUSER_WALLET_ADDRESS",
+  "action": {
+    "type": "CLAIM",
+    "slippage": 0,
+    "sources": [],
+    "outputs": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "chain_id": 8453,
+        "amount": "14230000"
+      }
+    ],
+    "targets": [
+      {
+        "address": "0xUSER_WALLET_ADDRESS",
+        "chain_id": 8453,
+        "tags": ["merkl"],
+        "extra_data": "0x..."
+      }
+    ],
+    "route_type": "OUTPUT"
+  }
+}
+```
+
+- `outputs[].amount` = `provider_claim_amount` from the claimable response (cumulative, not delta)
+- `targets[].extra_data` = `rewards[].extra_data` (Merkl proof)
+- `targets[].tags: ["merkl"]` is required
+- Max 7 reward tokens per claim call

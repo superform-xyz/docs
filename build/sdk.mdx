@@ -1,0 +1,646 @@
+---
+title: "Client Library"
+description: "TypeScript and Python copy-paste clients for Persephone and the Bundler. Both APIs are fully public — no API key required."
+---
+
+Copy-paste clients for Persephone and the Bundler. No package to install. Thin wrappers around `fetch` (TypeScript) and `httpx` (Python) you can drop into your project.
+
+---
+
+## TypeScript
+
+```typescript
+// superform.ts
+// No external dependencies — uses native fetch (Node 18+, all browsers)
+
+const PERSEPHONE = "https://persephone.superform.xyz/v1";
+const BUNDLER = "https://bundler.superform.xyz";
+
+// ─── Vault Data ──────────────────────────────────────────────────────────────
+
+/** List all SuperVaults on Base. Filter by availability before displaying deposit UI. */
+export async function listVaults(chainId = 8453) {
+  const res = await fetch(`${PERSEPHONE}/supervaults?chain_id=${chainId}`);
+  if (!res.ok) throw new Error(`listVaults failed: ${res.status}`);
+  const data = await res.json();
+  return data.supervaults as Vault[];
+}
+
+/** Get a single vault by its stable ID ({chain_id}_{address}). */
+export async function getVault(vaultId: string) {
+  const res = await fetch(`${PERSEPHONE}/vaults/${vaultId}`);
+  if (!res.ok) throw new Error(`getVault failed: ${res.status}`);
+  const data = await res.json();
+  return (data.vault ?? data) as Vault;
+}
+
+/** Get historical APY and TVL for one or more vaults. */
+export async function getVaultHistory(
+  vaultIds: string[],
+  startTs: number,
+  endTs: number,
+  granularity: "day" | "hour" = "day"
+) {
+  const ids = vaultIds.join(",");
+  const res = await fetch(
+    `${PERSEPHONE}/vaults/stats/historical/${ids}?start_ts=${startTs}&end_ts=${endTs}&granularity=${granularity}`
+  );
+  if (!res.ok) throw new Error(`getVaultHistory failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get all vault positions for a wallet address. */
+export async function getPositions(address: string) {
+  const res = await fetch(`${PERSEPHONE}/balances/${address}`);
+  if (!res.ok) throw new Error(`getPositions failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get claimable Merkl rewards for a wallet address. */
+export async function getClaimableRewards(address: string) {
+  const res = await fetch(`${PERSEPHONE}/rewards/external/claimable/${address}`);
+  if (!res.ok) throw new Error(`getClaimableRewards failed: ${res.status}`);
+  return res.json() as Promise<RewardsResponse>;
+}
+
+// ─── Transactions ─────────────────────────────────────────────────────────────
+
+/**
+ * Build a deposit transaction for a non-smart-account wallet (EOA / Safe / Fireblocks / custodian).
+ * Returns an ordered list of executions to broadcast sequentially.
+ * Index 0 is ERC20.approve, index 1 is ERC4626.deposit.
+ */
+export async function buildDeposit(
+  account: string,
+  sourceTokenAddress: string,
+  sourceChainId: number,
+  amount: string,               // raw token amount in smallest unit
+  vaultAddress: string,
+  vaultChainId: number
+): Promise<Execution[]> {
+  const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account,
+      action: {
+        type: "DEPOSIT",
+        slippage: 50,
+        sources: [{ address: sourceTokenAddress, chain_id: sourceChainId, amount }],
+        targets: [{ address: vaultAddress, chain_id: vaultChainId, vault_type: "SUPERVAULT", amount_proportion: 1 }],
+        route_type: "OUTPUT",
+        outputs: [],
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`buildDeposit failed ${res.status}: ${err.message ?? res.statusText}`);
+  }
+  const data = await res.json();
+  return data.executions as Execution[];
+}
+
+/**
+ * Build a redemption request for a non-smart-account wallet.
+ * After broadcasting, poll maxWithdraw(account) on the vault contract.
+ * When > 0, call buildRedeemClaim.
+ */
+export async function buildRedeem(
+  account: string,
+  vaultAddress: string,
+  vaultChainId: number,
+  shares: string,               // share amount to redeem in smallest unit
+  outputTokenAddress: string
+): Promise<Execution[]> {
+  const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account,
+      action: {
+        type: "REDEEM",
+        slippage: 50,
+        sources: [],
+        targets: [{ address: vaultAddress, chain_id: vaultChainId, vault_type: "SUPERVAULT", amount: shares }],
+        outputs: [{ address: outputTokenAddress, chain_id: vaultChainId, amount_proportion: 1 }],
+        route_type: "OUTPUT",
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`buildRedeem failed ${res.status}: ${err.message ?? res.statusText}`);
+  }
+  const data = await res.json();
+  return data.executions as Execution[];
+}
+
+/** Build a redemption claim after the keeper has fulfilled the request. */
+export async function buildRedeemClaim(
+  account: string,
+  vaultAddress: string,
+  vaultChainId: number,
+  shares: string,
+  outputTokenAddress: string
+): Promise<Execution[]> {
+  const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account,
+      action: {
+        type: "REDEEM_CLAIM",
+        slippage: 50,
+        sources: [],
+        targets: [{ address: vaultAddress, chain_id: vaultChainId, vault_type: "SUPERVAULT", amount: shares }],
+        outputs: [{ address: outputTokenAddress, chain_id: vaultChainId, amount_proportion: 1 }],
+        route_type: "OUTPUT",
+      },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`buildRedeemClaim failed ${res.status}: ${err.message ?? res.statusText}`);
+  }
+  const data = await res.json();
+  return data.executions as Execution[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns total APY in percentage points. Filters the -1000000 no-data sentinel. */
+export function totalApy(vault: Vault): number {
+  const strategy = vault.stats_basic?.apy_snapshot_week ?? 0;
+  const rewards = vault.stats_basic?.reward_rate ?? 0;
+  const safeStrategy = strategy < -999999 ? 0 : strategy;
+  const safeRewards = rewards < -999999 ? 0 : rewards;
+  return safeStrategy + safeRewards;
+}
+
+/** Format APY for display. Returns "—" for the no-data sentinel. */
+export function formatApy(value: number): string {
+  if (value < -999999) return "—";
+  return value.toFixed(2) + "%";
+}
+
+/** Format a user's vault balance in underlying asset units. */
+export function formatBalance(shares: bigint, pps: number, decimals: number): string {
+  return ((Number(shares) / 10 ** decimals) * pps).toFixed(6);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface Vault {
+  id: string;
+  address: string;
+  chain_id: string;
+  name: string;
+  friendly_name: string;
+  symbol: string;
+  decimals: number;
+  availability: "available" | "withdraw_only" | "deposit_only" | "paused" | "unavailable";
+  is_supervault_v_2: boolean;
+  has_rewards: boolean;
+  stats_basic: {
+    tvl_total: number;
+    apy_snapshot_now: number;
+    apy_snapshot_day: number;
+    apy_snapshot_week: number;
+    apy_snapshot_month: number;
+    reward_rate: number;
+    pps: number;
+    pps_usd: number;
+  };
+  assets: Array<{
+    address: string;
+    symbol: string;
+    decimals: number;
+    price_usd: number;
+  }>;
+}
+
+export interface Execution {
+  type: string;
+  to: string;
+  value: string;
+  call_data: string;
+  chain_id?: number;
+}
+
+export interface RewardsResponse {
+  total_earned_value_usd: number;
+  rewards: Array<{
+    chain_id: string;
+    extra_data: string;
+    tokens: Array<{
+      address: string;
+      symbol: string;
+      decimals: number;
+      amount: string;
+      provider_claim_amount: string;
+      value_usd: number;
+    }>;
+  }>;
+}
+```
+
+---
+
+## Python
+
+```python
+# superform.py
+# Requires: httpx (pip install httpx)
+# Or swap httpx for requests — the interface is identical.
+
+import httpx
+from typing import Optional
+
+PERSEPHONE = "https://persephone.superform.xyz/v1"
+BUNDLER = "https://bundler.superform.xyz"
+
+
+class SuperformClient:
+    def __init__(self, timeout: int = 15):
+        self.http = httpx.Client(timeout=timeout)
+
+    # ── Vault Data ───────────────────────────────────────────────────────────
+
+    def list_vaults(self, chain_id: int = 8453) -> list[dict]:
+        """List all SuperVaults. Filter availability before displaying deposit UI."""
+        r = self.http.get(f"{PERSEPHONE}/supervaults", params={"chain_id": chain_id})
+        r.raise_for_status()
+        return r.json()["supervaults"]
+
+    def get_vault(self, vault_id: str) -> dict:
+        """Get a single vault by stable ID ({chain_id}_{address})."""
+        r = self.http.get(f"{PERSEPHONE}/vaults/{vault_id}")
+        r.raise_for_status()
+        data = r.json()
+        return data.get("vault", data)
+
+    def get_vault_history(
+        self,
+        vault_ids: list[str],
+        start_ts: int,
+        end_ts: int,
+        granularity: str = "day",
+    ) -> dict:
+        """Historical APY and TVL. granularity: 'day' or 'hour'."""
+        ids = ",".join(vault_ids)
+        r = self.http.get(
+            f"{PERSEPHONE}/vaults/stats/historical/{ids}",
+            params={"start_ts": start_ts, "end_ts": end_ts, "granularity": granularity},
+        )
+        r.raise_for_status()
+        return r.json()
+
+    def get_positions(self, address: str) -> dict:
+        """All vault positions for a wallet address."""
+        r = self.http.get(f"{PERSEPHONE}/balances/{address}")
+        r.raise_for_status()
+        return r.json()
+
+    def get_claimable_rewards(self, address: str) -> dict:
+        """Claimable Merkl rewards for a wallet address."""
+        r = self.http.get(f"{PERSEPHONE}/rewards/external/claimable/{address}")
+        r.raise_for_status()
+        return r.json()
+
+    # ── Transactions ─────────────────────────────────────────────────────────
+
+    def build_deposit(
+        self,
+        account: str,
+        source_token: str,
+        source_chain_id: int,
+        amount: str,          # raw token amount in smallest unit
+        vault_address: str,
+        vault_chain_id: int,
+        slippage: int = 50,
+    ) -> list[dict]:
+        """
+        Build a deposit for a non-smart-account wallet (EOA / Safe / Fireblocks / custodian).
+        Returns ordered executions[]. Index 0 = approve, index 1 = deposit.
+        Broadcast each in sequence; wait for confirmation before the next.
+        """
+        r = self.http.post(
+            f"{BUNDLER}/hooks/suggest/non-smart-account",
+            headers={},
+            json={
+                "account": account,
+                "action": {
+                    "type": "DEPOSIT",
+                    "slippage": slippage,
+                    "sources": [{"address": source_token, "chain_id": source_chain_id, "amount": amount}],
+                    "targets": [{"address": vault_address, "chain_id": vault_chain_id, "vault_type": "SUPERVAULT", "amount_proportion": 1}],
+                    "route_type": "OUTPUT",
+                    "outputs": [],
+                },
+            },
+        )
+        r.raise_for_status()
+        return r.json()["executions"]
+
+    def build_redeem(
+        self,
+        account: str,
+        vault_address: str,
+        vault_chain_id: int,
+        shares: str,          # share amount in smallest unit
+        output_token: str,
+        slippage: int = 50,
+    ) -> list[dict]:
+        """
+        Build a redemption request.
+        After broadcasting, poll vault.maxWithdraw(account) onchain.
+        When > 0, call build_redeem_claim.
+        """
+        r = self.http.post(
+            f"{BUNDLER}/hooks/suggest/non-smart-account",
+            headers={},
+            json={
+                "account": account,
+                "action": {
+                    "type": "REDEEM",
+                    "slippage": slippage,
+                    "sources": [],
+                    "targets": [{"address": vault_address, "chain_id": vault_chain_id, "vault_type": "SUPERVAULT", "amount": shares}],
+                    "outputs": [{"address": output_token, "chain_id": vault_chain_id, "amount_proportion": 1}],
+                    "route_type": "OUTPUT",
+                },
+            },
+        )
+        r.raise_for_status()
+        return r.json()["executions"]
+
+    def build_redeem_claim(
+        self,
+        account: str,
+        vault_address: str,
+        vault_chain_id: int,
+        shares: str,
+        output_token: str,
+        slippage: int = 50,
+    ) -> list[dict]:
+        """Claim a fulfilled redemption (after maxWithdraw(account) > 0)."""
+        r = self.http.post(
+            f"{BUNDLER}/hooks/suggest/non-smart-account",
+            headers={},
+            json={
+                "account": account,
+                "action": {
+                    "type": "REDEEM_CLAIM",
+                    "slippage": slippage,
+                    "sources": [],
+                    "targets": [{"address": vault_address, "chain_id": vault_chain_id, "vault_type": "SUPERVAULT", "amount": shares}],
+                    "outputs": [{"address": output_token, "chain_id": vault_chain_id, "amount_proportion": 1}],
+                    "route_type": "OUTPUT",
+                },
+            },
+        )
+        r.raise_for_status()
+        return r.json()["executions"]
+
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def total_apy(vault: dict) -> float:
+        """
+        Total APY in percentage points. Filters the -1000000 no-data sentinel.
+        """
+        NO_DATA = -1_000_000
+        s = vault.get("stats_basic", {})
+        strategy = s.get("apy_snapshot_week", 0) or 0
+        rewards = s.get("reward_rate", 0) or 0
+        return (0 if strategy < -999999 else strategy) + (0 if rewards < -999999 else rewards)
+
+    @staticmethod
+    def format_apy(value: float) -> str:
+        """Format APY for display. Returns '—' for the no-data sentinel."""
+        if value < -999999:
+            return "—"
+        return f"{value:.2f}%"
+
+    def close(self):
+        self.http.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+```
+
+---
+
+## Usage Examples
+
+### TypeScript — display all available SuperStocks vaults
+
+```typescript
+import { listVaults, totalApy, formatApy } from "./superform";
+
+const vaults = await listVaults(8453);
+
+const stocks = vaults.filter(
+  (v) => v.is_supervault_v_2 && v.availability === "available"
+);
+
+for (const vault of stocks) {
+  console.log(`${vault.name}: ${formatApy(totalApy(vault))} APY, $${vault.stats_basic.tvl_total.toFixed(0)} TVL`);
+}
+// NVDA SuperVault: 18.29% APY, $421256 TVL
+// TSLA SuperVault: 37.13% APY, $187440 TVL
+```
+
+### TypeScript — deposit 1 NVDAc into the NVDA SuperVault
+
+```typescript
+import { buildDeposit } from "./superform";
+
+const executions = await buildDeposit(
+  "0xYOUR_WALLET",
+  "0xb20000000000000000000078ee7ce2fe4908108c", // NVDAc
+  8453,
+  "100000000",                                   // 1 NVDAc (8 decimals)
+  "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc", // NVDA SuperVault
+  8453
+);
+
+// Broadcast each transaction in order — wait for confirmation before the next
+for (const tx of executions) {
+  const hash = await wallet.sendTransaction({ to: tx.to, data: tx.call_data, value: BigInt(tx.value) });
+  await provider.waitForTransaction(hash);
+}
+```
+
+### Python — deposit 1 NVDAc
+
+```python
+from superform import SuperformClient
+
+with SuperformClient() as sf:
+    executions = sf.build_deposit(
+        account="0xYOUR_WALLET",
+        source_token="0xb20000000000000000000078ee7ce2fe4908108c",  # NVDAc
+        source_chain_id=8453,
+        amount="100000000",                                          # 1 NVDAc (8 decimals)
+        vault_address="0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        vault_chain_id=8453,
+    )
+
+    for tx in executions:
+        # Sign and broadcast tx["call_data"] to tx["to"] with value=tx["value"]
+        print(f"Send tx: {tx['type']} → {tx['to']}")
+```
+
+### Python — check claimable rewards
+
+```python
+from superform import SuperformClient
+
+with SuperformClient() as sf:
+    rewards = sf.get_claimable_rewards("0xYOUR_WALLET")
+    print(f"Total claimable: ${rewards['total_earned_value_usd']:.2f}")
+    for chain in rewards["rewards"]:
+        for token in chain["tokens"]:
+            print(f"  {token['symbol']}: {int(token['amount']) / 10**token['decimals']:.6f} (${token['value_usd']:.2f})")
+```
+
+---
+
+## Error Handling
+
+The bundler returns structured errors. Always check the HTTP status and parse the `message` field to surface meaningful errors to users.
+
+```typescript
+// TypeScript — typed bundler error
+interface BundlerError {
+  code: number;
+  message: string;
+}
+
+async function depositWithErrorHandling(
+  account: string,
+  tokenAddress: string,
+  chainId: number,
+  amount: string,
+  vaultAddress: string
+): Promise<Execution[]> {
+  const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account,
+      action: {
+        type: "DEPOSIT",
+        slippage: 50,
+        sources: [{ address: tokenAddress, chain_id: chainId, amount }],
+        targets: [{ address: vaultAddress, chain_id: chainId, vault_type: "SUPERVAULT", amount_proportion: 1 }],
+        route_type: "OUTPUT",
+        outputs: [],
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err: BundlerError = await res.json().catch(() => ({ code: res.status, message: res.statusText }));
+
+    switch (res.status) {
+      case 400:
+        if (err.message.includes("insufficient balance")) {
+          throw new Error(`Wallet does not hold enough of the source token. Check balance before calling the bundler.`);
+        }
+        if (err.message.includes("vault share balance not found")) {
+          throw new Error(`Wallet holds no shares in this vault. Confirm the user has an active position before redeeming.`);
+        }
+        if (err.message.includes("target amount") && err.message.includes("not set")) {
+          throw new Error(`Missing amount_proportion or amount on target. Add "amount_proportion": 1.`);
+        }
+        if (err.message.includes("HOOK_NOT_FOUND")) {
+          throw new Error("Stale hook ID — always call /hooks/suggest first, never hardcode hook IDs.");
+        }
+        throw new Error(`Bad request: ${err.message}`);
+      case 500:
+        throw new Error(`Bundler internal error: ${err.message}`);
+      default:
+        throw new Error(`Unexpected error ${res.status}: ${err.message}`);
+    }
+  }
+
+  const data = await res.json();
+  return data.executions as Execution[];
+}
+```
+
+```python
+# Python — error handling with httpx
+import httpx
+
+class BundlerError(Exception):
+    def __init__(self, status: int, message: str):
+        self.status = status
+        self.message = message
+        super().__init__(f"Bundler error {status}: {message}")
+
+def _handle_bundler_error(r: httpx.Response) -> None:
+    """Raise a descriptive BundlerError from a non-2xx bundler response."""
+    try:
+        body = r.json()
+        message = body.get("message", r.text)
+    except Exception:
+        message = r.text
+
+    if r.status_code == 400:
+        if "insufficient balance" in message:
+            raise BundlerError(400, "Wallet does not hold enough of the source token. Check balance first.")
+        if "vault share balance not found" in message:
+            raise BundlerError(400, "Wallet holds no shares in this vault.")
+        if "target amount" in message and "not set" in message:
+            raise BundlerError(400, "Missing amount_proportion on target. Add amount_proportion=1.")
+        raise BundlerError(400, message)
+    if "HOOK_NOT_FOUND" in message:
+        raise BundlerError(400, "Stale hook ID — always call /hooks/suggest first.")
+    raise BundlerError(r.status_code, message)
+```
+
+**Error message substrings** (match against the `message` field):
+
+| HTTP | Message contains | Cause |
+|---|---|---|
+| `400` | `insufficient balance` | Source wallet balance too low |
+| `400` | `vault share balance not found` | No shares held (for `REDEEM`) |
+| `400` | `target amount...is not set` | Missing `amount_proportion` on target |
+| `400` | `failed to validate source amount` | Missing `sources[].amount` |
+| `400` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
+
+Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
+
+
+## Error Reference
+
+Message-level lookup for the bundler error table. Match against the `message` field in the JSON error response.
+
+| HTTP | Message contains | Cause | Fix |
+|---|---|---|---|
+| `400` | `insufficient balance` | `account` doesn't hold enough source token | Check balance first: `GET /balances/{address}` |
+| `400` | `vault share balance not found` | `account` holds no shares (for `REDEEM`) | Confirm shares held before requesting redemption |
+| `400` | `target amount...is not set` | Missing `amount`, `amount_fiat`, or `amount_proportion` on target | Add `"amount_proportion": 1` |
+| `400` | `failed to validate source amount` | `sources[].amount` missing | Supply `"amount": "<raw>"` or `"amount_fiat": <usd>` |
+| `400` | `HOOK_NOT_FOUND` | Stale hook ID passed to `/executor/build` | Always call `/hooks/suggest` first; never hardcode hook IDs |
+
+
+---
+
+## Token Decimals Reference
+
+| Token | Decimals | 1 token as raw amount |
+|---|---|---|
+| USDC | 6 | `"1000000"` |
+| WETH | 18 | `"1000000000000000000"` |
+| cbBTC | 8 | `"100000000"` |
+| NVDAc, TSLAc, AAPLc, GOOGLc, SPCXc, METAc, AMZNc, MSFTc | 8 | `"100000000"` |
+| UP (for sUP vault) | 18 | `"1000000000000000000"` |
+| superNVDA, superTSLA, ... (share tokens) | 8 | `"100000000"` |

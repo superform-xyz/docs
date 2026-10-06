@@ -32,6 +32,12 @@ Open **Vault Settings → Upkeep**. Fund the required upkeep balance. Erebor mar
 Without upkeep, operator pages can still show the vault by direct link, but keeper automation and public discoverability remain gated. Ethereum L1 vaults currently require at least `100,000 $UP`; non-L1 vaults require at least `1,000 $UP`.
 </Step>
 
+<Step title="Whitelist yield sources">
+Open **Yield Sources**. Add each target yield source with its paired oracle. Bulk add, bulk remove, and bulk oracle update flows prepare a single transaction for multiple rows.
+
+Emergency-exit readiness is tied to the whitelist: each whitelisted yield source can have a paired `EMERGENCY_EXIT` strategy used by the Pause page to drain that source during an incident.
+</Step>
+
 <Step title="Configure hook authorization">
 Open **Merkle Trees** and follow the manager-root flow:
 
@@ -41,12 +47,6 @@ Open **Merkle Trees** and follow the manager-root flow:
 4. Have the primary manager propose and publish the root onchain.
 
 Keepers and OMS intents need active merkle proofs for each hook/parameter combination they execute.
-</Step>
-
-<Step title="Whitelist yield sources">
-Open **Yield Sources**. Add each target yield source with its paired oracle. Bulk add, bulk remove, and bulk oracle update flows prepare a single transaction for multiple rows.
-
-Emergency-exit readiness is tied to the whitelist: each whitelisted yield source can have a paired `EMERGENCY_EXIT` strategy used by the Pause page to drain that source during an incident.
 </Step>
 
 <Step title="Create and order strategies">

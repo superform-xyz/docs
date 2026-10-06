@@ -516,6 +516,122 @@ with SuperformClient(bundler_api_key="YOUR_KEY") as sf:
 
 ---
 
+## Error Handling
+
+The bundler returns structured errors. Always check the HTTP status and parse the `message` field to surface meaningful errors to users.
+
+```typescript
+// TypeScript — typed bundler error
+interface BundlerError {
+  code: number;
+  message: string;
+}
+
+async function depositWithErrorHandling(
+  apiKey: string,
+  account: string,
+  tokenAddress: string,
+  chainId: number,
+  amount: string,
+  vaultAddress: string
+): Promise<Execution[]> {
+  const res = await fetch(`${BUNDLER}/hooks/suggest/non-smart-account`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey },
+    body: JSON.stringify({
+      account,
+      action: {
+        type: "DEPOSIT",
+        slippage: 50,
+        sources: [{ address: tokenAddress, chain_id: chainId, amount }],
+        targets: [{ address: vaultAddress, chain_id: chainId, vault_type: "SUPERVAULT", amount_proportion: 1 }],
+        route_type: "OUTPUT",
+        outputs: [],
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err: BundlerError = await res.json().catch(() => ({ code: res.status, message: res.statusText }));
+
+    switch (res.status) {
+      case 401:
+        throw new Error("Missing or invalid x-api-key. Contact integrations@superform.xyz.");
+      case 400:
+        if (err.message.includes("insufficient balance")) {
+          throw new Error(`Wallet does not hold enough of the source token. Check balance before calling the bundler.`);
+        }
+        if (err.message.includes("vault share balance not found")) {
+          throw new Error(`Wallet holds no shares in this vault. Confirm the user has an active position before redeeming.`);
+        }
+        if (err.message.includes("target amount") && err.message.includes("not set")) {
+          throw new Error(`Missing amount_proportion or amount on target. Add "amount_proportion": 1.`);
+        }
+        throw new Error(`Bad request: ${err.message}`);
+      case 500:
+        if (err.message.includes("HOOK_NOT_FOUND")) {
+          throw new Error("Stale hook ID — always call /hooks/suggest first, never hardcode hook IDs.");
+        }
+        throw new Error(`Bundler internal error: ${err.message}`);
+      default:
+        throw new Error(`Unexpected error ${res.status}: ${err.message}`);
+    }
+  }
+
+  const data = await res.json();
+  return data.executions as Execution[];
+}
+```
+
+```python
+# Python — error handling with httpx
+import httpx
+
+class BundlerError(Exception):
+    def __init__(self, status: int, message: str):
+        self.status = status
+        self.message = message
+        super().__init__(f"Bundler error {status}: {message}")
+
+def _handle_bundler_error(r: httpx.Response) -> None:
+    """Raise a descriptive BundlerError from a non-2xx bundler response."""
+    try:
+        body = r.json()
+        message = body.get("message", r.text)
+    except Exception:
+        message = r.text
+
+    if r.status_code == 401:
+        raise BundlerError(401, "Missing or invalid x-api-key. Contact integrations@superform.xyz.")
+    if r.status_code == 400:
+        if "insufficient balance" in message:
+            raise BundlerError(400, "Wallet does not hold enough of the source token. Check balance first.")
+        if "vault share balance not found" in message:
+            raise BundlerError(400, "Wallet holds no shares in this vault.")
+        if "target amount" in message and "not set" in message:
+            raise BundlerError(400, "Missing amount_proportion on target. Add amount_proportion=1.")
+        raise BundlerError(400, message)
+    if r.status_code == 500 and "HOOK_NOT_FOUND" in message:
+        raise BundlerError(500, "Stale hook ID — always call /hooks/suggest first.")
+    raise BundlerError(r.status_code, message)
+```
+
+**Error message substrings** (match against the `message` field):
+
+| HTTP | Message contains | Cause |
+|---|---|---|
+| `401` | `API key is required` | Missing `x-api-key` header |
+| `400` | `insufficient balance` | Source wallet balance too low |
+| `400` | `vault share balance not found` | No shares held (for `REDEEM`) |
+| `400` | `target amount...is not set` | Missing `amount_proportion` on target |
+| `400` | `failed to validate source amount` | Missing `sources[].amount` |
+| `500` | `HOOK_NOT_FOUND` | Never call `/executor/build` directly with hardcoded hook IDs |
+
+Bundler errors are deterministic. An identical retry returns the same error. Fix the request before retrying.
+
+
+---
+
 ## Token Decimals Reference
 
 | Token | Decimals | 1 token as raw amount |

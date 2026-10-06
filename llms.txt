@@ -11,6 +11,7 @@
 - `vault_type: "SUPERVAULT"` is required on all bundler calls for v2 vaults (`is_supervault_v_2: true`).
 - Non-smart-account deposit (EOA / Safe / Fireblocks / custodian): `POST /hooks/suggest/non-smart-account` — returns ordered `executions[]` to broadcast. Index 0 is `approve`, index 1 is `deposit`.
 - Redemption is async (ERC-7540): `REDEEM` → poll `maxWithdraw(account)` onchain → `REDEEM_CLAIM`.
+- **`maxWithdraw(account)` returns `0` until the keeper fulfills the request.** This is non-standard ERC-4626 behavior. Do not interpret `0` as "no position" — poll `pendingRedeemRequest(account)` to confirm the request is queued.
 - APY fields: `apy_snapshot_week` and `reward_rate` are both in **percentage points** (e.g. `18.29` = 18.29%). A value of `-1000000` is the no-data sentinel — treat as 0.
 - Total APY = `apy_snapshot_week + reward_rate`. For SuperStocks vaults, `reward_rate` is the primary yield today.
 - bStock token decimals: 8. USDC: 6. WETH: 18. cbBTC: 8.

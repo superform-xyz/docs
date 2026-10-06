@@ -394,13 +394,17 @@ interface ISuperVault {
 
 </CodeGroup>
 
+<Warning>
+**Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the redemption request. This is expected — shares are in escrow and assets have not yet been freed. Do not interpret a `0` return as "no position." Poll `pendingRedeemRequest(account)` to confirm the request is queued, then poll `maxWithdraw(account)` until it becomes positive before sending the claim.
+</Warning>
+
 **State machine**
 
 | State | How to detect | Next action |
 |---|---|---|
-| Pending | `pendingRedeemRequest(account) > 0` | Wait for keeper (~1 hour) |
+| Pending | `pendingRedeemRequest(account) > 0` and `maxWithdraw(account) == 0` | Wait for keeper (~1 hour) |
 | Fulfilled | `maxWithdraw(account) > 0` | Send `REDEEM_CLAIM` or call `withdraw()` |
-| Claimed | `maxWithdraw(account) == 0` | Done |
+| Claimed | `maxWithdraw(account) == 0` and `pendingRedeemRequest(account) == 0` | Done |
 
 ---
 

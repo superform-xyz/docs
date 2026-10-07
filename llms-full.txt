@@ -432,10 +432,10 @@ Source: https://docs.superform.xyz/build
 
 <CardGroup cols={3}>
   <Card title="Earn" icon="circle-dollar" href="/build/integrate-supervaults">
-    Let users deposit and redeem SuperVaults from your wallet, custodian, or app. API reference, SDK, and live-verified examples.
+    Deposit and redeem SuperVaults from your wallet, custodian, or app.
   </Card>
   <Card title="Write a Hook" icon="code" href="/build/hooks">
-    Build composable contracts for bridge, swap, and lend actions. Chain them together for multi-chain strategies.
+    Build composable contracts for bridge, swap, and lend actions.
   </Card>
   <Card title="Become a Validator" icon="shield-check" href="/build/become-a-validator">
     Stake $UP, attest to price-per-share updates, and earn protocol rewards as part of the validator network.
@@ -461,7 +461,7 @@ An integration covers three areas:
 |---|---|
 | Persephone API | `https://persephone.superform.xyz/v1` |
 | Bundler API | `https://bundler.superform.xyz/` |
-| Auth | Both APIs are fully public — no API key required |
+| Auth | Both APIs are fully public, no API key required |
 | Chain | Base (chain ID `8453`) |
 | Client Library | [TypeScript + Python copy-paste clients](/build/sdk) |
 
@@ -479,10 +479,6 @@ All current SuperVaults use `vault_type: "SUPERVAULT"` (when `is_supervault_v_2:
 # Quickstart
 
 Source: https://docs.superform.xyz/build/earn/quickstart
-
-Use this page when you want the fastest working integration. It skips deep explanation. For full detail, see [Vault Data](/build/earn/vault-data), [Deposit](/build/earn/deposit), and the [Client Library](/build/sdk).
-
-**Time required:** ~10 minutes.
 
 <Steps>
 
@@ -502,17 +498,15 @@ Example (NVDA SuperVault):
 </Step>
 
 <Step title="Check user balance">
-Confirm the user holds enough of the underlying token before calling the Bundler. The Bundler validates balance on-chain and returns a 400 error if insufficient.
+The Bundler validates balance on-chain and returns 400 if the user's balance is insufficient. Check first:
 
 ```bash
 curl https://persephone.superform.xyz/v1/balances/0xUSER_ADDRESS
 ```
-
-Or check on-chain directly via `balanceOf(user)` on the token contract.
 </Step>
 
 <Step title="Build the deposit">
-Call `/hooks/suggest/non-smart-account` with the user's wallet, source token, and target vault. Replace `100000000` with the actual token amount (8 decimals = `100000000` for 1 NVDAc).
+Replace `100000000` with the actual token amount. All bStock tokens use 8 decimals (`100000000` = 1 token).
 
 ```bash
 curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
@@ -543,7 +537,7 @@ curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
   }'
 ```
 
-The response contains `executions[]`, an ordered list of transactions to broadcast.
+The response is an ordered `executions[]` array.
 </Step>
 
 <Step title="Broadcast">
@@ -556,16 +550,10 @@ executions[1] — ERC4626.deposit(amount, user)  selector: 0x6e553f65
 
 Both carry `type: "DEPOSIT"`. Use array index, not type, to determine order.
 
-After `executions[1]` confirms, the user holds `superNVDA` shares and their deposit is live.
+After `executions[1]` confirms, the user holds `superNVDA` shares.
 </Step>
 
 </Steps>
-
-## Next steps
-
-- [Redemption](/build/earn/redemption) — handle the async ERC-7540 request and claim lifecycle
-- [Rewards](/build/earn/rewards) — display and claim Merkl rewards
-- [Client Library](/build/sdk) — TypeScript and Python clients wrapping all of the above
 
 ---
 
@@ -667,7 +655,7 @@ For the full APY formula, how `apy_snapshot_week` is computed, and how to handle
 
 Source: https://docs.superform.xyz/build/earn/deposit
 
-SuperVaults accept synchronous deposits via `ERC4626.deposit()`. The Bundler handles approval and deposit in one API call.
+SuperVaults accept synchronous deposits. The Bundler handles token approval and deposit in one request.
 
 <CodeGroup>
 
@@ -822,7 +810,7 @@ Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.de
 | `targets[].vault_type` | ✅ | `"SUPERVAULT"` |
 | `targets[].amount_proportion` | ✅ | `1` to route 100% of source |
 
-> The bundler validates on-chain balance before building. Check the user's balance first (`GET /balances/{address}`) to avoid an unnecessary API round-trip.
+> The bundler validates on-chain balance before building. Check balance first with `GET /balances/{address}`.
 
 <Note>
 **Token decimals.** Express `amount` in the token's smallest unit:
@@ -1003,7 +991,7 @@ GET https://persephone.superform.xyz/v1/rewards/external/claimable/{address}
 
 ## Claim rewards
 
-The `CLAIM` action is available on both `/hooks/suggest/non-smart-account` and the smart account flow. Use whichever matches your wallet infrastructure.
+The `CLAIM` action works on both `/hooks/suggest/non-smart-account` and the smart account flow.
 
 ```bash
 POST https://bundler.superform.xyz/hooks/suggest/non-smart-account
@@ -1693,10 +1681,6 @@ Message-level lookup for the bundler error table. Match against the `message` fi
 # APY Methodology
 
 Source: https://docs.superform.xyz/learn/apy-methodology
-
-Understanding exactly how APY fields are calculated prevents display errors and incorrect integrations. This page documents the formulas, data sources, and edge cases from the Persephone pricing service.
-
----
 
 ## Price Per Share (PPS)
 

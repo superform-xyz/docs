@@ -29,7 +29,7 @@ curl https://persephone.superform.xyz/v1/balances/0xUSER_ADDRESS
 </Step>
 
 <Step title="Build the deposit">
-Replace `100000000` with the actual token amount. All bStock tokens use 8 decimals (`100000000` = 1 token).
+Replace `100000000` with the actual token amount scaled to the underlying token's decimals. bStock tokens (NVDAc, TSLAc, SPCXc, etc.) use 8 decimals — `100000000` = 1 token. USDC uses 6, WETH and UP use 18. Read the `assets[0].decimals` field from the vault response.
 
 ```bash
 curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \

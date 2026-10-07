@@ -3,7 +3,7 @@ title: "Deposit"
 description: "Route user deposits into SuperVaults via the Bundler (non-smart-account or ERC-4337) or direct ERC-7540 contract calls."
 ---
 
-SuperVaults accept synchronous deposits via `ERC4626.deposit()`. The Bundler handles approval and deposit in one API call.
+SuperVaults accept synchronous deposits. The Bundler handles token approval and deposit in one request.
 
 <CodeGroup>
 
@@ -158,7 +158,7 @@ Index 0 (`0x095ea7b3`) is `ERC20.approve`. Index 1 (`0x6e553f65`) is `ERC4626.de
 | `targets[].vault_type` | ✅ | `"SUPERVAULT"` |
 | `targets[].amount_proportion` | ✅ | `1` to route 100% of source |
 
-> The bundler validates on-chain balance before building. Check the user's balance first (`GET /balances/{address}`) to avoid an unnecessary API round-trip.
+> The bundler validates on-chain balance before building. Check balance first with `GET /balances/{address}`.
 
 <Note>
 **Token decimals.** Express `amount` in the token's smallest unit:

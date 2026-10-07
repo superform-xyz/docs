@@ -3,10 +3,6 @@ title: "APY Methodology"
 description: "How apy_snapshot_week, apy_snapshot_day, reward_rate, and the -1000000 sentinel are computed for SuperVaults."
 ---
 
-Understanding exactly how APY fields are calculated prevents display errors and incorrect integrations. This page documents the formulas, data sources, and edge cases from the Persephone pricing service.
-
----
-
 ## Price Per Share (PPS)
 
 All APY computations start from **price per share (PPS)**: the exchange rate between one vault share and the underlying asset.

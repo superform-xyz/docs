@@ -3,10 +3,6 @@ title: "Quickstart"
 description: "Deposit into a SuperVault in under 10 minutes."
 ---
 
-Use this page when you want the fastest working integration. It skips deep explanation. For full detail, see [Vault Data](/build/earn/vault-data), [Deposit](/build/earn/deposit), and the [Client Library](/build/sdk).
-
-**Time required:** ~10 minutes.
-
 <Steps>
 
 <Step title="Pick a vault">
@@ -25,17 +21,15 @@ Example (NVDA SuperVault):
 </Step>
 
 <Step title="Check user balance">
-Confirm the user holds enough of the underlying token before calling the Bundler. The Bundler validates balance on-chain and returns a 400 error if insufficient.
+The Bundler validates balance on-chain and returns 400 if the user's balance is insufficient. Check first:
 
 ```bash
 curl https://persephone.superform.xyz/v1/balances/0xUSER_ADDRESS
 ```
-
-Or check on-chain directly via `balanceOf(user)` on the token contract.
 </Step>
 
 <Step title="Build the deposit">
-Call `/hooks/suggest/non-smart-account` with the user's wallet, source token, and target vault. Replace `100000000` with the actual token amount (8 decimals = `100000000` for 1 NVDAc).
+Replace `100000000` with the actual token amount. All bStock tokens use 8 decimals (`100000000` = 1 token).
 
 ```bash
 curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
@@ -66,7 +60,7 @@ curl -X POST https://bundler.superform.xyz/hooks/suggest/non-smart-account \
   }'
 ```
 
-The response contains `executions[]`, an ordered list of transactions to broadcast.
+The response is an ordered `executions[]` array.
 </Step>
 
 <Step title="Broadcast">
@@ -79,13 +73,8 @@ executions[1] — ERC4626.deposit(amount, user)  selector: 0x6e553f65
 
 Both carry `type: "DEPOSIT"`. Use array index, not type, to determine order.
 
-After `executions[1]` confirms, the user holds `superNVDA` shares and their deposit is live.
+After `executions[1]` confirms, the user holds `superNVDA` shares.
 </Step>
 
 </Steps>
 
-## Next steps
-
-- [Redemption](/build/earn/redemption) — handle the async ERC-7540 request and claim lifecycle
-- [Rewards](/build/earn/rewards) — display and claim Merkl rewards
-- [Client Library](/build/sdk) — TypeScript and Python clients wrapping all of the above

@@ -62,17 +62,24 @@
 
 - [SuperformOS Overview](https://docs.superform.xyz/operate): Operating layer for programmable vaults.
 - [Prerequisites](https://docs.superform.xyz/operate/prerequisites): Access requirements, KYC, $UP staking.
-- [Authentication](https://docs.superform.xyz/operate/authentication): JWT flow, Erebor API auth, programmatic authentication.
+- [Authentication](https://docs.superform.xyz/operate/authentication): Browser sessions, public reads and approved programmatic access.
 - [Permissions Model](https://docs.superform.xyz/operate/permissions): Primary manager, secondary manager, view-only, registry maintainer, session key roles.
 - [Quickstart](https://docs.superform.xyz/operate/quickstart): End-to-end vault launch — create, upkeep, yield sources, hooks, strategy, distribute.
 - [Create Vault](https://docs.superform.xyz/operate/ui/create-vault): Vault wizard walkthrough.
 - [Setup Checklist](https://docs.superform.xyz/operate/ui/setup-checklist): Canonical go-live readiness checklist.
-- [Strategy DSL](https://docs.superform.xyz/operate/strategy/dsl): Strategy definition language — conditions, actions, ordering.
+- [Strategy Canvas](https://docs.superform.xyz/operate/ui/strategy): Inspect definitions, lifecycle and lane ordering.
+- [Write and update a strategy](https://docs.superform.xyz/operate/strategy/quickstart): Reserve-deposit example, raw units, inactive readback and safe updates.
+- [Action Config](https://docs.superform.xyz/operate/strategy/action-config): Operator selections, generated plan fields and input units.
+- [Simulation](https://docs.superform.xyz/operate/ui/simulation): Run, review, save and load modeled outcomes.
+- [Intent History](https://docs.superform.xyz/operate/ui/intent-history): Annotated deposit and failure records, executable public reads and result checks.
+- [Strategy DSL](https://docs.superform.xyz/operate/strategy/dsl): Conditions, sizing expressions and conviction.
+- [Troubleshooting](https://docs.superform.xyz/operate/strategy/troubleshooting): Locate save, evaluation, publication and execution failures.
+- [Anti-patterns](https://docs.superform.xyz/operate/strategy/anti-patterns): Avoid unsafe sizing, retries, units and lifecycle assumptions.
 - [Merkle Trees](https://docs.superform.xyz/operate/ui/merkle-trees): Hook authorization, root generation, proof publishing.
 - [Yield Sources](https://docs.superform.xyz/operate/ui/yield-sources): Whitelist management, oracle pairing, emergency exit.
 - [Pause Operations](https://docs.superform.xyz/operate/ui/pause): Vault pause, keeper pause, emergency exit.
 - [Erebor API Reference](https://docs.superform.xyz/operate/api/erebor): Full management API — vaults, users, merkle, upkeep.
-- [Strategy Engine API](https://docs.superform.xyz/operate/api/strategy): Strategy CRUD, intent ordering, emergency locks.
+- [Strategy Engine API](https://docs.superform.xyz/operate/api/strategy): Strategy definitions, versioned updates, intent reads and access boundaries.
 - [OMS API](https://docs.superform.xyz/operate/api/oms): DeFiX intent execution, session keys, hook transactions.
 
 ## Security

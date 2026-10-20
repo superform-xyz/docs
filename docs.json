@@ -307,6 +307,5 @@
   "thumbnails": {
     "appearance": "light",
     "background": "/images/docs_3_seo.png"
-  },
-  "openapi": "https://persephone.superform.xyz/openapi.json"
+  }
 }

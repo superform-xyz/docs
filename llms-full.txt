@@ -3780,132 +3780,36 @@ Each backend service exposes its own base URL. Use these when building automatio
 
 Source: https://docs.superform.xyz/operate/authentication
 
-## Auth Flow
+## Browser access
 
-SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+Open [SuperformOS](https://os.superform.xyz), complete its wallet/account sign-in and any required terms, then select the vault. The application resolves your assigned role; connecting a wallet alone does not grant management permission.
 
-<Steps>
-  <Step title="Connect Wallet">
-    Open [os.superform.xyz](https://os.superform.xyz) and click **Connect Wallet**. Dynamic.xyz presents a wallet selection modal supporting MetaMask, Rabby, WalletConnect, and others.
-  </Step>
-  <Step title="Sign Auth Message">
-    Your wallet signs a non-transactional message. Dynamic.xyz verifies the signature and issues a JWT tied to your wallet address.
-  </Step>
-  <Step title="JWT Stored in Browser">
-    SuperformOS stores auth state in `localStorage`:
-    - `curator_jwt` — the Bearer token used on all API requests
-    - `curator_address` — connected wallet address
-    - `curator_is_manager` — boolean flag
-    - `curator_vaults` — array of vault addresses you operate
-  </Step>
-  <Step title="Auth Verified">
-    The app calls `GET /api/v1/auth/me` on load to fetch your vault roles and confirm the JWT is valid.
-  </Step>
-</Steps>
+The browser uses same-origin backend-for-frontend (BFF) routes. The server checks the session and vault role and forwards upstream authentication; you do not supply a copied browser token.
 
-## Primary Auth Endpoint
+| Browser route family | Purpose |
+|---|---|
+| `/api/auth/me` | Current browser session and roles |
+| `/api/erebor/api/v1/...` | Management reads and configuration |
+| `/api/strategy/api/v1/...` | Strategy definitions, simulations, and intent history |
+| `/api/oms/defix/...` | Execution and session-key operations |
 
-```bash
-GET /api/v1/auth/me
-Authorization: Bearer <your-jwt>
-```
-
-Returns the current user with all assigned vault roles. Use this endpoint when building integrations.
-
-Response:
-```json
-{
-  "wallet_address": "0xabc...",
-  "is_manager": true,
-  "vaults": [
-    {
-      "vault_address": "0xdef...",
-      "chain_id": 8453,
-      "role": "primary_manager"
-    }
-  ]
-}
-```
-
-<Note>
-`GET /api/v1/auth/me` returns the current user with all assigned vault roles. Use this endpoint when building integrations.
-</Note>
-
-## JWT Verification Endpoint
-
-```bash
-GET /api/v1/auth/verify
-Authorization: Bearer <your-jwt>
-```
-
-Returns:
-```json
-{
-  "verified": true,
-  "walletAddress": "0xabc...",
-  "isManager": true,
-  "vaults": ["0xdef..."]
-}
-```
-
-## Token Lifecycle
-
-- JWTs expire after a session period defined by Dynamic.xyz
-- Any `401 Unauthorized` from Erebor triggers automatic logout via `authService.handleAutoLogout()`
-- Reconnecting your wallet re-issues a fresh JWT
-
-## Public Endpoints (No Auth)
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/v1/public/vaults` | All SuperVault deployments with TVL and APY |
-| `GET /api/v1/registry/token-assets` | Token asset metadata |
-
-## Programmatic Authentication
-
-For automation scripts, generate a JWT without the browser:
-
-1. Sign an EIP-712 auth message with your wallet's private key
-2. Submit the signature to Dynamic.xyz to receive a JWT
-3. Pass the JWT as `Authorization: Bearer <your-jwt>` on all requests
-
-<CodeGroup>
-
-```python Python
-import requests
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-
-headers = {"Authorization": f"Bearer {JWT}"}
-
-resp = requests.get(f"{EREBOR_URL}/api/v1/auth/me", headers=headers)
-resp.raise_for_status()
-user = resp.json()
-
-print(f"Connected as: {user['wallet_address']}")
-print(f"Manages {len(user['vaults'])} vault(s)")
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = "<your-jwt>";
-
-const headers = { Authorization: `Bearer ${JWT}` };
-
-const resp = await fetch(`${EREBOR_URL}/api/v1/auth/me`, { headers });
-if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
-
-const user = await resp.json();
-console.log(`Connected as: ${user.wallet_address}`);
-console.log(`Manages ${user.vaults.length} vault(s)`);
-```
-
-</CodeGroup>
+An upstream failure is not automatically an expired browser session. Reconnect when the application requires it; investigate permission and service errors separately.
 
 <Warning>
-Never hardcode JWTs in source code. Use environment variables (for example, `SUPERFORMOS_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
+Do not export cookies, extract browser tokens, copy service credentials, or use a wallet private key as an API key. There is no generic signature-to-JWT automation recipe in this guide.
 </Warning>
+
+## Public reads
+
+Anonymous Strategy GET access is limited to allowlisted routes for verified public vaults. Vault-scoped intent search, intent detail, and fills can be read without signing in; events, simulations, arbitrary engine state, and writes are not covered by that permission.
+
+Use the executable [public intent example](/operate/ui/intent-history#read-the-same-record-with-public-get). Unknown query keys or insufficiently scoped filters can be rejected. Do not infer that every GET is public.
+
+## Approved automation
+
+For authenticated automation, obtain the supported endpoint, identity mechanism, vault role scope, credential lifecycle, and rate policy from the Superform team. Upstream service credentials are infrastructure credentials, not self-service curator keys.
+
+Keep automation read-only until its identity and permissions have been agreed and tested in a separately authorized environment. Successful browser login does not establish support for a headless writer.
 
 ---
 
@@ -4584,343 +4488,105 @@ The Zap Terminal analysis endpoint (`GET /api/v1/vaults/{vaultAddress}/ai/analys
 
 Source: https://docs.superform.xyz/operate/ui/strategy
 
-![SuperformOS Strategy Canvas — automated vault strategy lanes and controls](/operate/images/screenshots/strategy.jpg)
+## Read the canvas
 
-<Note>
-New to strategy authoring? Start with [Strategy Quickstart](/operate/strategy/quickstart), then use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config) as field references.
-</Note>
+![Existing superWETH canvas with redemption strategies on the left, the vault asset pool in the center, and deposit strategies on the right](/operate/images/screenshots/strategy.jpg)
 
-The Strategy Canvas is where operators define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
+The screenshot shows an existing superWETH configuration, not the reserve exercise below. Read the canvas from the central **Vault Asset Pool**:
 
-Public SuperVault detail pages expose the canvas as a read-only tab. Manager actions such as create, update, reorder, run, stop, and archive are available only in the authenticated Operate surface.
+- **Deposit strategies** deploy idle assets into a yield source.
+- **Redemption strategies** return assets from a source to idle.
+- **Rebalance strategies** configure other supported routes.
 
-The canvas is organized by action lane:
+Choose a strategy card to inspect its definition where your role permits it. Public vault pages are read-only; access to a public canvas does not grant access to the manager editor.
 
-| Lane | Actions | Purpose |
-|------|---------|---------|
-| Inflow | `DEPOSIT` | Deploy idle assets into yield sources |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Source liquidity and claim proceeds |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Move capital between sources or routes |
+## Create or change a strategy
 
-## Strategy Lifecycle
+In the authenticated **Strategy** view, use **Add deposit strategy** for the [reserve-deposit exercise](/operate/strategy/quickstart). It uses one source, two rule conditions, and one size expression. Keep the exercise inactive.
 
-| State | Meaning |
-|-------|---------|
-| `CREATED` | Drafted but not active |
-| `IDLE` | Ready but not ticking |
-| `RUNNING` | Evaluating rules and eligible to publish intents |
-| `ERROR` | Runtime error; inspect logs/events |
-| `ARCHIVED` | Soft-deleted |
+For an existing strategy, record its ID, version, target, and state before editing. Follow the [safe-update sequence](/operate/strategy/quickstart#update-an-existing-strategy), rather than saving over a running definition.
 
-The Strategy Engine API currently models these states directly. Vault-level kill switches and emergency locks can still prevent a strategy from publishing even when the stored state is `RUNNING`.
+| State | What to do |
+|---|---|
+| `CREATED` or `IDLE` | Review the saved definition; it is not running |
+| `RUNNING` | Check the rule and execution readiness; running does not guarantee an intent |
+| `ERROR` | Inspect the error before restarting |
+| `ARCHIVED` | Treat as historical, not an active strategy |
 
-## Create or Update a Strategy
+**Create / Save** persists configuration. Starting is a separate lifecycle action. Stopping prevents new strategy activity but does not cancel an intent already submitted to OMS.
 
-A strategy contains:
+## Review order and blockers
 
-- Name.
-- Indicators.
-- Rule tree.
-- Action config.
-- Conviction config.
-- Risk parameters.
-- Cooldown and concurrency controls.
+Drag within a lane to change order. Priority is server-managed, not a create/update field. Ordering and per-strategy concurrency do not reserve a shared token balance across strategies.
 
-Create and update calls do **not** carry priority. Ordering is handled by the dedicated reorder endpoint.
+A session-key gate, vault kill switch, or target emergency lock can block execution. Resolve the cause; do not bypass it by creating another strategy. Emergency exits are managed in [Pause Operations](/operate/ui/pause), not the normal editor.
 
-Updates require a `version` for optimistic concurrency. A stale version returns `409 Conflict`.
-
-## Authoring References
-
-Strategy authoring is split into focused references:
-
-| Page | Use it for |
-|------|------------|
-| [Strategy Quickstart](/operate/strategy/quickstart) | Build and POST a first deposit/withdrawal reserve manager. |
-| [Strategy DSL](/operate/strategy/dsl) | Rule tree syntax, expressions, variables, and validation behavior. |
-| [Action Config](/operate/strategy/action-config) | OMS dispatch fields and yield-source execution requirements. |
-| [Strategy Troubleshooting](/operate/strategy/troubleshooting) | Diagnose strategies that do not tick, publish, or fill. |
-| [Strategy Anti-Patterns](/operate/strategy/anti-patterns) | Avoid designs that pass validation but fail operationally. |
-
-## Reorder Strategies
-
-Drag within a lane to change priority. The UI persists order through:
-
-```bash
-POST /api/v1/strategies/reorder
-```
-
-The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
-
-<Note>
-The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
-</Note>
-
-## Rule Trees
-
-Rules are boolean trees:
-
-| Node | Meaning |
-|------|---------|
-| `EXPR` | Evaluate one expression |
-| `AND` | All children pass |
-| `OR` | At least one child passes |
-| `NOT` | Negate one child |
-| `VOTE` | N-of-M children pass |
-
-Conviction config can require repeated passing ticks before publishing an intent.
-
-## Action Config
-
-Action config tells the engine what to do after rules pass. Common fields include:
-
-- `action`
-- `size_expr`
-- `objective`
-- `execution_name`
-- `execution_address`
-- `target_address`
-- `from_address`
-- `target_type`
-- `execution_params`
-- `max_slippage_bps`
-
-A target must be whitelisted and authorized by the active merkle root before OMS execution can succeed.
-
-## Emergency Locks
-
-Emergency liquidity exits create target-scoped locks. While a lock exists for a yield source address:
-
-- User-defined strategies targeting that address cannot publish new intents.
-- Affected toggles and reorder handles are disabled in the UI.
-- Strategies on other targets remain operable.
-- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/operate/ui/pause), not the normal editor.
-
-The canvas reads `emergency_locks` from shard / vault state and displays a banner when active.
-
-## Intent History
-
-The Intent History view is the operator-facing execution ledger for strategies. It maps Strategy Engine projections to OMS events and fills.
-
-Use it to answer:
-
-- Which strategy created the intent?
-- What lifecycle state is it in?
-- Which OMS events have arrived?
-- Were fills mined?
-- What gas was used?
-- Which transaction hash settled the fill?
-
-Prefer the search endpoint for new tooling:
-
-```bash
-GET /api/v1/intents
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills
-```
-
-See [Strategy Engine API](/operate/api/strategy) and [OMS API](/operate/api/oms).
-
-## Session Key Gate
-
-Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points operators to grant or renew the key.
-
-See [OMS API](/operate/api/oms#session-keys) for the session-key endpoints.
-
-## API Reference
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/strategies` | GET | List strategies with filters |
-| `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | GET | Get strategy |
-| `/api/v1/strategies/{id}` | PUT | Update strategy with version |
-| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition lifecycle state |
-| `/api/v1/strategies/reorder` | POST | Persist lane order |
-| `/api/v1/intents` | GET | Search intent history |
-| `/api/v1/intents/facets` | GET | Intent filter facets |
-| `/api/v1/intents/{intent_id}/events` | GET | OMS event timeline |
-| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
-| `/api/v1/fills` | GET | Search fills across intents |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state and emergency locks |
+After an approved start, open [Intent History](/operate/ui/intent-history) to follow a real intent through its fill and transaction. For the expression and generated plan, use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config).
 
 ---
 
-# Strategy Quickstart
+# Write and update a strategy
 
 Source: https://docs.superform.xyz/operate/strategy/quickstart
 
-This is the shortest path from no strategy to a validated deposit/withdrawal pair. You will build a reserve manager for one yield source: when idle assets are too high, it deposits; when idle assets are too low, it withdraws.
+## Choose a prepared vault
 
-## What You Are Building
+Use a vault you are authorized to manage, with its [setup checklist](/operate/ui/setup-checklist) complete. Choose one configured yield source whose deposit input matches the vault underlying. Do not change a running production strategy for this exercise.
 
-A drift-trigger reserve pair:
+**Policy:** deposit when idle assets exceed 10% of total assets, leaving a 7.5% reserve. These are teaching thresholds, not a production reserve recommendation.
 
-- A `DEPOSIT` strategy fires when `vault_free_assets` is above 10% of vault TVL.
-- A `WITHDRAWAL` strategy fires when `vault_free_assets` is below 5% of vault TVL.
-- The withdrawal half refills the reserve toward a 7.5% target.
+In **Strategy**, choose **Add deposit strategy**, name it `Reserve deposit - inactive exercise`, and select the prepared source and its asset-consuming deposit action. Leave indicators empty. The source and input token should match your selection; if the editor shows shares or an unknown size unit, stop and check [Action Config](/operate/strategy/action-config).
 
-Two strategies, one yield source, one `EXPR` rule each, no indicators.
+## Build the rule and size
 
-## 1. Choose the Lane
+In **Rule tree**, use an **AND** gate with these two conditions:
 
-Strategy actions group into lanes. The lane determines where the strategy appears in the canvas and how ordering works.
+1. `vault_tvl > 0`
+2. `vault_free_assets > 0.10 * vault_tvl`
 
-| Lane | Actions | This guide |
-|------|---------|------------|
-| Inflow | `DEPOSIT` | Deposit half |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Withdrawal half |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Not used |
-
-See [Strategy Canvas](/operate/ui/strategy) for the UI model.
-
-## 2. Pick the Action
-
-Each strategy has one `action_config.action`. Use `DEPOSIT` for the inflow strategy and `WITHDRAWAL` for the outflow strategy.
-
-The other `action_config` fields tell OMS how to execute:
-
-| Field | Meaning |
-|-------|---------|
-| `execution_name` | Hook identifier from the Erebor hook registry. |
-| `execution_address` | Deployed hook contract on the target chain. |
-| `target_address` | Yield source address. |
-| `from_address` | Account that executes the intent. |
-| `target_type` | Yield-source family, such as `erc4626` or `pendle_pt`. |
-| `objective` | Routing preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-
-See [Action Config](/operate/strategy/action-config) for the full field reference.
-
-## 3. Write the Trigger
-
-The trigger is a `rules` tree. The simplest form is a single `EXPR` leaf that returns a boolean.
-
-```json
-{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }
-```
-
-`vault_free_assets` is sourced live from chain as `IERC20(asset).balanceOf(strategy)` through the EVM RPC datafeed, so the trigger reflects the strategy contract's actual idle balance. `vault_tvl` is derived from yield-source allocations on the subgraph cadence. Both are in the underlying asset's base units.
-
-<Warning>
-Avoid division in trigger expressions. The validator dry-runs expressions against an empty snapshot where values can be zero. `vault_free_assets / vault_tvl > 0.10` can fail with division by zero at create/update time. Use the multiplicative form: `vault_free_assets > 0.10 * vault_tvl`.
-</Warning>
-
-See [Strategy DSL](/operate/strategy/dsl) for rule-tree syntax and variable notes.
-
-## 4. Size the Action
-
-`action_config.size_expr` is evaluated when the rule fires. It must return a positive number at runtime.
-
-For the deposit half, deploy idle assets:
+The editor's full-expression paste equivalent is:
 
 ```text
-vault_free_assets
+vault_tvl > 0 AND vault_free_assets > 0.10 * vault_tvl
 ```
 
-For the withdrawal half, pull back the shortfall to the 7.5% target:
+Expect two comparisons joined by **AND**, not a JSON block or an `&&` token. Both variables are **raw underlying-asset units**. Despite its name, `vault_tvl` is not USD TVL. **Literal / Formatted** changes the displayed state values, not the units of an existing expression.
+
+In **Size expression**, paste the complete raw-unit formula:
 
 ```text
-0.075 * vault_tvl - vault_free_assets
+max(vault_free_assets - 75 * vault_tvl / 1000, 0)
 ```
 
-Both expressions are positive when their corresponding trigger passes. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
+This deposits only the excess above the reserve. Use **Copy** to check the normalized expression: `max ( vault_free_assets - 75 * vault_tvl / 1000 , 0 )`. Whitespace may change; an extra decimals multiplier must not appear. Human-amount chips and full-expression paste are different input paths.
 
-## 5. Deposit Strategy JSON
+Under **Signal & risk**, choose **BINARY** conviction and enter **60** in **Cooldown (s)**. Set **Max slippage (bps)** and **Signal lifespan** to the approved values for your source. The editor sets per-strategy concurrency to one; there is no editable concurrency control.
 
-These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
+## Review before creating
 
-```json
-{
-  "id": "deposit-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Deposit excess idle into Yield Source A",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets > 0.10 * vault_tvl"
-  },
-  "action_config": {
-    "action": "DEPOSIT",
-    "size_expr": "vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndDeposit4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve above 10% of TVL - deploy idle into Yield Source A"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+For a six-decimal underlying, these are evaluator expectations, **not measured UI or transaction results**:
 
-## 6. Withdrawal Strategy JSON
+| Total assets | Idle assets | Expected decision |
+|---|---|---|
+| 100 | 20 | Deposit 12.5; leave 7.5 idle |
+| 100 | 10 | No deposit: the trigger is strictly greater than 10% |
+| 100 | 10.000001 | Deposit 2.500001; leave 7.5 idle |
+| 0 | 0 | No deposit |
 
-```json
-{
-  "id": "withdraw-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Withdraw from Yield Source A to replenish reserve",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets < 0.05 * vault_tvl"
-  },
-  "action_config": {
-    "action": "WITHDRAWAL",
-    "size_expr": "0.075 * vault_tvl - vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndWithdraw4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve below 5% of TVL - pull liquidity back toward 7.5% target"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+Check the selected source, input token, generated action, and reserve size together. This policy does not account for pending redemptions or other strategies spending idle assets; preserve those protections when adapting it to a real vault.
 
-## 7. POST and Run
+Choose **Create**, then reopen the saved strategy. Confirm its ID/version, the two-condition rule, the normalized size, source, and action parameters. The state must be **CREATED** or **IDLE**, not **RUNNING**. If anything differs, leave it stopped and investigate.
 
-Each strategy is one create request:
+Saving writes configuration; it is not a test. Leave this exercise inactive. [Simulation](/operate/ui/simulation) can select supported saved inactive strategies without starting them in production.
 
-```bash
-curl -X POST https://strategy.superform.xyz/api/v1/strategies \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data @deposit.json
-```
+## Update an existing strategy
 
-Repeat with the withdrawal payload. A successful response returns the persisted strategy with `state: "CREATED"`.
-
-Move each strategy to `RUNNING` when the vault has upkeep, merkle proof coverage, whitelisted yield sources, and OMS session-key readiness:
-
-```bash
-curl -X PATCH https://strategy.superform.xyz/api/v1/strategies/{strategy_id}/state \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data '{"target_state": "RUNNING", "version": 1}'
-```
-
-See [Strategy Engine API](/operate/api/strategy) for endpoint details.
-
-## What to Watch
-
-| Surface | Healthy sign |
-|---------|--------------|
-| Strategy Canvas | Both strategies appear in their lanes with server-assigned priority and `RUNNING` state. |
-| Dashboard | Idle reserve stays between the configured lower and upper bands over time. |
-| Intent History | `DEPOSIT` intents appear when reserve is high and `WITHDRAWAL` intents appear when reserve is low. |
-| Pause Operations | Emergency locks block only strategies that target the locked yield source. |
-
-If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operate/strategy/troubleshooting).
+1. Open the intended strategy and record its ID, version, state, rule, size, and action plan.
+2. Before a risk-changing edit, stop new activity and check [Intent History](/operate/ui/intent-history) for in-flight work. Stopping does not cancel submitted transactions.
+3. Reload after the state change so the editor has the latest version.
+4. Make the bounded change. Preserve safety guards, reserve/redemption buffers, token units, and approved slippage; do not replace a production policy with this teaching example.
+5. Choose **Save** while inactive, reopen, and compare the saved version and complete definition. On **409 Conflict**, reload and reconcile the other operator's changes instead of blindly retrying.
+6. Review simulation and execution readiness. Start only after approval, then trace the first relevant intent and verify the resulting idle reserve.
 
 ---
 
@@ -4928,100 +4594,103 @@ If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operat
 
 Source: https://docs.superform.xyz/operate/strategy/dsl
 
-The Strategy DSL has two layers:
+## Rule trees
 
-- A boolean `rules` tree that decides whether a strategy should fire.
-- Numeric expressions, such as `size_expr`, that decide how much the strategy should send to OMS.
+Each strategy has one boolean `rules` tree. Action sizing is a separate numeric expression.
 
-## Rule Nodes
+| Node | Required fields | Evaluation |
+|---|---|---|
+| `EXPR` | `expr` | Boolean expression, not numeric truthiness |
+| `AND` | `children`, at least two | All pass; short-circuits in order |
+| `OR` | `children`, at least two | Any passes; short-circuits in order |
+| `NOT` | `children`, exactly one | Negates that child |
+| `VOTE` | `children`, `threshold` | Requires `ceil(threshold × child count)` passes |
 
-| Node | Meaning | Shape |
-|------|---------|-------|
-| `EXPR` | Evaluate one boolean expression. | `{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }` |
-| `AND` | All child rules must pass. | `{ "type": "AND", "children": [...] }` |
-| `OR` | At least one child rule must pass. | `{ "type": "OR", "children": [...] }` |
-| `NOT` | Negates one child rule. | `{ "type": "NOT", "child": {...} }` |
-| `VOTE` | N-of-M child rules must pass. | `{ "type": "VOTE", "threshold": 2, "children": [...] }` |
+`VOTE.threshold` is a fraction greater than zero and at most one. The following tree requires two of three children, not one:
 
-Use shallow rule trees when possible. Deep trees are harder to review and usually indicate that two strategy lanes should be split.
-
-## Expression Guidelines
-
-Expressions are evaluated by the Strategy Engine against the current vault snapshot.
-
-| Pattern | Use |
-|---------|-----|
-| `vault_free_assets > 0.10 * vault_tvl` | Prefer multiplication over division for ratios. |
-| `ys_0xabc_alloc > 0` | Target source has deployed allocation. |
-| `tick_age_seconds > 3600` | Enough time has elapsed since the last tick context. |
-| `vault_pps_stale == 0` | Only run when PPS data is fresh. |
-
-<Warning>
-Avoid division in rule expressions unless the denominator is guaranteed non-zero. The validator dry-runs expressions against an empty snapshot to catch type and parse errors, which means division by zero can reject a strategy before it is saved.
-</Warning>
-
-## Common Variables
-
-Variable availability depends on the datafeed and vault snapshot. Common families include:
-
-| Family | Examples | Meaning |
-|--------|----------|---------|
-| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply` | Vault-level balances and supply. |
-| PPS and timing | `vault_pps`, `vault_pps_age_seconds`, `vault_pps_stale` | Price-per-share state and freshness. |
-| Yield source state | `ys_<address>_alloc`, `ys_<address>_apy`, `ys_<address>_tvl` | Source-specific allocation, yield, and liquidity. |
-| Tick context | `tick_age_seconds`, `tick_block_number`, `tick_timestamp` | Engine tick timing and chain context. |
-| Indicators | Custom aliases configured in `indicators` | Derived signals such as moving averages or momentum scores. |
-
-Source-specific variables normalize addresses before aliasing. When in doubt, inspect the strategy validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
-
-## `size_expr`
-
-`action_config.size_expr` is numeric. It should evaluate to the amount OMS should act on, in the underlying asset's base units.
-
-Rules for sizing:
-
-- It must be positive at runtime.
-- It should be bounded by available liquidity or allocation.
-- It should match the action direction. Deposit sizes should not exceed idle assets; withdrawal sizes should not exceed source allocation.
-- It should be easy to audit from dashboard numbers.
-
-Examples:
-
-```text
-vault_free_assets
+```json
+{
+  "type": "VOTE",
+  "threshold": 0.5,
+  "children": [
+    {"type": "EXPR", "expr": "true"},
+    {"type": "EXPR", "expr": "false"},
+    {"type": "EXPR", "expr": "true"}
+  ]
+}
 ```
 
-```text
-min(vault_free_assets, 0.05 * vault_tvl)
+`NOT` has no singular `child` field:
+
+```json
+{"type": "NOT", "children": [{"type": "EXPR", "expr": "false"}]}
 ```
 
+The JSON examples describe saved engine rules, not an editor import format. In **Rule tree**, use **AND / OR / NOT** gates. The engine supports boolean operators inside an `EXPR`, but the editor paste path is different.
+
+## Expression grammar
+
+| Operation | Syntax |
+|---|---|
+| Arithmetic | `+`, `-`, `*`, `/`, parentheses, scientific notation such as `1e12` |
+| Comparison | `>`, `>=`, `<`, `<=`, `==`, `!=` |
+| Boolean | `&&`, `\|\|`, `!`, `true`, `false` |
+| Numeric functions | `min(a, b)`, `max(a, b)`, `abs(a)`, `clamp01(a)` |
+
+`min` and `max` take exactly two arguments. Nest them for additional caps. There is no `floor`, `pow`, ternary operator, assignment, or arbitrary JavaScript execution.
+
 ```text
-0.075 * vault_tvl - vault_free_assets
+min(3, max(1, 2))
 ```
 
-## Conviction Config
+The result is `2`. Numbers use the engine's high-precision expression VM. Positive action sizes are truncated toward zero when converted to integer intent amounts; a positive fraction below one raw unit does not create a usable amount. See [Action Config](/operate/strategy/action-config).
 
-`conviction_config` controls how many passing ticks are required before a strategy publishes.
+## Guard runtime division
 
-| Mode | Meaning |
-|------|---------|
-| `BINARY` | One passing evaluation is enough. |
-| Scored/graded modes | Require stronger or repeated signal confidence when enabled by the engine configuration. |
+Prefer multiplication for ratio triggers:
 
-Use `BINARY` for simple operational gates. Add stronger conviction only when false positives are expensive and delayed action is acceptable.
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl"
+}
+```
 
-## Validation Timing
+If division is necessary, place its guard first:
 
-The Strategy Engine validates at create and update time:
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets / vault_tvl > 0.10"
+}
+```
 
-- JSON shape and required fields.
-- Known action names and lane compatibility.
-- Expression parseability.
-- Basic dry-run evaluation.
-- Address formatting.
-- Version conflicts on update.
+Both are false for an empty snapshot without dividing by zero. `AND`/`OR` tree order matters for the same reason. Do not rely on a guard in a different strategy. A `VOTE` tree is not a substitute for an outer safety guard.
 
-Runtime checks still apply after validation. A strategy can save successfully and later fail to publish if it lacks a session key, merkle proof, active yield source, or executable OMS route.
+## Validation stages
+
+1. **Editor:** quantity, token metadata, action parameters, and expression checks help construct a payload. Copy the normalized engine expression to inspect its actual units.
+2. **Save:** backend shape, identifier-policy, and static-type checks reject malformed trees, unknown aliases, and boolean/numeric type mismatches. This is not an empty-snapshot execution.
+3. **Evaluation:** the compiled expression reads a snapshot. Missing identifiers read as zero at this low-level stage; division can still fail at runtime.
+4. **Publication:** readiness, freshness, positive integer size, conviction, risk, cooldown, and occupied-slot checks can prevent an intent even when its boolean rule is true.
+5. **Execution:** authorization, available balances, venue constraints, slippage, and transaction success are separate checks.
+
+A syntactically valid dynamic identifier is not proof that a feed supplies it. Select actual fields from **Variables** and verify their units and freshness, as in [Write and update a strategy](/operate/strategy/quickstart#build-the-rule-and-size). Do not invent aliases such as `vault_pps_stale` or `tick_age_seconds`.
+
+## Conviction
+
+```json
+{"mode": "BINARY"}
+```
+
+| Mode | Current-evaluation score |
+|---|---|
+| `BINARY` | One when the rule fires, zero otherwise |
+| `RULE_VOTE_RATIO` | Fraction of passing top-level children |
+| `INDICATOR_DISTANCE` | Absolute indicator distance divided by configured scale, clamped to the allowed range |
+| `EXPR` | Numeric expression clamped to `[0, 1]` |
+
+Minimum conviction can suppress publication. These modes do **not** count consecutive passing ticks. `RULE_VOTE_RATIO` evaluates top-level children independently, so a separate top-level guard does not protect another child's division while calculating that score. Make each child safe or use `BINARY` for a guarded trigger.
 
 ---
 
@@ -5029,74 +4698,39 @@ Runtime checks still apply after validation. A strategy can save successfully an
 
 Source: https://docs.superform.xyz/operate/strategy/action-config
 
-`action_config` tells the Strategy Engine what OMS intent to publish when a strategy's rules pass.
+## Choose the action
 
-## Fields
+For the [reserve-deposit exercise](/operate/strategy/quickstart), use one same-asset source and one deposit step. Configure it in the editor rather than copying another vault's encoded parameters.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
-| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
-| `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `execution_name` | Yes | Hook identifier from the hook registry. |
-| `execution_address` | Yes | Hook contract address for the target chain. |
-| `target_address` | Yes | Yield source, route target, or protocol address being acted on. |
-| `from_address` | Yes | Account or executor address used for the intent. |
-| `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
-| `execution_params` | Optional | Hook-specific encoded parameters. |
-| `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
-| `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
+| Your selection or input | What the application builds | Review before saving |
+|---|---|---|
+| **Yield source**: select the prepared source | Target address and source metadata | Correct chain, source, and underlying token |
+| **Action**: choose the supported asset-consuming deposit hook | Ordered action step and its deployed hook | Assets go into the source; shares come back |
+| Required hook parameters | Source, token, oracle, and encoded arguments | Resolved values match this vault; no missing-parameter error |
+| **Size expression**: the reserve formula | Raw input amount expression | Denomination is the underlying asset, not shares |
+| **Execution optimization**, **Max slippage (bps)**, **Signal lifespan** | Routing preference, slippage budget, and duration | Values match the approved venue policy |
 
-## Target Requirements
+For a supported ERC-4626 source, the action may be **ApproveAndDeposit4626VaultHook**. Let the registry determine the deployed hook and required parameters. Do not substitute an address from this guide or another chain.
 
-Before an action can execute, the target must be operationally allowed:
+If token metadata or required parameters have not resolved, do not create the strategy. A visible one-step deposit is the expected route for this exercise; an unexpected swap, redemption, or extra step requires review.
 
-- The target yield source is whitelisted for the vault.
-- The source has a compatible oracle where pricing is required.
-- The hook exists in the active merkle config.
-- The active merkle tree has been generated, synced onchain when required, and published for proof consumers.
-- The vault has OMS/session-key readiness.
-- The vault is not paused, and the target is not locked by an active emergency exit.
+## Check what is saved
 
-See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [OMS API](/operate/api/oms).
+The generated execution plan is stored at `action_config.execution_params.plan.steps`, with the strategy execution account at `execution_params.strategy_address`. Each step records its hook, chain, target, arguments, and input/output effects. It is generated configuration to inspect, **not JSON to paste into the rule editor**.
 
-## Action Notes
+The current plan cannot be replaced with a legacy body containing only `execution_name` and `execution_address`. After **Create / Save**, reopen the definition and verify the selected source and action survived the round trip.
 
-| Action | Notes |
-|--------|-------|
-| `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
-| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
-| `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
-| `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
-| `SWAP` | Requires route/slippage constraints and target authorization. |
-| `BRIDGE` | Requires bridge route, destination-chain controls, and stricter incident monitoring. |
+## Keep the size in the first step's units
 
-## Example
+The reserve formula returns raw underlying assets because the chosen deposit hook consumes those assets. A redemption hook can instead consume raw source shares; a token action can consume a different token. The action label alone does not determine units.
 
-```json
-{
-  "action": "DEPOSIT",
-  "size_expr": "min(vault_free_assets, 0.05 * vault_tvl)",
-  "objective": "BALANCED",
-  "execution_name": "ApproveAndDeposit4626VaultHook",
-  "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-  "target_address": "0x0000000000000000000000000000000000000001",
-  "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-  "target_type": "erc4626",
-  "max_slippage_bps": 50,
-  "reason": "Deploy capped idle assets into the active ERC-4626 source"
-}
-```
+Positive fractional sizes are truncated toward zero before intent publication. Use the tested integer-ratio reserve formula from the writing guide and check one-raw-unit boundaries. A zero amount is not an executable deposit.
 
-## Operational Review
+For a multi-step plan, later steps may use the preceding hook's reported amount through `use_prev_hook_amount`. Do not independently size each step as though the first amount had the same denomination throughout.
 
-Before switching a strategy to `RUNNING`, review:
+## Keep execution checks separate
 
-- The `size_expr` cannot consume more than the vault/source can safely supply.
-- The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
-- The target has emergency exit coverage if it can hold material liquidity.
-- `max_slippage_bps` matches the liquidity profile of the action.
-- The reason is clear enough for Incident History and postmortems.
+A valid saved plan does not prove balances, liquidity, hook authorization, pricing, session-key readiness, or transaction success. Resolve blockers through [Yield Sources](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [Pause Operations](/operate/ui/pause). Verify actual execution in [Intent History](/operate/ui/intent-history).
 
 ---
 
@@ -5104,73 +4738,49 @@ Before switching a strategy to `RUNNING`, review:
 
 Source: https://docs.superform.xyz/operate/strategy/troubleshooting
 
-Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+## Cannot create or save
 
-## First Checks
+| Symptom | Check and action |
+|---|---|
+| No manager controls | Use the authenticated Operate surface with the required vault role; a public canvas is read-only |
+| Unknown identifier or type error | Choose a supported variable and keep boolean rules separate from numeric sizing |
+| Missing hook parameter or unknown size unit | Resolve the source, token decimals, hook, and required parameters before saving |
+| Invalid plan | Review the generated `execution_params.plan.steps`, not a legacy single-hook body |
+| `409 Conflict` | Reload and compare the latest version; reconcile changes before saving again |
 
-| Question | Where to check |
-|----------|----------------|
-| Is the strategy `RUNNING`? | [Strategy Canvas](/operate/ui/strategy) or `GET /api/v1/strategies/{id}`. |
-| Is the vault active? | [Setup Checklist](/operate/ui/setup-checklist) and [Vault Settings](/operate/ui/vault-settings). |
-| Does OMS have a valid session key? | Strategy Canvas gate and [OMS API](/operate/api/oms#session-keys). |
-| Is the target whitelisted? | [Yield Source Management](/operate/ui/yield-sources). |
-| Is the hook authorized? | [Merkle Trees](/operate/ui/merkle-trees). |
-| Is an emergency lock active? | [Pause Operations](/operate/ui/pause) and engine shard state. |
+Backend save validation checks shape and types. It does not execute the rule against an empty snapshot or prove the action can settle. Division by zero can still occur at runtime; guard the denominator first.
 
-## Create or Update Rejected
+## No intent appears
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
-| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
-| `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
-| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+Check these in order:
 
-## Strategy Saves but Does Not Tick
+1. **Lifecycle:** is the intended strategy `RUNNING`, not just saved? Do not start an inactive exercise merely to investigate.
+2. **Vault and target:** check kill switch, pause, emergency locks, upkeep, and execution readiness. Do not clear an incident lock to force a test.
+3. **Inputs and rule:** inspect the current supported fields and their freshness. For the reserve example, idle exactly at the 10% trigger should not publish.
+4. **Size:** check the first hook's units and positive integer amount. A sub-unit positive value truncates to zero.
+5. **Publication gates:** check conviction, cooldown, rate limits, and an occupied per-strategy concurrency slot.
 
-| Cause | What to do |
-|-------|------------|
-| State is `CREATED` or `IDLE` | Transition to `RUNNING` after readiness checks. |
-| Vault activation incomplete | Fund upkeep and clear setup checklist blockers. |
-| Kill switch or vault pause active | Review Pause Operations and vault pause status. |
-| Target emergency lock active | Stop the emergency exit only after the incident is resolved. |
-| No shard state | Check Strategy Engine health and shard assignment for the vault. |
+Intent History records submitted intents, not every false rule evaluation. If no row exists, use the editor's available state or authorized engine diagnostics; missing observations are not proof of a zero balance.
 
-## Strategy Ticks but Does Not Publish
+## An intent failed or is still executing
 
-| Cause | What to do |
-|-------|------------|
-| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
-| `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
-| Missing session key | Grant or renew OMS session-key authorization. |
-| Missing merkle proof | Generate, sync, and publish the active merkle tree. |
-| Target not whitelisted | Add the yield source and oracle. |
-| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+Open the exact intent and inspect state, error, execution ID, and fills before considering another submission.
 
-## Intent Publishes but Does Not Fill
+| Evidence | Decision |
+|---|---|
+| `RECEIVED` through `EXECUTING` | Check timestamps and in-flight work; do not create a duplicate to get a faster result |
+| Pricing timeout | Check service/feed recovery and whether another attempt is already active; keep price protections |
+| Slippage or liquidity rejection | Review the quote, configured budget, and source capacity; do not automatically loosen limits |
+| Hook transaction reverted | Inspect the transaction and authorization/proof path |
+| `COMPLETED` but balance is unexpected | Match the fill to the receipt and check token/share units before inferring the result |
 
-| Cause | What to do |
-|-------|------------|
-| OMS route failure | Inspect OMS events for planning or execution errors. |
-| Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
-| Slippage too tight | Review `max_slippage_bps` against current liquidity. |
-| Gas or nonce issue | Check executor wallet state and OMS event details. |
-| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+The [public deposit investigation](/operate/ui/intent-history#inspect-a-failed-deposit) includes a real pricing-timeout row and its empty fills response.
 
-## Useful Endpoints
+## Simulation does not answer the question
 
-```bash
-GET /api/v1/strategies/{id}
-PATCH /api/v1/strategies/{id}/state
-GET /api/v1/engine/shards/{vault_id}/state
-GET /api/v1/intents?strategy_id={id}
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills?strategy_id={id}
-```
+Check selected saved IDs, model inputs, and whether a result was loaded from cache. Unsupported inputs are a coverage limit, not a reason to remove a live safety condition. Follow the [run and review flow](/operate/ui/simulation#run-and-review).
 
-If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.
+For persistent failures, retain the exact ID/version, input context, error, and transaction evidence. Stop new risk-taking activity where appropriate and escalate. Archiving and cloning a failing strategy loses continuity and does not resolve the cause.
 
 ---
 
@@ -5178,104 +4788,43 @@ If the same strategy repeatedly fails after these checks, archive it, clone the 
 
 Source: https://docs.superform.xyz/operate/strategy/anti-patterns
 
-These patterns can pass validation but still create poor operator outcomes.
+## Depositing the whole idle balance
 
-## Unbounded Sizing
+Using `vault_free_assets` as a deposit size consumes the reserve. Using `vault_tvl` can request more than is idle. The [reserve-deposit exercise](/operate/strategy/quickstart) instead sizes only the excess above its target, with a zero floor.
 
-Bad:
+A reserve percentage is not a complete liquidity policy. Pending redemptions, other strategies, and source capacity may require additional caps and guards.
 
-```text
-vault_tvl
-```
+## Mixing assets, shares, and USD
 
-For a deposit, this can exceed idle assets. For a withdrawal, it can exceed target allocation.
+`vault_tvl` is raw underlying-asset units, not a dollar value. A deposit hook can consume assets while a redemption hook consumes shares. Check **Size expression** denomination and the first step's input; do not copy a formula across those paths unchanged.
 
-Better:
+Changing **Literal / Formatted** display does not rescale the saved expression. Check the normalized copy and readback instead.
 
-```text
-min(vault_free_assets, 0.05 * vault_tvl)
-```
+## Treating save validation as runtime proof
 
-Bound sizing to the assets actually available for the action.
+An expression can parse and type-check but divide by zero on a live snapshot. Prefer multiplication for ratio triggers; when division is needed, put the nonzero guard first in the same rule. Missing low-level values can read as zero, which does not establish feed readiness.
 
-## Division in Triggers
+## Assuming conviction counts consecutive ticks
 
-Bad:
+Conviction scores the current evaluation. **BINARY** does not wait for repeated passing ticks, and the other modes do not provide that guarantee either. Use a suitable trigger/target gap and cooldown rather than inventing persistence behavior.
 
-```text
-vault_free_assets / vault_tvl > 0.10
-```
+## Assuming priority locks shared balances
 
-This can fail validation on zero snapshots.
+The editor sets `max_concurrent` to one **per strategy**. Two strategies can still compete for the same idle assets. Lane order is not a portfolio-wide balance lock. Review overlapping targets, mutually exclusive rules, and combined sizing.
 
-Better:
+## Editing a running definition and blindly retrying
 
-```text
-vault_free_assets > 0.10 * vault_tvl
-```
+Stop new activity before a risk-changing update, reconcile in-flight work, then reload the latest version. Save inactive, reopen, and compare. A `409 Conflict` requires reconciliation, not substituting the newest version number into an old payload.
 
-## Overlapping Lane Strategies
+Neither **Save** nor stopping cancels an already submitted OMS transaction. Follow the [safe-update sequence](/operate/strategy/quickstart#update-an-existing-strategy).
 
-Two `DEPOSIT` strategies targeting the same source can both pass on the same tick and compete for idle assets.
+## Weakening protection to make a test pass
 
-Better:
+Do not remove liquidity guards for simulation, increase slippage solely to clear an error, or disable an emergency lock to exercise a strategy. Fix the cause or document the coverage gap. A synthetic simulation fill is not a real transaction.
 
-- Split targets by rule.
-- Use lane priority intentionally.
-- Add `max_concurrent: 1`.
-- Use mutually exclusive thresholds.
+## Treating read access as write permission
 
-## No Cooldown on Noisy Signals
-
-If a rule can oscillate around a boundary, it can create repeated small intents.
-
-Better:
-
-- Add a wider band between deposit and withdrawal thresholds.
-- Require repeated ticks with conviction settings where appropriate.
-- Set cooldowns for high-noise inputs.
-
-## Treating Emergency Exit as a Normal Strategy
-
-Emergency exits are incident controls. They create target-scoped locks and are operated from [Pause Operations](/operate/ui/pause).
-
-Better:
-
-- Keep normal withdrawal strategies focused on routine liquidity management.
-- Use emergency exit only when source-level risk justifies a drain.
-- Stop the emergency exit when the incident is resolved.
-
-## Authorizing a Target After the Strategy
-
-A strategy can save before the target is actually executable. It will not publish successfully without whitelist, oracle, merkle proof, and session-key readiness.
-
-Better:
-
-1. Whitelist the yield source.
-2. Pair the oracle.
-3. Generate, sync, and publish merkle proof coverage.
-4. Confirm OMS/session-key readiness.
-5. Move the strategy to `RUNNING`.
-
-## Stale Priority Assumptions
-
-Create and update requests do not own priority. Priority is server-managed through reorder.
-
-Better:
-
-- Create or update strategy content first.
-- Use canvas drag-to-reorder or `POST /api/v1/strategies/reorder`.
-- Always include every non-archived strategy in the lane when calling reorder.
-
-## Manager-Only Assumptions in Public Docs
-
-Public SuperVault detail pages are read-only. Do not document a public tab as though it can sign transactions.
-
-Better:
-
-- Use public detail pages for allocator inspection.
-- Send operator actions to the authenticated Operate surface.
-- Keep screenshots cropped so wallet state is not part of the documentation contract.
+Use public history for inspection. Manager actions belong in the authenticated Operate surface or a separately approved integration. Never export browser credentials to turn a read example into an automation script.
 
 ---
 
@@ -5283,67 +4832,36 @@ Better:
 
 Source: https://docs.superform.xyz/operate/ui/simulation
 
-Simulation sits between the Strategy Canvas and Intent History. Use it after authoring or reordering strategies, but before treating the live automation loop as production-ready.
+Save the [reserve-deposit strategy](/operate/strategy/quickstart) inactive before opening **Simulation** for that vault. Simulation uses persisted definitions and synthetic execution outcomes; it does not submit OMS intents or onchain transactions.
 
-The page is vault-scoped. Select the vault first, then choose whether to run a historical backtest or a forward-looking simulation against the current strategy set.
+## Run and review
 
-## Simulation Modes
+1. Choose **Backtest** and **From / To**, or **Look Ahead** and **Horizon (hours)**. Review **Seed Price (optional)** when applicable.
+2. Review selected strategies. Select only the saved strategy IDs you intend to compare; the initial selection can include other loaded definitions.
+3. Review **Execution Model**, including fill ratio, slippage, rejection/failure probabilities, and latency. These assumptions affect the result.
+4. With manager authority, choose **Run Backtest** or **Run Forward Simulation**.
+5. Inspect the charts, **Simulation Outcomes**, per-strategy results, and **Commands**. A run is useful only if its inputs and commands exercise the condition you meant to test.
 
-| Mode | Endpoint | Use It For |
-|------|----------|------------|
-| Backtest | `POST /api/v1/simulations/backtest` | Replay strategy behavior over historical vault and yield-source state. |
-| Forward simulation | `POST /api/v1/simulations/ahead` | Project how the current strategy set behaves from a chosen starting state. |
+Selected `CREATED` and `IDLE` definitions run **in the model**, without changing their production state. Do not activate a strategy to make it selectable. Unsaved editor changes are not part of the run.
 
-Backtests are best for validating trigger thresholds, action sizing, and lane ordering against known market history. Forward simulations are better for checking a proposed strategy set before the next keeper cycle.
+| Visible result | Decision |
+|---|---|
+| Deposit commands appear | Compare their input amounts and timing with the reserve rule; check modeled idle after each action |
+| No commands | Check selected IDs, time window, inputs, and whether idle ever exceeded the trigger; zero commands is not a pass by itself |
+| Unexpected action or source | Stop review and reopen the selected strategy's saved action plan |
+| Validation or unsupported-input error | Keep the error and fix the configuration or choose supported coverage; do not delete a production safety guard to force admission |
 
-## Operator Flow
+These are review expectations, not captured results from a completed reserve-strategy run. Backtests depend on available history and can use fallback seeding; a successful model result is not transaction preflight.
 
-1. Open **Operate → Simulation** with the target vault selected.
-2. Choose backtest or forward simulation.
-3. Select the strategy set, time range, and run parameters.
-4. Run the simulation.
-5. Review the chart, metrics, generated command timeline, and per-strategy results.
-6. Save the run if it should become comparison evidence for future edits.
+## Save and load
 
-Simulation does not execute OMS intents or submit onchain transactions. It is a decision-support surface for strategy changes.
+Choose **Save Simulation** to retain a named result, or **Discard** to clear it. Keep the strategy ID/version, rule, size, time range, and model settings with the comparison.
 
-## Saved Simulations
+**Existing simulation found. Running will load cached results.** means **Load Existing Result** retrieves a previous result rather than computing a fresh run. Confirm the loaded scope and assumptions before comparing it with an edit.
 
-Saved simulations let teams compare strategy edits over time without rerunning every scenario.
+For the reserve exercise, a deposit should leave the modeled reserve and the next unchanged snapshot should no longer trigger. Fees, price changes, competing strategies, and live settlement can change that outcome. After an approved activation, use [Intent History](/operate/ui/intent-history) to verify the real fill and idle balance.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/saved` | GET | List saved simulations for the current vault/user scope. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Load one saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Check whether an equivalent simulation already exists. |
-| `/api/v1/simulations/saved` | POST | Save a completed simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
-
-Use saved runs as review artifacts when changing thresholds, `size_expr` values, or lane order. They are especially useful when a strategy appears healthy in the canvas but produces too many small intents, creates oscillation, or misses a liquidity target.
-
-## What to Inspect
-
-| Surface | What to Check |
-|---------|---------------|
-| Trigger timing | Rules fire when the vault state actually crosses the intended threshold. |
-| Action size | `size_expr` produces positive, reasonable amounts and does not overshoot the intended reserve. |
-| Lane order | Higher-priority strategies win when multiple strategies are eligible. |
-| Command timeline | Generated actions match the expected deposit, withdrawal, claim, swap, bridge, or rebalance sequence. |
-| Error output | Validator, hook, merkle, or data gaps are visible before live execution. |
-
-After a simulation looks correct, move to [Intent History](/operate/ui/intent-history) to monitor real OMS execution.
-
-## API Reference
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation. |
-| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation. |
-| `/api/v1/simulations/saved` | GET | List saved simulations. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Read a saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs. |
-| `/api/v1/simulations/saved` | POST | Persist a simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+Endpoint details are in the [Strategy Engine API](/operate/api/strategy#simulations).
 
 ---
 
@@ -5351,61 +4869,88 @@ After a simulation looks correct, move to [Intent History](/operate/ui/intent-hi
 
 Source: https://docs.superform.xyz/operate/ui/intent-history
 
-![SuperformOS Intent History - read-only strategy execution ledger](/operate/images/screenshots/history.jpg)
+## Trace a deposit
 
-Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+Open the [Flagship USDC vault's deposit history on Base](https://os.superform.xyz/supervaults/base/0x11820afe50ea96851ee2bdbae329d97771e41ec6?istr=356a84b9-436c-4825-88e5-d41b44c240c0&tab=intent-history). Search for intent `45cd8617-8e56-4891-8129-75592b4fdb26` and expand its row.
 
-## What it shows
+This is a real same-asset deposit from **Deposit CBAssets (3a3c)**. The production strategy has its own allocation and redemption-buffer policy. It is **not** an execution of the teaching 10%/7.5% reserve strategy.
 
-| View | Use it for |
-|------|------------|
-| Intent list | Search and filter intents across vaults and strategies. |
-| Facets | Count by state, action, chain, vault, and strategy. |
-| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
-| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
-| OMS events | Audit message type, sequence, payload, and source. |
-| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+1. **Row:** confirm action **DEPOSIT**, state **COMPLETED**, and the intended strategy.
 
-## Lifecycle states
+   ![Public Base USDC history searched for intent 45cd8617-8e56-4891-8129-75592b4fdb26, showing one completed Deposit CBAssets row.](/operate/images/walkthrough/base-usdc-history-search.png)
 
-The explorer uses the OMS lifecycle vocabulary:
+2. **Detail:** compare the execution ID and lifecycle timestamps. This intent was created at `2026-10-20T18:50:30.029113Z` and completed at `2026-10-20T18:50:35.135081Z`.
 
-`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+   ![Expanded Base deposit with completed lifecycle, matching intent and strategy identifiers, and execution 46bf87f4-cd8e-469a-8d7e-55caf27f7d06. UI times are localized.](/operate/images/walkthrough/base-usdc-history-detail.png)
 
-## How it maps to OMS
+3. **Fill:** expand the fills section. One fill links to execution `46bf87f4-cd8e-469a-8d7e-55caf27f7d06` on chain `8453`.
 
-The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+   ![The same deposit's single Base onchain fill, transaction link, raw amounts and gas used of 610847. This panel is not a transaction receipt.](/operate/images/walkthrough/base-usdc-history-fill.png)
 
-- `intent_id`, `execution_id`, `correlation_id`
-- strategy and vault IDs
-- last event sequence and message type
-- ack/executing/completed/terminal timestamps
-- error code and message
-- total amount in/out
-- total gas used
-- fills count
-- signal snapshot and summary
-- source: `engine`, `nats`, or `backfill`
+4. **Transaction:** open the [Base transaction](https://basescan.org/tx/0xa232bef3669a714174ac9896809b6ef8ce02ae483c74fefb08a8412b01c81783). Its successful receipt and source Deposit event confirm the transaction-local deposit.
 
-## API mapping
+| Check | Observed on 20 October 2026 |
+|---|---|
+| Fill count | `fills_count: 1`, and one returned fill |
+| Gas | `610847` in both fill and receipt |
+| Assets deposited | `8028286428` raw USDC, or `8028.286428` USDC |
+| Source shares minted | `7789013823154140267606` raw shares |
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/intents` | Global intent search. |
-| `GET /api/v1/intents/facets` | Facet counts for filters. |
-| `GET /api/v1/intents/{intent_id}` | Intent detail. |
-| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
-| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
-| `GET /api/v1/fills` | Global fill search. |
+The fill's `token_in` is a zero-address placeholder; token identity here comes from the receipt's USDC transfer and Deposit event, not that placeholder. Completion establishes this execution, not the current idle reserve or the behavior of a different strategy version.
 
-## Common reads
+## Read the same record with public GET
 
-| Symptom | Check |
-|---------|-------|
-| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
-| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
-| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
-| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |
+No account, signature, or token is needed for these scoped reads:
+
+```bash
+curl --fail-with-body --get \
+  'https://os.superform.xyz/api/strategy/api/v1/intents' \
+  --data-urlencode 'vault_id=8453_0x11820afe50ea96851ee2bdbae329d97771e41ec6' \
+  --data-urlencode 'strategy_id=356a84b9-436c-4825-88e5-d41b44c240c0' \
+  --data-urlencode 'limit=50' --data-urlencode 'offset=0' \
+  --data-urlencode 'sort=created_at' --data-urlencode 'order=desc'
+```
+
+This returns an `intents` array. Newer activity can move the example off the first page; use the exact detail and fills reads to locate it directly:
+
+```bash
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/45cd8617-8e56-4891-8129-75592b4fdb26'
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/45cd8617-8e56-4891-8129-75592b4fdb26/fills'
+```
+
+Search, detail, and fills returned HTTP 200 during verification. Detail identifies the strategy, execution, state, and fill count; the `fills` array contains the transaction hash above. Match IDs rather than assuming the first row is your execution.
+
+The host prefix is `/api/strategy/api/v1`, not bare `/api/v1`. The corresponding `/events` request returned HTTP 401 with `no_session`: full events are not an anonymous read. Use authorized access where needed; do not extract browser credentials.
+
+## Inspect a failed deposit
+
+Search the same strategy for `69eb0ad1-f269-46e2-bf0b-a81db27da275`, created on 16 October 2026. Its detail returned **FAILED**, `FAIR_PRICE_TIMEOUT`, and:
+
+> The price check timed out while assessing the whole plan. Try again.
+
+![Failed Base deposit 69eb0ad1-f269-46e2-bf0b-a81db27da275 showing FAIR PRICE TIMEOUT, the exact error message, matching strategy and zero fills.](/operate/images/walkthrough/base-usdc-history-failed.png)
+
+Its `fills_count` is zero and its fills response is empty. Read it directly:
+
+```bash
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/69eb0ad1-f269-46e2-bf0b-a81db27da275'
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/69eb0ad1-f269-46e2-bf0b-a81db27da275/fills'
+```
+
+Before another attempt, check pricing-service recovery and whether another intent is already in flight. Do not remove price checks or increase slippage to clear a timeout.
+
+## Decide by stage
+
+- **No intent:** inspect lifecycle, input freshness, rule, size, cooldown, and locks. History does not record every false evaluation.
+- **Intent still in progress:** compare timestamps and execution status before retrying.
+- **Failed:** retain the exact error and check fills before taking recovery action.
+- **Completed:** follow the fill to the transaction and verify the intended balance change.
+
+See [Strategy Troubleshooting](/operate/strategy/troubleshooting) for the blocked-stage checklist.
 
 ---
 
@@ -6940,257 +6485,83 @@ Audit endpoints:
 
 Source: https://docs.superform.xyz/operate/api/strategy
 
-The Strategy Engine evaluates manager-defined rules and dispatches DeFiX intents to the OMS. It owns strategy lifecycle state, lane ordering, live shard state, intent history projections, and emergency locks.
+**Browser prefix:** `https://os.superform.xyz/api/strategy`. Routes below use upstream `/api/v1` paths. The browser BFF checks the session and vault role and forwards upstream credentials server-side. Direct service writes require a separately approved integration; this reference is not a token-acquisition or writer tutorial.
 
-**Base URL:** `https://strategy.superform.xyz`
+`vault_id` uses `chainId_vaultAddress`, such as the public Flagship USDC vault ID `8453_0x11820afe50ea96851ee2bdbae329d97771e41ec6`. Copy the returned ID instead of reconstructing it from a differently formatted identifier.
 
-**Auth:** `Authorization: Bearer <jwt>`
+## Access boundary
 
-<Note>
-`vault_id` uses `{chainId}:{vaultAddress}` format, for example `8453:0xdef...`. Erebor often uses separate `chain_id` and `vault_address` fields.
-</Note>
+| Surface | Access |
+|---|---|
+| Vault-scoped strategy/intent lists and intent facets | Anonymous only for verified public vaults and allowed filters |
+| Strategy detail, intent detail, intent fills, vault config | Anonymous only after resolving the owning public vault |
+| Intent events, global fills, engine status/shards | Not on the anonymous allowlist |
+| Create, update, lifecycle, reorder, and simulations | Manager authorization required |
+
+Unknown anonymous query keys can be rejected, and anonymous list limits are clamped to 100. A transaction hash or execution ID alone does not establish public vault scope. See [Authentication](/operate/authentication) and the tested [public GET workflow](/operate/ui/intent-history#read-the-same-record-with-public-get).
 
 ## Strategies
 
-### List Strategies
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/v1/strategies` | List; filter by `vault_id`, `kind`, `state`, `lane`, or `target_address`; paginate with `limit`/`offset` |
+| GET | `/api/v1/strategies/{id}` | Read one definition and version |
+| POST | `/api/v1/strategies` | Create a persisted `CREATED` definition |
+| PUT | `/api/v1/strategies/{id}` | Update with optimistic-concurrency `version` |
+| PATCH | `/api/v1/strategies/{id}/state` | Request `target_state` with the current `version`, subject to lifecycle policy |
+| DELETE | `/api/v1/strategies/{id}` | Archive |
+| POST | `/api/v1/strategies/reorder` | Set lane order |
 
-```bash
-GET /api/v1/strategies?vault_id={vault_id}&limit=50
-```
+Create fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`. Priority is not a create/update field. Reorder uses `vault_id`, `lane`, and `ordered_strategy_ids`, containing every non-archived `USER_DEFINED` strategy in that lane exactly once. Do not include `EMERGENCY_EXIT` definitions.
 
-Filters:
+Read back ID, version, state, rule, size, and plan after a write. On `409 Conflict`, reload and reconcile changes before retrying. Stop and reload before a risk-changing update; stopping does not cancel already submitted OMS transactions. See [safe updates](/operate/strategy/quickstart#update-an-existing-strategy).
 
-- `kind` — `USER_DEFINED` or `EMERGENCY_EXIT`.
-- `state` — lifecycle state.
-- `lane` — `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE`.
-- `target_address` — lowercased target yield source / route address.
-- `limit`, `offset`.
+### Action plan
 
-Emergency strategies are separated by `kind=EMERGENCY_EXIT`; normal editor flows use `USER_DEFINED` by default.
+`action_config` carries the action, numeric `size_expr`, objective, target, execution account, source type, and execution parameters. The current plan is `execution_params.plan.steps`, alongside `execution_params.strategy_address`. Each step specifies its hook, chain, target, arguments, amount-chaining behavior, and effects.
 
-### Create Strategy
+A legacy single-hook body containing only `execution_name` and `execution_address` is not a complete current plan. The editor builds the registry-backed configuration; [Action Config](/operate/strategy/action-config) explains what to select and inspect.
 
-```bash
-POST /api/v1/strategies
-```
+Size uses the **first step's input denomination**, not universally underlying assets. Static validation does not prove runtime arithmetic, data freshness, liquidity, or settlement. See [Strategy DSL](/operate/strategy/dsl).
 
-Required fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`.
+### Lifecycle and locks
 
-Priority is not part of create. Use the reorder endpoint after creation.
+`USER_DEFINED` strategies use the normal canvas. System-managed `EMERGENCY_EXIT` strategies belong to [Pause Operations](/operate/ui/pause).
 
-### Update Strategy
+| Method | Route | Purpose |
+|---|---|---|
+| GET / PATCH | `/api/v1/vaults/{vault_id}` | Vault engine configuration |
+| GET | `/api/v1/engine/status` | Engine status |
+| GET | `/api/v1/engine/shards/{vault_id}/state` | Live shard state, including emergency locks |
 
-```bash
-PUT /api/v1/strategies/{strategy_id}
-```
+A lock identifies `strategy_id`, `target_address`, `started_at`, and optional `reason`. It blocks user-defined publication to that target, not every strategy sharing a balance. Emergency exits do not bypass vault kill switches or rate limits.
 
-`version` is required for optimistic concurrency. A stale version returns `409 Conflict`.
+## Intent history
 
-Priority is not part of update. Use the reorder endpoint.
+| GET route | Purpose |
+|---|---|
+| `/api/v1/intents` | Search intent projections |
+| `/api/v1/intents/facets` | Filter counts |
+| `/api/v1/intents/{intent_id}` | Identity, lifecycle, summary, error, and fill count |
+| `/api/v1/intents/{intent_id}/fills` | Per-intent fills and transaction hashes |
+| `/api/v1/intents/{intent_id}/events` | Authorized OMS event audit |
+| `/api/v1/fills` | Authorized cross-intent fill search |
 
-### Transition State
+Search supports `vault_id`, `strategy_id`, action/state, chain, time ranges, and other filters according to access scope. Use repeated array keys, such as `state=FAILED&state=COMPLETED`, not bracketed `state[]`. The [public example](/operate/ui/intent-history) shows a verified filter set. Use the returned `next_cursor` for continued cursor pagination when present; do not assume an older intent remains on page one.
 
-```bash
-PATCH /api/v1/strategies/{strategy_id}/state
-{
-  "target_state": "RUNNING",
-  "version": 12
-}
-```
-
-Allowed target states include `IDLE`, `RUNNING`, `ARCHIVED`, and `ERROR` depending on current state and policy.
-
-For emergency exits, arm requests may include `emergency_arm_reason`.
-
-### Reorder Strategies
-
-```bash
-POST /api/v1/strategies/reorder
-{
-  "vault_id": "8453:0xdef...",
-  "lane": "DEPOSIT",
-  "ordered_strategy_ids": ["strategy-a", "strategy-b"]
-}
-```
-
-The backend atomically assigns priorities `1..N` inside the `(vault_id, lane)` partition.
-
-Rules:
-
-- Include every non-archived strategy in that lane exactly once.
-- Do not include archived strategies.
-- The lane must match the lane derived from each strategy action.
-- Reorder is the only priority persistence path.
-
-## Strategy Kinds
-
-| Kind | Description |
-|------|-------------|
-| `USER_DEFINED` | Manager-authored strategy visible in normal canvas flows |
-| `EMERGENCY_EXIT` | System-managed withdrawal strategy paired to one whitelisted yield source |
-
-`EMERGENCY_EXIT` strategies are controlled from [Pause Operations](/operate/ui/pause). They are read-only in normal strategy editing flows.
-
-## Vault Config and Shards
-
-```bash
-GET /api/v1/vaults/{vault_id}
-PATCH /api/v1/vaults/{vault_id}
-GET /api/v1/engine/status
-GET /api/v1/engine/shards/{vault_id}/state
-```
-
-Vault state includes kill-switch / rate-limit settings. Shard state includes live indicator values, active strategy state, yield-source allocations, and active `emergency_locks`.
-
-An emergency lock has:
-
-```json
-{
-  "strategy_id": "emergency-8453:0xdef-0xsource...",
-  "target_address": "0xsource...",
-  "started_at": "2026-05-09T14:21:00Z",
-  "reason": "Oracle anomaly"
-}
-```
-
-## Intent History
-
-The Strategy Engine maintains an operator-facing projection of OMS intent execution.
-
-### Search Intents
-
-```bash
-GET /api/v1/intents
-```
-
-Common filters:
-
-- `vault_id`
-- `strategy_id`
-- `action`
-- `state`
-- `chain_id`
-- `tx_hash`
-- `token_in`, `token_out`
-- created/completed time ranges
-- amount-in ranges
-- `error_code`
-- free-text search across `intent_id`, `execution_id`, `error_message`, and fill transaction hash
-
-Cursor pagination is preferred for large histories. Default sort is newest first.
-
-### Intent Facets
-
-```bash
-GET /api/v1/intents/facets
-```
-
-Returns counts by state, action, chain, vault, and strategy for filter UIs.
-
-### Events and Fills
-
-```bash
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills
-```
-
-Use events for lifecycle reconstruction and fills for mined transaction evidence.
-
-Intent rows may include nullable fields while OMS execution is still in flight. For example, `completed_at`, `terminal_at`, `gas_used_total`, and fill data may be `null` until execution events and receipts arrive.
+Match `intent_id`, `strategy_id`, and `execution_id` before interpreting a fill. Lifecycle timestamps and aggregate fields can be absent while execution is in flight. Raw amounts and placeholder token addresses must not be treated as a complete economic result; follow the transaction receipt.
 
 ## Simulations
 
-Simulation endpoints let operators test strategy behavior before live execution. They do not publish OMS intents or submit onchain transactions.
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/v1/simulations/backtest` | Historical model replay |
+| POST | `/api/v1/simulations/ahead` | Forward model run |
+| GET / POST | `/api/v1/simulations/saved` | List or save results |
+| GET / DELETE | `/api/v1/simulations/saved/{simulation_id}` | Read or delete a saved result |
+| POST | `/api/v1/simulations/saved/lookup` | Find an equivalent saved result |
 
-```bash
-POST /api/v1/simulations/backtest
-POST /api/v1/simulations/ahead
-GET /api/v1/simulations/saved
-GET /api/v1/simulations/saved/{simulation_id}
-POST /api/v1/simulations/saved/lookup
-POST /api/v1/simulations/saved
-DELETE /api/v1/simulations/saved/{simulation_id}
-```
-
-Use backtests for historical replay and forward simulations for current-state what-if analysis. See [Simulation](/operate/ui/simulation) for the operator flow.
-
-## Important Schemas
-
-### StrategyResponse
-
-Important fields:
-
-- `id`
-- `vault_id`
-- `name`
-- `version`
-- `state`
-- `kind`
-- `indicators`
-- `rules`
-- `action_config`
-- `priority`
-- `cooldown_ms`
-- `max_concurrent`
-
-### IntentLogEntry
-
-Important fields:
-
-- `intent_id`
-- `execution_id`
-- `strategy_id`
-- `vault_id`
-- `action`
-- `state`
-- `source`
-- `fills_count`
-- `last_event_seq`
-- lifecycle timestamps such as `acked_at`, `executing_at`, `completed_at`, `terminal_at`
-- `error_code`, `error_message`
-- `total_amount_in`, `total_amount_out`
-- `gas_used_total`
-
-### IntentFillEntry
-
-Important fields:
-
-- `fill_id`
-- `intent_id`
-- `execution_id`
-- `chain_id`
-- `tx_hash`
-- `amount_in`, `amount_out`
-- `token_in`, `token_out`
-- `gas_used`
-- `fill_time`
-- `venue`
-
-## Endpoint Inventory
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/strategies` | GET | List strategies |
-| `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | GET | Get strategy |
-| `/api/v1/strategies/{id}` | PUT | Update strategy |
-| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition state |
-| `/api/v1/strategies/reorder` | POST | Persist lane order |
-| `/api/v1/intents` | GET | Search intent projections |
-| `/api/v1/intents/facets` | GET | Intent facets |
-| `/api/v1/intents/{intent_id}/events` | GET | OMS event log |
-| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
-| `/api/v1/fills` | GET | Search fills |
-| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation |
-| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation |
-| `/api/v1/simulations/saved` | GET/POST | List or save simulations |
-| `/api/v1/simulations/saved/{simulation_id}` | GET/DELETE | Read or delete a saved simulation |
-| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs |
-| `/api/v1/vaults/{vault_id}` | GET/PATCH | Vault engine config and emergency locks |
-| `/api/v1/engine/status` | GET | Engine status |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state |
+Explicit persisted `strategy_ids` can include `CREATED` or `IDLE` definitions. They run in memory without changing production state. Results use synthetic outcomes, not OMS submission. Lookup can load a cached result; unsupported inputs can prevent admission. See [Simulation](/operate/ui/simulation) for run, save, and load controls.
 
 ---
 

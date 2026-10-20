@@ -1,195 +1,34 @@
 ---
-title: "Automating SuperformOS"
-description: "Programmatic auth, safety patterns, and an end-to-end example for automated vault operations."
+title: "Automation boundaries"
+description: "Build read-first operational workflows with explicit access and mutation controls."
 ---
 
-Automated operators monitor vault state 24/7, define rule-based strategies via the Strategy Canvas, pause services on anomaly detection, and execute operations without human latency. SuperVaults supports full programmatic control via the Erebor management API and the Strategy Engine.
+## Access before automation
 
-## Authentication for Automation
+Use public reads for public data. Authenticated writers require an approved integration endpoint, identity mechanism, vault/operation scope, credential lifecycle, and rate policy. A browser session or an upstream service schema is not a self-service automation credential. See [Authentication](/operate/authentication) and [API boundaries](/operate/api/overview).
 
-Generate a JWT without the browser:
+Keep infrastructure credentials server-side. Do not export browser cookies, reuse service keys in client code, or invent a wallet-signature exchange. Store approved integration credentials in the deployment's secret manager and redact them from logs.
 
-1. Sign an EIP-712 auth message with your wallet's private key
-2. Submit the signature to Dynamic.xyz to receive a JWT
-3. Pass the JWT as `Authorization: Bearer <jwt>` on all requests
+## Read before write
 
-Verify against Erebor:
+1. Fetch current chain/vault identity, definition version, lifecycle state, role, and relevant balances.
+2. Validate the proposed operation and its denomination. Check source whitelist, hook authorization, funding, session, freshness, and liquidity.
+3. Record the intended change and require the appropriate approval. Use an explicitly authorized isolated environment for tests; Base mainnet is not a sandbox.
+4. Apply only the approved mutation. Offchain Save, lifecycle transitions, service pause, and settings changes can have real consequences without a signature prompt.
+5. Read back the exact target. For signed changes, verify the receipt and resulting contract state as well as the API projection.
 
-<CodeGroup>
+On optimistic-version conflict, fetch and compare before retrying. On a timeout after a write, inspect current state before repeating it. Do not assume a timed-out request did nothing.
 
-```python Python
-import requests
+## Polling and failure policy
 
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
+- Set request timeouts and bounded backoff; separate authentication failure, permission denial, rate limiting, invalid request, and unavailable service.
+- Treat missing or stale telemetry as unknown. Never substitute a healthy balance, PPS lifetime, or success rate.
+- Paginate a fixed event window and persist a watermark with overlap and ID deduplication. Do not advance to local wall-clock time after one page.
+- Keep monitoring separate from remediation. An alert must not start a production strategy or submit a repayment unless that action has explicit authority and tested limits.
+- Preserve intent, execution, transaction, and configuration-version identifiers for reconciliation; redact credentials and confidential account metadata.
 
-headers = {"Authorization": f"Bearer {JWT}"}
+[Monitoring](/operate/automation/monitoring) defines observations and [Notifications and audit polling](/operate/automation/webhooks) explains delivery and cursor handling. [Pause and recovery](/operate/ui/pause) distinguishes service control, contract pause, and target-specific exit.
 
-resp = requests.get(f"{EREBOR_URL}/api/v1/auth/me", headers=headers)
-resp.raise_for_status()
-user = resp.json()
+## Verification ladder
 
-print(f"Authenticated as: {user['wallet_address']}")
-print(f"Vaults: {[v['vault_address'] for v in user['vaults']]}")
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-
-const headers = { Authorization: `Bearer ${JWT}` };
-
-const resp = await fetch(`${EREBOR_URL}/api/v1/auth/me`, { headers });
-if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
-
-const user = await resp.json();
-console.log(`Authenticated as: ${user.wallet_address}`);
-console.log(`Vaults: ${user.vaults.map((v: any) => v.vault_address)}`);
-```
-
-</CodeGroup>
-
-## Safety Principles
-
-<Warning>
-Automated scripts have full manager-level access. A bug can modify live vault configuration. Apply these safeguards before deploying.
-</Warning>
-
-### Test on Base First
-
-Base (chain ID: 8453) has lower gas costs and faster confirmation times. Validate all automation against Base vaults before Ethereum mainnet.
-
-### Rate Limit Polling
-
-| Data | Recommended Interval |
-|------|---------------------|
-| Vault state | 15s |
-| Analytics overview | 60s |
-| Service health | 30s |
-
-### Circuit Breakers
-
-Stop automation on consecutive API failures:
-
-```python
-MAX_CONSECUTIVE_ERRORS = 5
-consecutive_errors = 0
-
-def safe_api_call(fn):
-    global consecutive_errors
-    try:
-        result = fn()
-        consecutive_errors = 0
-        return result
-    except Exception as e:
-        consecutive_errors += 1
-        if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-            alert_and_stop(f"Circuit breaker: {consecutive_errors} consecutive errors")
-        raise
-```
-
-### Validate Before Writing
-
-Before pushing strategy or configuration changes:
-1. Fetch current state
-2. Validate the proposed change is meaningful
-3. Confirm yield sources are all still whitelisted
-4. Apply change
-5. Re-fetch and verify the change was applied
-
-## Example: Strategy-Driven Vault Monitoring
-
-Fetches vault state from Erebor and checks key health indicators:
-
-<CodeGroup>
-
-```python Python
-import requests
-import time
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-CHAIN_ID = 8453
-VAULT_ADDRESS = "0xYourVault..."
-
-headers = {"Authorization": f"Bearer {JWT}"}
-
-def get_vault_state():
-    resp = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT_ADDRESS}",
-        headers=headers
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-def check_vault_health():
-    vault = get_vault_state()
-
-    # Check PPS staleness
-    remaining = vault.get("remaining_staleness_time", 9999)
-    if remaining < 3600:
-        print(f"WARNING: PPS expires in {remaining // 60} minutes")
-
-    # Check pause status
-    if vault.get("is_paused"):
-        print("CRITICAL: Vault is paused onchain")
-
-    # Check TVL
-    tvl = vault.get("tvl_usd", 0)
-    print(f"TVL: ${tvl:,.0f} | PPS staleness: {remaining}s")
-
-if __name__ == "__main__":
-    while True:
-        try:
-            check_vault_health()
-        except Exception as e:
-            print(f"Error: {e}")
-        time.sleep(60)
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-const CHAIN_ID = 8453;
-const VAULT_ADDRESS = "0xYourVault...";
-const headers = { Authorization: `Bearer ${JWT}` };
-
-async function getVaultState() {
-  const resp = await fetch(
-    `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT_ADDRESS}`,
-    { headers }
-  );
-  if (!resp.ok) throw new Error(`Vault fetch failed: ${resp.status}`);
-  return resp.json();
-}
-
-async function checkVaultHealth() {
-  const vault = await getVaultState();
-
-  const remaining = vault.remaining_staleness_time ?? 9999;
-  if (remaining < 3600) {
-    console.warn(`WARNING: PPS expires in ${Math.floor(remaining / 60)} minutes`);
-  }
-
-  if (vault.is_paused) {
-    console.error("CRITICAL: Vault is paused onchain");
-  }
-
-  console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
-}
-
-setInterval(checkVaultHealth, 60_000);
-```
-
-</CodeGroup>
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Monitoring" icon="chart-line" href="/operate/automation/monitoring">
-    Poll vault state and build alert conditions.
-  </Card>
-  <Card title="Webhooks" icon="webhook" href="/operate/automation/webhooks">
-    Audit logs as interim event stream.
-  </Card>
-</CardGroup>
+Editor validation and backend static validation check definitions. Evaluator fixtures check logic and units. Supported model replay checks modeled behavior, not real OMS execution. Transaction preflight and receipt/position reconciliation are separate checks in an authorized environment. Keep these results distinct in automation logs and approval records.

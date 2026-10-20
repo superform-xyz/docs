@@ -1,0 +1,19 @@
+{
+  "name": "superform-docs-checks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:index": "node scripts/generate-llms.mjs",
+    "docs:index:check": "node scripts/generate-llms.mjs --check",
+    "docs:build": "node scripts/check-docs.mjs",
+    "test:docs": "node --test scripts/docs.test.mjs",
+    "docs:check": "npm run test:docs && npm run docs:index:check && npm run docs:build && npm run test:operate",
+    "test:operate": "python3 -B -m unittest discover -s scripts -p test_operate_validation.py -v && python3 -B scripts/validate_operate.py"
+  },
+  "devDependencies": {
+    "@mdx-js/mdx": "3.1.1",
+    "github-slugger": "2.0.0",
+    "yaml": "2.9.1",
+    "remark-gfm": "4.0.1"
+  }
+}

@@ -1,0 +1,50 @@
+---
+title: "Lifecycle, priority, and concurrency"
+description: "Separate stored strategy state from evaluation, intent publication, and settlement."
+---
+
+## Stored lifecycle
+
+| From | Allowed next states |
+|---|---|
+| `CREATED` | `IDLE`, `RUNNING` |
+| `IDLE` | `RUNNING`, `ARCHIVED` |
+| `RUNNING` | `IDLE`, `ERROR` |
+| `ERROR` | `IDLE` |
+| `ARCHIVED` | None |
+
+Only RUNNING strategies tick. Stop a running strategy to IDLE before archiving; RUNNING → ARCHIVED is not a direct transition. A kill switch can block intent issuance without changing the stored RUNNING state.
+
+Configuration updates and state changes use optimistic concurrency. Read the latest version before changing a definition. A stale-version conflict is a request to reconcile changes, not to retry the same payload indefinitely.
+
+## Publication gates
+
+A true rule is only one input to publication. Check feed readiness and indicator warmup, freshness of referenced position/PPS/liquidity/token-price data, positive integer size, conviction, risk limits, cooldown, occupied slots, kill switches, and target emergency locks.
+
+Intent History records published intent activity, not every false evaluation. An empty history does not tell you which gate blocked a strategy.
+
+## Priority is not a transaction scheduler
+
+Lower numeric priority is preferred within the engine's relevant signal group. Aggregation groups by chain, evaluation identity, and action, with deterministic tie breakers. Dragging cards changes priority in a lane; it does not create an execution dependency between cards.
+
+The reorder operation submits every non-archived strategy in the selected lane exactly once. Priorities are server-managed rather than set by create/update payloads. Read back the order after a change.
+
+Use a supported [execution plan](/operate/strategy/action-config) when a second hook must consume a first hook's result. Do not express borrow → deposit as two cards and assume their canvas order makes them atomic.
+
+## Cooldown and occupying slots
+
+`cooldown_ms` starts after **successful publication**, not after a fill or false evaluation. `60000` means sixty seconds. Terminal failure does not bypass an active cooldown or the other publication gates.
+
+`max_concurrent: 1` limits occupying intents for **one strategy**. Another strategy can still compete for the same idle token or collateral. Vault-level risk/concurrency controls are separate. Some asynchronous workflows release an occupying slot before their full settlement lifecycle finishes; inspect outstanding requests as well as the slot count.
+
+Signal epochs track direction and meaningful conviction changes. A published intent suppresses duplicate submissions while it occupies the current epoch. Terminal outcomes clear tracking/suppression; restart rehydration restores concurrency rather than stale epoch suppression. Do not build a durable unwind latch from these mechanics.
+
+## Pause and recovery
+
+Stopping a strategy prevents future evaluations. It does not repay debt, redeem source shares, remove collateral, or cancel every already-published intent. Before restarting, reconcile in-flight intents and actual balances. Otherwise a new evaluation can act on a state that is about to change.
+
+USER_DEFINED high-LTV rules are different from `EMERGENCY_EXIT`, which has special target locks and emergency handling. Use [Pause and recovery](/operate/ui/pause) for those controls and [Deleverage and unwind](/operate/playbooks/deleverage) for economic position reduction.
+
+## Source boundary
+
+Verified against [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd/internal/engine), `domain/strategy.go`, `shard_tick.go`, `shard_execute.go`, `aggregator.go`, and `intentprojection.go`. Tests cover cooldown, an occupied strategy slot, and stale-version conflict; no production state transitions were performed.

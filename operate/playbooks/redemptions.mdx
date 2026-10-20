@@ -1,0 +1,83 @@
+---
+title: "Fund redemption requests"
+description: "Translate queued underlying obligations into realizable liquidity without confusing debt repayment and fulfillment."
+---
+
+## Measure the obligation
+
+Read pending redemption value, idle underlying, outstanding source requests, and current position data before choosing a funding action. `vault_redeem_queue_value` and `vault_free_assets` are raw **vault-underlying** units. Request count describes workload, not value or age.
+
+A queue-shortfall trigger is:
+
+```json
+{"type": "EXPR", "expr": "vault_redeem_queue_count > 0 && vault_redeem_queue_value > vault_free_assets"}
+```
+
+The underlying budget required is:
+
+```text
+max(vault_redeem_queue_value - vault_free_assets, 0)
+```
+
+This is not a universal hook input. In a synthetic six-decimal underlying vault, queue value `10000000` and idle `3000000` imply a `7000000` raw-asset shortfall. When idle reaches `10000000`, the trigger is false and the budget is zero. If queue observations are missing, isolated evaluation sees zero; production monitoring must report unknown, not a healthy empty queue.
+
+## Match the funding route to the underlying
+
+| Position | Funding path |
+|---|---|
+| Idle underlying already sufficient | Confirm fulfillment readiness; do not redeem another source unnecessarily |
+| Liquid same-asset source | Redeem/withdraw with correct share/asset sizing, liquidity caps, and output destination |
+| Async source | Request, wait for settlement, claim, then reconcile available underlying |
+| Borrow-and-carry position | Recover debt tokens, repay as required, release collateral safely, and return underlying |
+
+The [superNVDA case study](/operate/playbooks/carry#captured-configuration) owes NVDAc underlying to depositors. Clearstar redemption produces USDC; if that USDC repays Aave debt, it has not itself funded the NVDAc queue. Collateral release is a separate, venue-constrained operation.
+
+The captured Q3/Q4 queue-funding profiles were CREATED, not RUNNING. Their existence is not evidence of an active automated queue-funding policy.
+
+## Avoid duplicate funding
+
+Review `vault_inflight_request_count`, the source's `ys_<identity>_inflight_request_count`, and actual outstanding intents/requests. A resource can be committed but not yet available. Per-strategy `max_concurrent: 1` is not a portfolio lock and some async flows release their occupying slot before final settlement.
+
+An operator should account for amounts already requested, assets already claimable, and expected arrival before approving another funding action. Do not treat outstanding-request count alone as the amount guaranteed to arrive.
+
+## Fund a same-asset queue
+
+For an immediate ERC-4626 source whose asset equals the vault underlying:
+
+1. Use **Strategy → Add redemption strategy**, select the configured source and `Redeem4626VaultHook`. The first step consumes shares; `owner` is the vault's execution strategy. Use the [complete capped conversion](/operate/playbooks/reserves#complete-same-asset-refill), replacing the 7.5% reserve shortfall with the queue shortfall above and replacing the reserve trigger with the queue trigger. Keep the positive PPS, holdings, and liquidity guards.
+2. Inspect the generated plan: action `WITHDRAWAL`, correct source/oracle, raw source-share size, assets returned to the execution strategy, and **no repayment or redeposit step**. Save inactive and compare the copied expression before seeking activation approval.
+3. In a USDC/Clearstar teaching case with the `7000000` raw-USDC shortfall above, PPS `1.25` and sufficient held/liquid shares and asset liquidity, the no-loss size is `5600000000000000000` raw shares. Expected receipt is `7000000` raw USDC at the strategy, raising idle to `10000000`. A cap or slippage can leave a shortfall: remeasure it rather than calling funding complete.
+4. Keep competing deployment strategies stopped within the approved scope until fulfillment has consumed or reserved the recovered funds. Reconcile source share burn and underlying receipt before proceeding.
+
+An async source is not interchangeable with this plan. Inspect its configured request/claim steps and pending request ID; wait for settlement and claim before treating expected assets as available. If no supported claim plan is configured, hand the authorized manager the source, request ID, raw shares/assets, claimability evidence, and required recipient. Do not substitute the synchronous hook.
+
+## Fund a carry queue
+
+For the dated NVDAc case, use the [M0/M1 residual-debt procedure](/operate/playbooks/deleverage#recover-residual-debt-after-disarming), then [MW zero-debt collateral release](/operate/playbooks/deleverage#release-zero-debt-collateral) **only when a full debt exit is the approved funding route**. USDC repayment reduces debt; MW returns 8-decimal NVDAc to execution strategy `0xef83abc641b98af01f0652e3af49a25d65c601a5`. Compare that strategy's NVDAc balance against the NVDAc queue, not against USDC proceeds.
+
+Q3/Q4 are alternative, inactive partial queue-funding profiles, not a shortcut around this sequence: Q3 consumes idle USDC; Q4 redeems Clearstar shares and repays from actual USDC output. They do not themselves withdraw NVDAc or fulfill depositors. Their captured gates require positive position values and LTV below 40%, with an idle split at `1000000` raw USDC, unlike AP/AF's one-raw-unit split. For a partial-debt funding route, the manager must review Q3/Q4 **and a separately preflighted collateral-release plan** against the current queue and venue capacity. Hand over the queue shortfall, requested NVDAc release, current block/position, Q3/Q4 IDs and versions, and all outstanding intents. Do not start those drafts merely because a queue exists.
+
+## Hand funded assets to fulfillment
+
+Funding is complete only when spendable **vault underlying is at the execution strategy contract**. The keeper reads that account's ERC-20 balance and uses `previewExactRedeemBatch` for controller-specific required assets; the queue estimate alone does not establish a batch is payable.
+
+1. Open **Pause → Pause Keepers** and inspect **Fulfill Redeem Requests** (`fulfill_redeem_requests`). If deliberately paused, obtain approval before resuming that service only. Resume is not a “fulfill now” command. If disabled/unavailable or permissions prevent control, hand the platform keeper operator the chain, vault, strategy, service name, and reason; do not manufacture a direct curator execution endpoint.
+2. Verify the fulfillment session permission and gas readiness, current per-vault redemption timelock, pending controllers, current PPS, and strategy underlying balance. The keeper filters requests whose timelock has not elapsed, previews exact amounts, and packs payable controllers within free liquidity. It can fulfill only a subset.
+3. Inspect keeper outcome and transaction evidence. `skipped_no_session_key`, `skipped_timelock_not_elapsed`, `skipped_insufficient_liquidity`, and `skipped_in_flight` require different responses; another funding withdrawal is not the remedy for all four. For a stalled funded queue, give the keeper operator the pending controller addresses/request times, observed balance/block, service status, and last batch transaction or skip reason. Ask them to check the pipeline/controller preview and executor readiness.
+4. After a successful fulfillment receipt, verify each affected controller's `pendingRedeemRequest(0, controller)` and claimable amount. Confirm the aggregate queue reduction and remaining idle balance independently. A depositor claim is a later transaction; claimability, not a zero strategy balance, is the fulfillment result.
+
+Stop duplicate funding while a prior withdrawal or keeper batch can still settle. Stop and escalate on stale input data, failed previews, reverting fulfillment, or receipt/balance mismatches. The keeper implementation is source-reviewed at [Erebor 70dcf51](https://github.com/superform-xyz/erebor/blob/70dcf5126ec5aed70481dba5993df50c5b42c2b5/internal/service/keeper/fulfill_redeem.go); no authenticated resume or fulfillment transaction was rehearsed.
+
+SuperVault user redemption is asynchronous: requesting redemption, funding/fulfilling it, and the depositor claiming assets are different stages. `maxWithdraw`/`maxRedeem` can remain zero until fulfillment; this does not mean the depositor has no pending request. See [integrator redemption lifecycle](/build/earn/redemption).
+
+## Escalation conditions
+
+- Queue value or age rises while source liquidity is constrained.
+- Source PPS, loan risk values, or token-price observations are stale or unavailable.
+- A repayment completed but the needed collateral cannot yet be released.
+- A source request remains pending beyond its expected settlement policy.
+- A transaction completed but underlying receipts or fulfillment cannot be reconciled.
+
+Use [Intent History](/operate/ui/intent-history) and the [diagnostic tree](/operate/strategy/troubleshooting). Pausing future deposits or borrowing can prevent new commitments, but pause does not itself fund or fulfill existing redemptions.
+
+The expression examples use the [pinned engine's accounting fields](/operate/strategy/variables). They were evaluated against synthetic snapshots, not submitted as production transactions.

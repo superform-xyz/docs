@@ -1,60 +1,38 @@
 ---
-title: "Operate API Overview"
-description: "How Erebor, Strategy Engine, and OMS fit together for SuperVault operations."
+title: "Access and API boundaries"
+description: "Separate public reads, browser sessions, approved integrations, and internal service contracts."
 ---
 
-Operate is the operator control plane for SuperVaults. Its APIs split by operational responsibility.
+## Service map
 
-## Services
+| Service | Owns | Browser BFF prefix |
+|---|---|---|
+| [Erebor](/operate/api/erebor) | Management, registries, settings, upkeep, users, hooks, notifications | `/api/erebor` |
+| [Strategy Engine](/operate/api/strategy) | Definitions, lifecycle, simulations, publication, intent projections | `/api/strategy` |
+| [OMS](/operate/api/oms) | Intent execution, events, session readiness and rotation | `/api/oms` |
 
-| Service | Owns | Docs |
-|---------|------|------|
-| Erebor | Vault reads, settings, registries, merkle config, upkeep, users, pause controls | [Erebor API](/operate/api/erebor) |
-| Strategy Engine | Strategy lifecycle, ordering, live shards, intent projections, emergency locks | [Strategy API](/operate/api/strategy) |
-| OMS | DeFiX intent execution, events, session-key readiness, hook transactions | [OMS API](/operate/api/oms) |
+Paths in service tables are **upstream paths**. For example, the browser routes upstream `/api/v1/strategies` through `/api/strategy/api/v1/strategies`. A service inventory does not mean every endpoint is publicly accessible or supported for a third-party writer.
 
-## Auth
+## Access classes
 
-Authenticated endpoints use Dynamic-issued bearer JWTs:
+| Class | Supported use | Boundary |
+|---|---|---|
+| Public read | Discovery, published artifacts, allowlisted vault-scoped Strategy GETs | Vault publicness, method, query, and ownership checks still apply |
+| Authenticated browser | Operate with the shared account session and selected vault role | BFF resolves session and performs role checks; upstream credentials remain server-side |
+| Approved programmatic integration | Explicitly onboarded service access | Obtain endpoint, credential mechanism, scope, rotation, and rate limits from the team |
+| Internal service/control surface | Engine telemetry, direct execution, infrastructure controls | Not a public curator API merely because a schema exists |
 
-```bash
-Authorization: Bearer <jwt>
-```
+Do not extract browser cookies or tokens to build an integration. [Authentication](/operate/authentication) describes the supported account flow. The public Persephone/Bundler APIs documented under [Build](/build) are separate from curator management access.
 
-Public endpoints, such as published merkle artifacts and public vault listings, do not require an operator JWT.
+## Read, mutate, prepare, execute
 
-## Prepare, Sign, Confirm
+- **Read:** inspect a definition, balance, session, or recorded event. Some GET endpoints prepare session transactions and are manager-gated, not passive public reads.
+- **Offchain mutation:** save a strategy, set redemption timing, change service control, or attach a notification channel. These can change behavior without a wallet transaction.
+- **Prepare:** return calldata for an authorized signer. Success does not mean protocol state changed.
+- **Execute and verify:** obtain the receipt for a signed transaction, then refresh the affected contract and API state. Do not confuse indexing success with the intended economic outcome.
 
-Most protocol mutations follow this model:
+## Identity and versions
 
-1. API prepares calldata.
-2. Wallet signs and submits the transaction.
-3. API / indexer reads resulting state or confirms a transaction hash.
+Use chain plus vault address as identity. Strategy/OMS vault IDs use `chainId_vaultAddress`; do not substitute the colon-separated tuple used by management pause-status queries. Strategy updates and lifecycle transitions carry optimistic versions. On conflict, fetch current state and review differences rather than blindly replaying a write.
 
-Do not treat a successful prepare request as a completed setting change.
-
-## Vault Identity and Listing State
-
-A vault can be:
-
-- Created onchain.
-- Indexed in Erebor.
-- Active / discoverable after upkeep is funded.
-- Visible and available in Superform distribution surfaces.
-
-Those are related but separate states. The dashboard setup flow tracks them together so operators do not route users into a half-configured vault.
-
-## Strategy Execution Flow
-
-1. Operator configures hooks and publishes merkle authorization.
-2. Operator whitelists yield sources and pairs oracles.
-3. Operator creates and orders strategies.
-4. Strategy Engine evaluates rules and submits DeFiX intents.
-5. OMS validates authorization and executes hook transactions.
-6. Events and fills flow back into intent history.
-
-## API Reference Pages
-
-- [Erebor API](/operate/api/erebor)
-- [Strategy Engine API](/operate/api/strategy)
-- [OMS API](/operate/api/oms)
+The management and OMS repositories contain OpenAPI contracts; the Strategy repository also contains its API schema. References here are source-reviewed inventories, not a guarantee that each service exposes a public, maintained schema URL or that a deployed binary matches the inspected source. Authenticated rehearsal and transaction execution require separate authorization.

@@ -5,13 +5,24 @@ description: "Create, order, execute, and inspect SuperVault strategies, intents
 
 The Strategy Engine evaluates manager-defined rules and dispatches DeFiX intents to the OMS. It owns strategy lifecycle state, lane ordering, live shard state, intent history projections, and emergency locks.
 
-**Base URL:** `https://strategy.superform.xyz`
-
-**Auth:** `Authorization: Bearer <jwt>`
+**Browser prefix:** `/api/strategy`. Tables below use upstream `/api/v1` paths. The browser BFF checks its session and vault roles and injects service credentials server-side. Direct service access is an approved integration, not a browser-token workflow.
 
 <Note>
-`vault_id` uses `{chainId}:{vaultAddress}` format, for example `8453:0xdef...`. Erebor often uses separate `chain_id` and `vault_address` fields.
+`vault_id` uses `chainId_vaultAddress`. The historical superNVDA example uses `8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`. Erebor often uses separate `chain_id` and `vault_address` fields; its pause-status tuple uses a colon and is a different contract.
 </Note>
+
+## Public versus authenticated access
+
+Anonymous BFF reads are restricted to verified public vaults and allowlisted GETs:
+
+| Read | Anonymous boundary |
+|---|---|
+| `/api/v1/strategies?vault_id=...` and `/api/v1/strategies/{id}` | One public vault; opaque IDs resolved to their owner |
+| `/api/v1/intents?vault_id=...` and `/api/v1/intents/facets?vault_id=...` | One public vault; scoped filters only |
+| `/api/v1/intents/{id}` and `/api/v1/intents/{id}/fills` | Intent must belong to a public vault |
+| `/api/v1/vaults/{vault_id}` | Public vault check |
+
+Intent `/events`, global `/fills`, engine status/shards, simulation, and writes are not anonymous allowlist entries. Unknown query keys are rejected; anonymous lists clamp `limit` to 100. `execution_id` and `tx_hash` filters are not anonymous scope proofs. Assigned view-only users can inspect authorized reads; writes and simulation require a manager role. See [Authentication](/operate/authentication).
 
 ## Strategies
 
@@ -39,6 +50,12 @@ POST /api/v1/strategies
 
 Required fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`.
 
+Create persists the definition in `CREATED`. Read back its ID, version, rules, action plan, and state before doing anything else. Creation is not a dry run or an automatic start.
+
+`action_config` requires `action`, `size_expr`, `objective`, `target_address`, `from_address`, `target_type`, and `execution_params`. The current plan lives at `execution_params.plan.steps` alongside `execution_params.strategy_address`. Each step carries its hook, chain, target, encoded arguments, parameters, amount-chaining flag, and effect metadata. Use the checked examples in [Sizing and execution plans](/operate/strategy/action-config), not a legacy single-hook body.
+
+Size is a positive integer in the first action's input denomination, not universally underlying assets. Static save validation does not prove runtime arithmetic, freshness, liquidity, or execution. See [Rules and expressions](/operate/strategy/dsl) and [Variables and units](/operate/strategy/variables).
+
 Priority is not part of create. Use the reorder endpoint after creation.
 
 ### Update Strategy
@@ -48,6 +65,8 @@ PUT /api/v1/strategies/{strategy_id}
 ```
 
 `version` is required for optimistic concurrency. A stale version returns `409 Conflict`.
+
+Fetch the latest definition and compare changes before retrying. A successful update must be followed by a readback; do not silently overwrite another operator's changes.
 
 Priority is not part of update. Use the reorder endpoint.
 
@@ -63,6 +82,8 @@ PATCH /api/v1/strategies/{strategy_id}/state
 
 Allowed target states include `IDLE`, `RUNNING`, `ARCHIVED`, and `ERROR` depending on current state and policy.
 
+The request above is a field illustration, not an activation command to copy. Fetch the real version and obtain activation approval. The complete lifecycle and transition restrictions are in [Lifecycle, priority and concurrency](/operate/strategy/lifecycle). Stopping does not cancel already submitted OMS transactions.
+
 For emergency exits, arm requests may include `emergency_arm_reason`.
 
 ### Reorder Strategies
@@ -70,7 +91,7 @@ For emergency exits, arm requests may include `emergency_arm_reason`.
 ```bash
 POST /api/v1/strategies/reorder
 {
-  "vault_id": "8453:0xdef...",
+  "vault_id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
   "lane": "DEPOSIT",
   "ordered_strategy_ids": ["strategy-a", "strategy-b"]
 }
@@ -78,10 +99,12 @@ POST /api/v1/strategies/reorder
 
 The backend atomically assigns priorities `1..N` inside the `(vault_id, lane)` partition.
 
+The JSON above illustrates ordering fields; `strategy-a` and `strategy-b` are labels, not real IDs or a runnable request. Retrieve the full current lane membership before a permitted reorder.
+
 Rules:
 
-- Include every non-archived strategy in that lane exactly once.
-- Do not include archived strategies.
+- Include every non-archived `USER_DEFINED` strategy in that lane exactly once.
+- Do not include archived or `EMERGENCY_EXIT` strategies.
 - The lane must match the lane derived from each strategy action.
 - Reorder is the only priority persistence path.
 
@@ -105,16 +128,7 @@ GET /api/v1/engine/shards/{vault_id}/state
 
 Vault state includes kill-switch / rate-limit settings. Shard state includes live indicator values, active strategy state, yield-source allocations, and active `emergency_locks`.
 
-An emergency lock has:
-
-```json
-{
-  "strategy_id": "emergency-8453:0xdef-0xsource...",
-  "target_address": "0xsource...",
-  "started_at": "2026-05-09T14:21:00Z",
-  "reason": "Oracle anomaly"
-}
-```
+An emergency lock identifies `strategy_id`, `target_address`, `started_at`, and optional `reason`. It blocks user-defined publication to that target, not every strategy sharing a token balance. Emergency exits do not bypass vault kill switches or rate limits.
 
 ## Intent History
 
@@ -135,12 +149,14 @@ Common filters:
 - `chain_id`
 - `tx_hash`
 - `token_in`, `token_out`
-- created/completed time ranges
+- `created_from`, `created_to`, `updated_from`, `updated_to` time ranges
 - amount-in ranges
 - `error_code`
 - free-text search across `intent_id`, `execution_id`, `error_message`, and fill transaction hash
 
 Cursor pagination is preferred for large histories. Default sort is newest first.
+
+For array filters, use repeated keys such as `state=FAILED&state=COMPLETED`, not bracketed `state[]` keys. Public reads have a narrower filter allowlist than authenticated upstream search. Follow [Intent History](/operate/ui/intent-history) for a real scoped trace and reconciliation.
 
 ### Intent Facets
 
@@ -158,7 +174,7 @@ GET /api/v1/intents/{intent_id}/fills
 GET /api/v1/fills
 ```
 
-Use events for lifecycle reconstruction and fills for mined transaction evidence.
+Use authenticated events for lifecycle reconstruction and fills to locate transaction evidence. A completed projection, zero aggregate output, or placeholder token address does not prove the resulting debt or asset balance.
 
 Intent rows may include nullable fields while OMS execution is still in flight. For example, `completed_at`, `terminal_at`, `gas_used_total`, and fill data may be `null` until execution events and receipts arrive.
 
@@ -177,6 +193,8 @@ DELETE /api/v1/simulations/saved/{simulation_id}
 ```
 
 Use backtests for historical replay and forward simulations for current-state what-if analysis. See [Simulation](/operate/ui/simulation) for the operator flow.
+
+Explicit persisted strategy IDs can be selected while their production state remains `CREATED` or `IDLE`. The simulator changes the loaded model configuration in memory, not the persisted lifecycle. Admission can reject unsupported liquidity inputs; admitted carry inputs do not establish a modeled repayment transition or post-action LTV. Results use synthetic outcomes rather than real OMS submission. Saved lookup can return cached results; label them as cached.
 
 ## Important Schemas
 

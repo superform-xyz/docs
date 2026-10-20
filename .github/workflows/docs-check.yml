@@ -1,0 +1,32 @@
+name: Documentation checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  public-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked public build dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      # Static run commands only: no PR/event input is interpolated into shell.
+      - name: Test MDX, safe frontmatter, indexes and portable Operate fixtures
+        run: npm run docs:check
+      # Private engine validation is explicitly local/optional; no service
+      # secrets, source downloads, production requests, or Mintlify fetches here.

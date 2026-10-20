@@ -1,99 +1,104 @@
 ---
-title: "Strategy DSL"
-description: "Rule-tree grammar, expression syntax, variables, and validation behavior for SuperVault strategies."
+title: "Rules and expressions"
+description: "Boolean trees, numeric sizing, static validation, and current-evaluation conviction."
 ---
 
-The Strategy DSL has two layers:
+## Rule trees
 
-- A boolean `rules` tree that decides whether a strategy should fire.
-- Numeric expressions, such as `size_expr`, that decide how much the strategy should send to OMS.
+Each strategy has one boolean `rules` tree. Action sizing is a separate numeric expression.
 
-## Rule Nodes
+| Node | Required fields | Evaluation |
+|---|---|---|
+| `EXPR` | `expr` | Boolean expression, not numeric truthiness |
+| `AND` | `children`, at least two | All pass; short-circuits in order |
+| `OR` | `children`, at least two | Any passes; short-circuits in order |
+| `NOT` | `children`, exactly one | Negates that child |
+| `VOTE` | `children`, `threshold` | Requires `ceil(threshold × child count)` passes |
 
-| Node | Meaning | Shape |
-|------|---------|-------|
-| `EXPR` | Evaluate one boolean expression. | `{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }` |
-| `AND` | All child rules must pass. | `{ "type": "AND", "children": [...] }` |
-| `OR` | At least one child rule must pass. | `{ "type": "OR", "children": [...] }` |
-| `NOT` | Negates one child rule. | `{ "type": "NOT", "child": {...} }` |
-| `VOTE` | N-of-M child rules must pass. | `{ "type": "VOTE", "threshold": 2, "children": [...] }` |
+`VOTE.threshold` is a fraction greater than zero and at most one. The following tree requires two of three children, not one:
 
-Use shallow rule trees when possible. Deep trees are harder to review and usually indicate that two strategy lanes should be split.
-
-## Expression Guidelines
-
-Expressions are evaluated by the Strategy Engine against the current vault snapshot.
-
-| Pattern | Use |
-|---------|-----|
-| `vault_free_assets > 0.10 * vault_tvl` | Prefer multiplication over division for ratios. |
-| `ys_0xabc_alloc > 0` | Target source has deployed allocation. |
-| `tick_age_seconds > 3600` | Enough time has elapsed since the last tick context. |
-| `vault_pps_stale == 0` | Only run when PPS data is fresh. |
-
-<Warning>
-Avoid division in rule expressions unless the denominator is guaranteed non-zero. The validator dry-runs expressions against an empty snapshot to catch type and parse errors, which means division by zero can reject a strategy before it is saved.
-</Warning>
-
-## Common Variables
-
-Variable availability depends on the datafeed and vault snapshot. Common families include:
-
-| Family | Examples | Meaning |
-|--------|----------|---------|
-| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply` | Vault-level balances and supply. |
-| PPS and timing | `vault_pps`, `vault_pps_age_seconds`, `vault_pps_stale` | Price-per-share state and freshness. |
-| Yield source state | `ys_<address>_alloc`, `ys_<address>_apy`, `ys_<address>_tvl` | Source-specific allocation, yield, and liquidity. |
-| Tick context | `tick_age_seconds`, `tick_block_number`, `tick_timestamp` | Engine tick timing and chain context. |
-| Indicators | Custom aliases configured in `indicators` | Derived signals such as moving averages or momentum scores. |
-
-Source-specific variables normalize addresses before aliasing. When in doubt, inspect the strategy validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
-
-## `size_expr`
-
-`action_config.size_expr` is numeric. It should evaluate to the amount OMS should act on, in the underlying asset's base units.
-
-Rules for sizing:
-
-- It must be positive at runtime.
-- It should be bounded by available liquidity or allocation.
-- It should match the action direction. Deposit sizes should not exceed idle assets; withdrawal sizes should not exceed source allocation.
-- It should be easy to audit from dashboard numbers.
-
-Examples:
-
-```text
-vault_free_assets
+```json
+{
+  "type": "VOTE",
+  "threshold": 0.5,
+  "children": [
+    {"type": "EXPR", "expr": "true"},
+    {"type": "EXPR", "expr": "false"},
+    {"type": "EXPR", "expr": "true"}
+  ]
+}
 ```
 
-```text
-min(vault_free_assets, 0.05 * vault_tvl)
+`NOT` has no singular `child` field:
+
+```json
+{"type": "NOT", "children": [{"type": "EXPR", "expr": "false"}]}
 ```
 
+## Expression grammar
+
+| Operation | Syntax |
+|---|---|
+| Arithmetic | `+`, `-`, `*`, `/`, parentheses, scientific notation such as `1e12` |
+| Comparison | `>`, `>=`, `<`, `<=`, `==`, `!=` |
+| Boolean | `&&`, `||`, `!`, `true`, `false` |
+| Numeric functions | `min(a, b)`, `max(a, b)`, `abs(a)`, `clamp01(a)` |
+
+`min` and `max` take exactly two arguments. Nest them for additional caps. There is no `floor`, `pow`, ternary operator, assignment, or arbitrary JavaScript execution.
+
 ```text
-0.075 * vault_tvl - vault_free_assets
+min(3, max(1, 2))
 ```
 
-## Conviction Config
+The result is `2`. Numbers use the engine's high-precision expression VM. Positive action sizes are truncated toward zero when converted to integer intent amounts; a positive fraction below one raw unit does not create a usable amount. See [Sizing and execution plans](/operate/strategy/action-config).
 
-`conviction_config` controls how many passing ticks are required before a strategy publishes.
+## Guard runtime division
 
-| Mode | Meaning |
-|------|---------|
-| `BINARY` | One passing evaluation is enough. |
-| Scored/graded modes | Require stronger or repeated signal confidence when enabled by the engine configuration. |
+Prefer multiplication for ratio triggers:
 
-Use `BINARY` for simple operational gates. Add stronger conviction only when false positives are expensive and delayed action is acceptable.
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl"
+}
+```
 
-## Validation Timing
+If division is necessary, place its guard first:
 
-The Strategy Engine validates at create and update time:
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets / vault_tvl > 0.10"
+}
+```
 
-- JSON shape and required fields.
-- Known action names and lane compatibility.
-- Expression parseability.
-- Basic dry-run evaluation.
-- Address formatting.
-- Version conflicts on update.
+Both are false for an empty snapshot without dividing by zero. `AND`/`OR` tree order matters for the same reason. Do not rely on a guard in a different strategy. A `VOTE` tree is not a substitute for an outer safety guard.
 
-Runtime checks still apply after validation. A strategy can save successfully and later fail to publish if it lacks a session key, merkle proof, active yield source, or executable OMS route.
+## Validation stages
+
+1. **Editor:** quantity, token metadata, action parameters, and expression checks help construct a payload. Copy the normalized engine expression to inspect its actual units.
+2. **Save:** backend shape, identifier-policy, and static-type checks reject malformed trees, unknown aliases, and boolean/numeric type mismatches. This is not an empty-snapshot execution.
+3. **Evaluation:** the compiled expression reads a snapshot. Missing identifiers read as zero at this low-level stage; division can still fail at runtime.
+4. **Publication:** readiness, freshness, positive integer size, conviction, risk, cooldown, and occupied-slot checks can prevent an intent even when its boolean rule is true.
+5. **Execution:** authorization, available balances, venue constraints, slippage, and transaction success are separate checks.
+
+A syntactically valid dynamic identifier is not proof that a feed supplies it. Use [Variables and units](/operate/strategy/variables), not invented aliases such as `vault_pps_stale`, `tick_age_seconds`, or `ys_<address>_alloc`.
+
+## Conviction
+
+```json
+{"mode": "BINARY"}
+```
+
+| Mode | Current-evaluation score |
+|---|---|
+| `BINARY` | One when the rule fires, zero otherwise |
+| `RULE_VOTE_RATIO` | Fraction of passing top-level children |
+| `INDICATOR_DISTANCE` | Absolute indicator distance divided by configured scale, clamped to the allowed range |
+| `EXPR` | Numeric expression clamped to `[0, 1]` |
+
+Minimum conviction can suppress publication. These modes do **not** count consecutive passing ticks. `RULE_VOTE_RATIO` evaluates top-level children independently, so a separate top-level guard does not protect another child's division while calculating that score. Make each child safe or use `BINARY` for a guarded trigger.
+
+## Source boundary
+
+Grammar, validation, and evaluation are pinned to [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd/internal/rule), including `compiler.go`, `evaluator.go`, and `identpolicy.go`. Local evaluator fixtures verify these examples; they do not establish deployed binary parity or transaction execution.

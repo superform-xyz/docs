@@ -1,66 +1,74 @@
 ---
-title: "Simulation"
-description: "Run backtests and forward simulations against current vault strategies before relying on automation."
+title: "Testing and simulation"
+description: "Separate editor checks, evaluator fixtures, model replay, preflight, and settlement evidence."
 ---
 
-Simulation sits between the Strategy Canvas and Intent History. Use it after authoring or reordering strategies, but before treating the live automation loop as production-ready.
+## Coverage before running
 
-The page is vault-scoped. Select the vault first, then choose whether to run a historical backtest or a forward-looking simulation against the current strategy set.
+| Mechanism | Establishes | Does not establish |
+|---|---|---|
+| Editor checks | Expression/quantity structure, required parameters, metadata readiness | Behavior on arbitrary snapshots or transaction success |
+| Backend save validation | Rule shape, allowed identifiers, static types, plan schema | Empty-snapshot execution or usable live data |
+| Actual evaluator fixtures | Rule and size behavior for supplied synthetic snapshots | Production freshness gates, balances, permissions, or fills |
+| Backtest / Look Ahead | Commands and modeled outcomes for supported inputs and selected definitions | A forked transaction or forecast of returns |
+| Separately authorized transaction preflight | Transaction feasibility under the chosen state/model | Future settlement or future liquidity |
+| Mined receipt and position reconciliation | What a particular execution actually changed | Success of future executions |
 
-## Simulation Modes
+## Current carry support
 
-| Mode | Endpoint | Use It For |
-|------|----------|------------|
-| Backtest | `POST /api/v1/simulations/backtest` | Replay strategy behavior over historical vault and yield-source state. |
-| Forward simulation | `POST /api/v1/simulations/ahead` | Project how the current strategy set behaves from a chosen starting state. |
+The [2026-10-19 superNVDA definitions](/operate/playbooks/carry#captured-configuration) were checked against the pinned simulator admission validator:
 
-Backtests are best for validating trigger thresholds, action sizing, and lane ordering against known market history. Forward simulations are better for checking a proposed strategy set before the next keeper cycle.
+| Definition / input | Admission | Economic coverage |
+|---|---|---|
+| AP0 / AF0 idle-USDC repayment | Admitted | No implemented Aave repayment feedback proving post-action LTV |
+| AP1 / AF2 redeem → repay | Rejected | Referenced asset/share liquidity is unsupported by replay |
+| Source allocation deposit/withdrawal | Model has allocation feedback | Synthetic outcomes, not venue execution |
+| REBALANCE action | No allocation delta from the publisher model | Not a loan-position transition |
+| Look Ahead token balances/prices | Seeded at initialization | Not automatically evolved as a complete debt/collateral market |
 
-## Operator Flow
+The exact AP1/AF2 admission error contains:
 
-1. Open **Operate → Simulation** with the target vault selected.
-2. Choose backtest or forward simulation.
-3. Select the strategy set, time range, and run parameters.
-4. Run the simulation.
-5. Review the chart, metrics, generated command timeline, and per-strategy results.
-6. Save the run if it should become comparison evidence for future edits.
+```text
+liquidity observations are not supported by simulation replay
+```
 
-Simulation does not execute OMS intents or submit onchain transactions. It is a decision-support surface for strategy changes.
+<Warning>
+Do not remove production liquidity guards to make a strategy simulate. AP0/AF0 admission is not proof that repayment, debt reduction, liquidation safety, or target LTV has been modeled.
+</Warning>
 
-## Saved Simulations
+## Run a supported model
 
-Saved simulations let teams compare strategy edits over time without rerunning every scenario.
+1. Open **Simulation** with the intended vault selected.
+2. Choose **Backtest** with **From** / **To**, or **Look Ahead** with **Horizon (hours)** and **Seed Price (optional)**. A blank seed uses live price where available.
+3. Select only the intended persisted strategy IDs. The UI initially selects loaded strategies; review this rather than assuming isolation.
+4. Inspect **Execution Model**: **Fill Ratio**, **Slippage (bps)**, **Reject Prob**, **Fail Prob**, **Min Latency (ms)**, and **Max Latency (ms)**.
+5. Choose **Run Backtest** or **Run Forward Simulation**. Running requires manager write authority in the inspected UI.
+6. Review charts, **Simulation Outcomes**, per-strategy breakdowns, and **Commands**. Compare exact trigger boundaries and integer amounts, not only totals.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/saved` | GET | List saved simulations for the current vault/user scope. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Load one saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Check whether an equivalent simulation already exists. |
-| `/api/v1/simulations/saved` | POST | Save a completed simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+Requests select persisted `strategy_ids`; they do not accept an arbitrary unsaved rule and snapshot. The backend loads selected CREATED/IDLE configurations into RUNNING in memory for the simulation, without updating their production lifecycle. Do not start a live strategy merely to make it selectable.
 
-Use saved runs as review artifacts when changing thresholds, `size_expr` values, or lane order. They are especially useful when a strategy appears healthy in the canvas but produces too many small intents, creates oscillation, or misses a liquidity target.
+Backtests depend on available history, source coverage, and model seeding. PPS fallback seeding can be used when history is absent. Record the data window and assumptions alongside the result. Zero commands is not itself proof of either correctness or failure.
 
-## What to Inspect
+## Saved results and caching
 
-| Surface | What to Check |
-|---------|---------------|
-| Trigger timing | Rules fire when the vault state actually crosses the intended threshold. |
-| Action size | `size_expr` produces positive, reasonable amounts and does not overshoot the intended reserve. |
-| Lane order | Higher-priority strategies win when multiple strategies are eligible. |
-| Command timeline | Generated actions match the expected deposit, withdrawal, claim, swap, bridge, or rebalance sequence. |
-| Error output | Validator, hook, merkle, or data gaps are visible before live execution. |
+Name the result and choose **Save Simulation** to retain it; **Discard** clears the current result. If a matching run exists, the UI says **Existing simulation found. Running will load cached results.** and offers **Load Existing Result**. That is not a fresh computation.
 
-After a simulation looks correct, move to [Intent History](/operate/ui/intent-history) to monitor real OMS execution.
+When comparing an edit, retain strategy IDs/versions, rules, sizes, selected scope, input range, execution-model settings, and whether the result was cached. A saved result is evidence for that configuration and model, not the current live vault.
 
-## API Reference
+## Evaluator test matrix
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation. |
-| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation. |
-| `/api/v1/simulations/saved` | GET | List saved simulations. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Read a saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs. |
-| `/api/v1/simulations/saved` | POST | Persist a simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+Before activation, test at least:
+
+- Normal state and exact trigger boundaries.
+- Missing inputs, zero debt/collateral, zero PPS, and zero exit liquidity.
+- Insufficient idle funds, one-raw-unit dust, and positive fractions truncated to zero.
+- Asset/share conversion and the intended post-action reserve or LTV.
+- A partial unwind that disarms while debt remains.
+- Cooldown, occupied concurrency slot, and stale-version update.
+- Unsupported simulation inputs without deleting their guards.
+
+Local documentation fixtures invoke the actual pinned engine compiler/evaluator and plan validator. They are not a browser test endpoint. See [Troubleshooting](/operate/strategy/troubleshooting) when a strategy saves but does not publish or settle.
+
+## Source boundary
+
+Reviewed [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd/internal/sim): `strategy_validation.go`, `publisher.go`, and `internal/api/sim_util.go`; [UI b782f60](https://github.com/superform-xyz/monorepo/tree/b782f601be8c29b5258fc9a2ed02f71209ee5c37/apps/superman/src/domains/simulation). No authenticated deployed simulation, production execution, or forked transaction was performed for this release.

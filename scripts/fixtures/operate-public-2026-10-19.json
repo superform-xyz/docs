@@ -1,0 +1,582 @@
+{
+  "provenance": {
+    "captured_at_utc": "2026-10-19T21:22:55Z",
+    "source_url": "https://os.superform.xyz/api/strategy/api/v1/strategies?vault_id=8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc&limit=50&offset=0&kind=USER_DEFINED&state=CREATED&state=IDLE&state=RUNNING&state=ERROR",
+    "method": "GET",
+    "authentication": "none",
+    "source_record_count": 27,
+    "engine_revision": "fc50b3ca5f1d66294e7476b1ff1088e92b126fbd",
+    "strategy_fields": [
+      "id",
+      "name",
+      "state",
+      "version",
+      "vault_id",
+      "kind",
+      "rules",
+      "action_config",
+      "conviction_config",
+      "cooldown_ms",
+      "max_concurrent",
+      "risk_params"
+    ],
+    "borrow_strategy_id": "5d3e2a1b-8f5a-4f68-b1a4-ce0e6069a2ad",
+    "reference_definition_fields": ["id", "state", "version"],
+    "reference_label_note": "Labels are documentation labels; ID/state/version are projected from the same public capture.",
+    "borrow_fields": [
+      "action_config"
+    ],
+    "scope": "Historical public configuration projection only; not live policy or execution evidence."
+  },
+  "strategies": [
+    {
+      "id": "5db21999-c05c-4af3-8824-9f7ecc746576",
+      "name": "AP0 - Automatic partial: idle USDC (UID: 20261014_1432)",
+      "state": "RUNNING",
+      "version": 6,
+      "vault_id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "kind": "USER_DEFINED",
+      "rules": {
+        "children": [
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.52 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 < 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount >= 1",
+            "type": "EXPR"
+          }
+        ],
+        "type": "AND"
+      },
+      "action_config": {
+        "action": "REBALANCE",
+        "execution_params": {
+          "plan": {
+            "steps": [
+              {
+                "chain_id": 8453,
+                "effect_consumes": "TOKEN",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "SPENT",
+                "effect_produces": "NONE",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 2,
+                "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+                "family": "LOAN",
+                "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+                "hook_name": "AaveV4RepayHookV2",
+                "params": {
+                  "borrowReserveId": "7",
+                  "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+                  "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                  "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+                  "supplyReserveId": "5",
+                  "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+                  "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+                },
+                "phase": "EXECUTE",
+                "position_effects": [
+                  {
+                    "change": "DECREASE",
+                    "kind": "DEBT"
+                  }
+                ],
+                "use_prev_hook_amount": false,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              }
+            ]
+          },
+          "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
+        },
+        "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "max_duration_seconds": 60,
+        "max_slippage_bps": 2,
+        "objective": "BALANCED",
+        "size_expr": "min ( token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , ( min ( ( 1.001 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount + 1 ) , 1.001 * ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount * max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 - 0.50 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 , 0 ) / position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 ) + 1 ) ) )",
+        "target_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "target_type": "VAULT"
+      },
+      "conviction_config": {
+        "distance_scale": 1,
+        "distance_threshold": 0,
+        "min_conviction": 0,
+        "mode": "BINARY"
+      },
+      "cooldown_ms": 60000,
+      "max_concurrent": 1,
+      "risk_params": {
+        "breaker_half_open_probes": 3,
+        "breaker_max_backoff_seconds": 3600,
+        "breaker_reset_seconds": 60,
+        "eval_max_staleness_ms": 0,
+        "max_consecutive_failures": 5,
+        "max_intents_per_minute": 0
+      }
+    },
+    {
+      "id": "a8d25935-9f6d-4046-a87a-82048af0cc1c",
+      "name": "AP1 — Automatic partial: capped cbAssets repay (UID: 20261014_1435)",
+      "state": "RUNNING",
+      "version": 21,
+      "vault_id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "kind": "USER_DEFINED",
+      "rules": {
+        "children": [
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.52 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 < 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount < 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps * 0.9998 >= 1e12",
+            "type": "EXPR"
+          }
+        ],
+        "type": "AND"
+      },
+      "action_config": {
+        "action": "WITHDRAWAL",
+        "execution_params": {
+          "plan": {
+            "steps": [
+              {
+                "chain_id": 8453,
+                "effect_consumes": "SHARES",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "RECEIVED",
+                "effect_produces": "ASSETS",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 1,
+                "encoded_args": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3cef83abc641b98af01f0652e3af49a25d65c601a5",
+                "family": "ERC4626",
+                "hook_address": "0x95C61fE513885E23Bd7DA1f27B1ad9B16AE29f81",
+                "hook_name": "Redeem4626VaultHook",
+                "params": {
+                  "owner": "0xef83abc641b98af01f0652e3af49a25d65c601a5",
+                  "yieldSource": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+                  "yieldSourceOracleId": "0x2412A5d7261995b49D1F3a731F8452641B916994"
+                },
+                "phase": "EXECUTE",
+                "use_prev_hook_amount": false,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              },
+              {
+                "chain_id": 8453,
+                "effect_consumes": "TOKEN",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "SPENT",
+                "effect_produces": "NONE",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 2,
+                "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+                "family": "LOAN",
+                "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+                "hook_name": "AaveV4RepayHookV2",
+                "params": {
+                  "borrowReserveId": "7",
+                  "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+                  "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                  "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+                  "supplyReserveId": "5",
+                  "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+                  "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+                },
+                "phase": "EXECUTE",
+                "position_effects": [
+                  {
+                    "change": "DECREASE",
+                    "kind": "DEBT"
+                  }
+                ],
+                "use_prev_hook_amount": true,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              }
+            ]
+          },
+          "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
+        },
+        "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "max_duration_seconds": 60,
+        "max_slippage_bps": 2,
+        "objective": "BALANCED",
+        "size_expr": "min ( ( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) , ( ( min ( ( 1.001 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount + 1 ) , 1.001 * ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount * max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 - 0.50 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 , 0 ) / position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 ) + 1 ) ) * 1e12 / ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps * 0.9998 ) + 1 ) )",
+        "target_address": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+        "target_type": "ERC4626"
+      },
+      "conviction_config": {
+        "distance_scale": 1,
+        "distance_threshold": 0,
+        "min_conviction": 0,
+        "mode": "BINARY"
+      },
+      "cooldown_ms": 60000,
+      "max_concurrent": 1,
+      "risk_params": {
+        "breaker_half_open_probes": 3,
+        "breaker_max_backoff_seconds": 3600,
+        "breaker_reset_seconds": 60,
+        "eval_max_staleness_ms": 0,
+        "max_consecutive_failures": 5,
+        "max_intents_per_minute": 0
+      }
+    },
+    {
+      "id": "7166275b-5f8d-4b61-b79e-bddca00f3884",
+      "name": "AF0 — Automatic high-LTV: idle USDC (20261014_1455)",
+      "state": "RUNNING",
+      "version": 8,
+      "vault_id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "kind": "USER_DEFINED",
+      "rules": {
+        "children": [
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount >= 1",
+            "type": "EXPR"
+          }
+        ],
+        "type": "AND"
+      },
+      "action_config": {
+        "action": "REBALANCE",
+        "execution_params": {
+          "plan": {
+            "steps": [
+              {
+                "chain_id": 8453,
+                "effect_consumes": "TOKEN",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "SPENT",
+                "effect_produces": "NONE",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 2,
+                "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+                "family": "LOAN",
+                "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+                "hook_name": "AaveV4RepayHookV2",
+                "params": {
+                  "borrowReserveId": "7",
+                  "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+                  "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                  "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+                  "supplyReserveId": "5",
+                  "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+                  "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+                },
+                "phase": "EXECUTE",
+                "position_effects": [
+                  {
+                    "change": "DECREASE",
+                    "kind": "DEBT"
+                  }
+                ],
+                "use_prev_hook_amount": false,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              }
+            ]
+          },
+          "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
+        },
+        "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "max_duration_seconds": 60,
+        "max_slippage_bps": 2,
+        "objective": "BALANCED",
+        "size_expr": "min ( token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , ( 1.001 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount + 1 ) )",
+        "target_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "target_type": "VAULT"
+      },
+      "conviction_config": {
+        "distance_scale": 1,
+        "distance_threshold": 0,
+        "min_conviction": 0,
+        "mode": "BINARY"
+      },
+      "cooldown_ms": 60000,
+      "max_concurrent": 1,
+      "risk_params": {
+        "breaker_half_open_probes": 3,
+        "breaker_max_backoff_seconds": 3600,
+        "breaker_reset_seconds": 60,
+        "eval_max_staleness_ms": 0,
+        "max_consecutive_failures": 5,
+        "max_intents_per_minute": 0
+      }
+    },
+    {
+      "id": "b72f1db5-0956-4b9e-bb5a-e80591e34699",
+      "name": "AF2 — high LTV, capped cbAssets repayment (UID: 20261014_1832)",
+      "state": "RUNNING",
+      "version": 19,
+      "vault_id": "8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+      "kind": "USER_DEFINED",
+      "rules": {
+        "children": [
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18",
+            "type": "EXPR"
+          },
+          {
+            "expr": "token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount < 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps > 0",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) >= 1",
+            "type": "EXPR"
+          },
+          {
+            "expr": "( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps * 0.9998 >= 1e12",
+            "type": "EXPR"
+          }
+        ],
+        "type": "AND"
+      },
+      "action_config": {
+        "action": "WITHDRAWAL",
+        "execution_params": {
+          "plan": {
+            "steps": [
+              {
+                "chain_id": 8453,
+                "effect_consumes": "SHARES",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "RECEIVED",
+                "effect_produces": "ASSETS",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 1,
+                "encoded_args": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3cef83abc641b98af01f0652e3af49a25d65c601a5",
+                "family": "ERC4626",
+                "hook_address": "0x95C61fE513885E23Bd7DA1f27B1ad9B16AE29f81",
+                "hook_name": "Redeem4626VaultHook",
+                "params": {
+                  "owner": "0xef83abc641b98af01f0652e3af49a25d65c601a5",
+                  "yieldSource": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+                  "yieldSourceOracleId": "0x2412A5d7261995b49D1F3a731F8452641B916994"
+                },
+                "phase": "EXECUTE",
+                "use_prev_hook_amount": false,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              },
+              {
+                "chain_id": 8453,
+                "effect_consumes": "TOKEN",
+                "effect_latency": "IMMEDIATE",
+                "effect_out_amount": "SPENT",
+                "effect_produces": "NONE",
+                "effect_reversible": "NONE",
+                "effect_schema_version": 2,
+                "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+                "family": "LOAN",
+                "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+                "hook_name": "AaveV4RepayHookV2",
+                "params": {
+                  "borrowReserveId": "7",
+                  "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+                  "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                  "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+                  "supplyReserveId": "5",
+                  "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+                  "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+                },
+                "phase": "EXECUTE",
+                "position_effects": [
+                  {
+                    "change": "DECREASE",
+                    "kind": "DEBT"
+                  }
+                ],
+                "use_prev_hook_amount": true,
+                "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+              }
+            ]
+          },
+          "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
+        },
+        "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "max_duration_seconds": 60,
+        "max_slippage_bps": 2,
+        "objective": "BALANCED",
+        "size_expr": "min ( ( min ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares , min ( 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares , 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps ) ) ) , ( ( 1.001 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount + 1 ) * 1e12 / ( ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps * 0.9998 ) + 1 ) )",
+        "target_address": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+        "target_type": "ERC4626"
+      },
+      "conviction_config": {
+        "distance_scale": 1,
+        "distance_threshold": 0,
+        "min_conviction": 0,
+        "mode": "BINARY"
+      },
+      "cooldown_ms": 60000,
+      "max_concurrent": 1,
+      "risk_params": {
+        "breaker_half_open_probes": 3,
+        "breaker_max_backoff_seconds": 3600,
+        "breaker_reset_seconds": 60,
+        "eval_max_staleness_ms": 0,
+        "max_consecutive_failures": 5,
+        "max_intents_per_minute": 0
+      }
+    }
+  ],
+  "reference_definitions": [
+    {"label": "Deposit USDC in cbAssets", "id": "556d695e-bf66-4cdc-863a-5542c67a305e", "state": "RUNNING", "version": 14},
+    {"label": "Supply excess NVDAc", "id": "81dc231f-ae5a-4c3c-8eb1-f5b9ec47aa21", "state": "RUNNING", "version": 15},
+    {"label": "Borrow fixed amount and deposit", "id": "5d3e2a1b-8f5a-4f68-b1a4-ce0e6069a2ad", "state": "IDLE", "version": 46},
+    {"label": "M0", "id": "bbf0310b-bea9-4291-a0a1-b8cfbffc523d", "state": "CREATED", "version": 1},
+    {"label": "M1", "id": "3cef534b-d6f6-49ab-9925-c69483bf2ea3", "state": "CREATED", "version": 15},
+    {"label": "MW", "id": "4f7bcb58-e86d-4983-922b-fc3b0b9920a7", "state": "IDLE", "version": 3},
+    {"label": "Q3", "id": "161c658a-5466-48a6-8fc3-fd3d51e91d71", "state": "CREATED", "version": 1},
+    {"label": "Q4", "id": "1cf1fc20-46a1-4703-8eff-45702ae32cfc", "state": "CREATED", "version": 5}
+  ],
+  "borrow_action_config": {
+    "action": "DEPOSIT",
+    "execution_params": {
+      "plan": {
+        "steps": [
+          {
+            "chain_id": 8453,
+            "effect_consumes": "NONE",
+            "effect_latency": "IMMEDIATE",
+            "effect_out_amount": "RECEIVED",
+            "effect_produces": "TOKEN",
+            "effect_reversible": "NONE",
+            "effect_schema_version": 2,
+            "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+            "family": "LOAN",
+            "hook_address": "0xa8f63E4B3bB2b5204ad0C4a2a6a15B0F11729ed8",
+            "hook_name": "AaveV4BorrowHookV2",
+            "params": {
+              "borrowReserveId": "7",
+              "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+              "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+              "supplyReserveId": "5",
+              "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+              "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+            },
+            "phase": "EXECUTE",
+            "position_effects": [
+              {
+                "change": "INCREASE",
+                "kind": "DEBT"
+              }
+            ],
+            "use_prev_hook_amount": false,
+            "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+          },
+          {
+            "chain_id": 8453,
+            "effect_consumes": "ASSETS",
+            "effect_latency": "IMMEDIATE",
+            "effect_out_amount": "RECEIVED",
+            "effect_produces": "SHARES",
+            "effect_reversible": "NONE",
+            "effect_schema_version": 1,
+            "encoded_args": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "family": "ERC4626",
+            "hook_address": "0xba687c9D5113a3B2692fd87b0F389dD5fF402808",
+            "hook_name": "ApproveAndDeposit4626VaultHook",
+            "params": {
+              "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+              "yieldSource": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+              "yieldSourceOracleId": "0x2412A5d7261995b49D1F3a731F8452641B916994"
+            },
+            "phase": "EXECUTE",
+            "use_prev_hook_amount": true,
+            "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+          }
+        ]
+      },
+      "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
+    },
+    "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+    "max_duration_seconds": 60,
+    "max_slippage_bps": 2,
+    "objective": "BALANCED",
+    "size_expr": "10000000000",
+    "target_address": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+    "target_type": "ERC4626"
+  }
+}

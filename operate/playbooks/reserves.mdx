@@ -1,0 +1,91 @@
+---
+title: "Manage an idle reserve"
+description: "Use a trigger band and target-preserving sizes without confusing assets and shares."
+---
+
+## Define the reserve objective
+
+For a single-source vault whose underlying matches the source asset:
+
+- Deposit when idle assets exceed 10% of total assets.
+- Refill when idle assets fall below 5%.
+- Size either action toward a 7.5% idle target.
+
+The gap between triggers prevents immediate direction reversal around the target. It is not a promise that prices, fees, or concurrent actions cannot move the reserve outside the band.
+
+`vault_tvl`, `vault_free_assets`, and `vault_redeem_queue_value` use vault-underlying base units. `vault_tvl` is not the dashboard's USD TVL. For a multi-asset carry vault, idle debt tokens need their own `token_<address>_amount` alias.
+
+## Deposit excess only
+
+```json
+{"type": "EXPR", "expr": "vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl"}
+```
+
+```text
+max(vault_free_assets - 75 * vault_tvl / 1000, 0)
+```
+
+Use a deposit hook that consumes raw underlying assets. With synthetic total assets `100000000` and idle `20000000`, the expression deposits `12500000` and leaves `7500000`. The resulting trigger is false. Depositing all idle funds would contradict the reserve objective.
+
+## Refill the shortfall
+
+```json
+{"type": "EXPR", "expr": "vault_tvl > 0 && vault_free_assets < 0.05 * vault_tvl"}
+```
+
+The raw-asset shortfall is:
+
+```text
+max(75 * vault_tvl / 1000 - vault_free_assets, 0)
+```
+
+This is an **asset budget**, not a share-consuming redemption size. Cap an asset-consuming withdrawal by available allocation and observed exit liquidity. For a share-consuming redemption, convert the capped budget with the actual asset/share decimals and positive PPS, then cap by held and liquid shares.
+
+For the separately identified Clearstar/USDC source, this executable expression demonstrates the available-share cap:
+
+```text
+min(ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares, min(0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares, 0.99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps))
+```
+
+Evaluate the cap only after a positive-PPS guard. The `0.99` cushion is a case-study choice, not a universal requirement.
+
+### Complete same-asset refill
+
+Use a **prepared USDC-underlying vault** with Clearstar cbAssets configured as a source. This is a synthetic same-asset exercise, **not the superNVDA deployment**: both the vault shortfall and source liquidity below are six-decimal USDC. Source shares are 18 decimals. In **Add redemption strategy**, select that source and `Redeem4626VaultHook`, with `owner` equal to that vault's execution strategy contract. Do not append a repayment hook: the USDC must remain at the strategy for reserves or fulfillment.
+
+The following are engine wire examples; in Rule tree use `AND` gates for the conjunctions, then compare the saved definition. Require positive source observations as well as the reserve trigger:
+
+```json
+{"type":"EXPR","expr":"vault_tvl > 0 && vault_free_assets < 0.05 * vault_tvl && ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps > 0 && ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares >= 1 && ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity >= 1 && ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares >= 1"}
+```
+
+Size in raw source shares, taking the smaller of the converted shortfall and each exit cap:
+
+```text
+min(max(75 * vault_tvl / 1000 - vault_free_assets, 0) * 1e12 / ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps, min(ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares, min(99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares / 100, 99 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity * 1e12 / (100 * ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps))))
+```
+
+With total assets `100000000`, idle `4000000`, PPS `1.25`, held shares `80000000000000000000`, liquid shares `80000000000000000000`, and asset liquidity `100000000`, the requested size is `2800000000000000000` shares. At unchanged PPS and no execution loss it returns `3500000` raw USDC, leaving `7500000` idle; both reserve triggers are then false. With asset liquidity limited to `2000000`, size is capped at `1584000000000000000` shares, modeled receipt is `1980000` USDC raw, and idle reaches only `5980000`. That is below target but above the refill trigger: this band does **not** automatically finish refilling to 7.5%.
+
+Save inactive; inspect the first step's `SHARES → ASSETS` effect and the strategy recipient before any approved activation. Stop on unresolved decimals, zero/stale PPS, zero liquidity, sub-unit truncated size, or an unsettled prior withdrawal. Slippage and fees can leave less than the modeled amount; reconcile actual share burns and USDC receipts, then evaluate the band again. An async source requires a different request/claim plan and is not covered by this immediate ERC-4626 example.
+
+## Boundary and resulting-state checks
+
+| Synthetic state | Expected result |
+|---|---|
+| Idle exactly 10% | No deposit |
+| Idle exactly 5% | No refill |
+| Idle 4 of total 100 | Asset shortfall 3.5; modeled refill leaves 7.5 |
+| Idle 7.5 of total 100 | Neither trigger passes |
+| Total assets zero or unavailable | Neither guarded rule passes in isolated evaluation |
+| Exit liquidity zero | No usable refill; alert rather than assume the target was reached |
+| PPS zero | Guard must block share conversion |
+| Positive size below one raw unit | Integer sizing cannot publish a usable amount |
+
+After each real execution, inspect the underlying balance and new accounting snapshot. A liquidity-limited refill can leave the reserve below 5%; outstanding async requests can also mean funds are not yet spendable.
+
+## Coordinate withdrawals and other strategies
+
+Reserve deployment must not compete blindly with [redemption funding](/operate/playbooks/redemptions). Review queued obligations before depositing excess, and avoid overlapping definitions that independently spend the same balance. `max_concurrent: 1` applies per strategy, not per asset or portfolio.
+
+Use the [inactive first-strategy exercise](/operate/strategy/quickstart), then separately review the refill plan and [simulation support](/operate/ui/simulation). A source-liquidity expression can be valid in production and unsupported by model replay.

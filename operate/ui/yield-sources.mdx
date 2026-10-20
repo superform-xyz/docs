@@ -1,9 +1,9 @@
 ---
-title: "Yield Source Management"
+title: "Yield sources and pricing"
 description: "Whitelist yield sources, pair oracles, and keep emergency-exit coverage in sync."
 ---
 
-![SuperformOS Yield Source Management — whitelist and oracle pairing controls](/operate/images/screenshots/yield-sources.jpg)
+
 
 Yield Source Management controls where a SuperVault is allowed to deploy capital. Each source is a protocol position, such as an ERC-4626 vault or Pendle PT, paired with an oracle that prices the position back into the vault's underlying asset.
 
@@ -58,6 +58,8 @@ POST /api/v1/yield-sources/prepare-bulk-update-oracle
 
 ## Source and Oracle Types
 
+These are registry types, not execution-plan target enums. A plan uses canonical values such as `ERC4626` or `VAULT`; do not copy a registry type into a plan without checking the schema.
+
 | Type | Meaning |
 |------|---------|
 | `erc4626` | Standard tokenized vault position |
@@ -67,6 +69,8 @@ POST /api/v1/yield-sources/prepare-bulk-update-oracle
 | `pendle_pt_amortized` oracle | Amortizes PT value toward maturity |
 
 ## API Reference
+
+Paths below are upstream contracts used through the authenticated browser BFF. The Yield Sources UI uses a Primary Manager gate; Erebor permits either manager to prepare whitelist changes. Check [Access and roles](/operate/permissions), the selected wallet, and the actual prepared call. A broader API preparation policy does not override contract signing authority.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -79,3 +83,11 @@ POST /api/v1/yield-sources/prepare-bulk-update-oracle
 | `/api/v1/yield-sources/prepare-bulk-add` | POST | Prepare bulk add transaction |
 | `/api/v1/yield-sources/prepare-bulk-remove` | POST | Prepare bulk remove transaction |
 | `/api/v1/yield-sources/prepare-bulk-update-oracle` | POST | Prepare bulk oracle update transaction |
+
+## Carry and liquidity checks
+
+Before a source is used in a carry plan, record its asset address/decimals, share address/decimals, PPS convention, price reference, and exit-liquidity observation. A quoted share value does not imply that the whole balance can be redeemed now.
+
+For a borrowing position, also verify chain, Spoke, reserve IDs, collateral/debt tokens, and the position identifier. A registry source and oracle do not by themselves provision a complete borrow→deposit or redeem→repay plan.
+
+Inspect observation timestamps and source availability. Missing or stale risk/price/liquidity data is not zero risk. Use [Variables and units](/operate/strategy/variables) for raw scales and [Carry](/operate/playbooks/carry) for the position mapping. Confirm removal does not strand collateral, debt, shares, or pending redemptions; an empty displayed allocation is not a substitute for reconciliation.

@@ -1,9 +1,9 @@
 ---
-title: "Pause Operations"
+title: "Pause and recovery"
 description: "Pause vault execution, pause keeper services, and arm per-yield-source emergency liquidity exits."
 ---
 
-![SuperformOS Pause Operations — vault pause, keeper pause, and emergency controls](/operate/images/screenshots/pause.jpg)
+
 
 The Pause page is the operator safety console. It has three distinct controls:
 
@@ -15,7 +15,7 @@ Use the narrowest control that solves the problem. A vault pause, keeper pause, 
 
 ## Pause Vault
 
-Vault pause is an onchain control. It halts protocol-level vault operations until a manager signs an unpause transaction.
+Vault pause is an onchain strategy/vault control. It blocks operations that check the paused state; it does not reverse settled transactions or remove external debt. Check the deployed contract's entry-point behavior rather than treating pause as an asset unwind. Either manager can prepare and sign the permitted pause/unpause transaction.
 
 ```bash
 GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr}
@@ -48,11 +48,11 @@ When armed for a source:
 - The Strategy Engine records an emergency lock keyed by that source's `target_address`.
 - User-defined strategies targeting the same address are blocked from publishing intents.
 - Strategies targeting other yield sources continue normally unless they have their own lock.
-- The emergency strategy emits withdrawal intents on every tick until stopped.
+- The emergency strategy can publish withdrawal intents while running, subject to runtime eligibility, sizing, freshness, cooldown/concurrency, and execution constraints. Running is not a promise of an intent every tick.
 - In-flight OMS transactions continue to settle even after the operator stops the drain.
 
 <Warning>
-Emergency Exit is not a replacement for vault pause. If the entire vault is unsafe, pause the vault. If one source is unsafe and the vault can keep operating elsewhere, arm an exit for that source.
+Emergency Exit and vault pause are different controls. A contract pause may also prevent an exit from executing. Review the affected execution path before combining controls; neither control guarantees debt repayment, collateral release, or depositor liquidity.
 </Warning>
 
 ### Prerequisites
@@ -74,16 +74,16 @@ If the Pause page cannot arm a source, check [Merkle Trees](/operate/ui/merkle-t
 3. Review current allocation, APY/TVL metadata, and blocked strategies.
 4. Enter the confirmation suffix for the yield source address.
 5. Optionally enter a reason.
-6. Choose max slippage. Default is **50 bps**.
+6. Review max slippage for the intended source and market conditions.
 7. Click **Arm emergency exit**.
 
 The reason is stored with the emergency arm request and shown while the lock is active.
 
-If manager permission is revoked while arming, the in-flight request is not automatically cancelled. Verify the Pause page and stop the drain if it succeeded under the prior policy.
+After any permission change or ambiguous arm response, read the actual strategy state and emergency lock before retrying. Do not assume an in-flight request or transaction was cancelled.
 
 ### Stop an Emergency Exit
 
-Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source are eligible again on the next tick.
+Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source can become eligible again subject to their other gates. Review them before stopping the drain.
 
 ```bash
 PATCH /api/v1/strategies/{strategy_id}/state
@@ -136,6 +136,8 @@ Emergency Exit is tied to yield-source whitelist state.
 
 ## API Reference
 
+The paths below are upstream contracts used through the browser session BFF or an explicitly approved integration. They are not anonymous control endpoints. The state-change JSON above illustrates fields; fetch the actual strategy version rather than copying its version number.
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/vaults/pause-status` | GET | Batch onchain pause status |
@@ -148,3 +150,13 @@ Emergency Exit is tied to yield-source whitelist state.
 | `/api/v1/strategies?kind=EMERGENCY_EXIT` | GET | List paired emergency strategies |
 | `/api/v1/strategies/{id}/state` | PATCH | Arm or stop paired emergency strategy |
 | `/api/v1/engine/shards/{vault_id}/state` | GET | Read active emergency locks and allocations |
+
+## Controlled recovery
+
+1. Record the affected vault, source, strategy state/version, emergency locks, in-flight intents, and transaction hashes.
+2. Choose the narrowest effective control and read its state back. Stopping a strategy or keeper does not cancel submitted OMS transactions.
+3. Follow every in-flight intent to terminal evidence and reconcile balances, source shares, debt, and collateral. Do not retry solely because the dashboard has not refreshed.
+4. Repair the actual blocker: permissions, proofs, session, gas, input freshness, liquidity, or plan configuration.
+5. Review ordinary strategies before releasing locks or unpausing. Re-enable only the intended scope, then observe and reconcile results.
+
+A high-LTV `USER_DEFINED` repay strategy is not the special `EMERGENCY_EXIT` mechanism. A source drain does not implement a persistent portfolio-wide unwind state machine. Use [Deleverage and unwind](/operate/playbooks/deleverage) to distinguish partial repayment, full debt repayment, collateral withdrawal, and depositor redemption funding.

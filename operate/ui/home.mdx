@@ -1,77 +1,26 @@
 ---
-title: "Home"
-description: "The global overview page showing total TVL, vault count, best APY, and a filterable vault list."
+title: "Find and select a vault"
+description: "Separate public discovery from role-scoped Operate access."
 ---
 
-![SuperformOS Operate landing — selected vault and setup status](/operate/images/screenshots/home.jpg)
+## Public discovery
 
-The **Home** page (`/`) is the top-level entry point at [os.superform.xyz](https://os.superform.xyz). It provides a global overview of all SuperVault deployments. No authentication required. Data refreshes from `GET /api/v1/public/vaults` (Erebor) with a 5-minute stale time.
+[SuperformOS](https://os.superform.xyz) provides public vault discovery and read-only detail pages. Discovery is filtered by activation and visibility policy; it is not an inventory of every deployed contract. A missing list entry does not prove that a vault does not exist.
 
-## Overview Cards
+Select a vault by chain and address. Public detail uses `/supervaults/{chain_name}/{vaultAddress}` and exposes Dashboard, Strategy, Intent History, Hooks, Yield Sources, Roles, and Vault Settings views where public data is available. Manager controls remain in Operate. Public Strategy cards do not grant access to the authenticated rule editor.
 
-Three summary cards appear at the top of the page:
+## My SuperVaults
 
-| Card | Description |
-|------|-------------|
-| **Total TVL** | Aggregate USD value locked across all vaults |
-| **Total Vaults** | Number of deployed SuperVaults |
-| **Best APY** | Highest current annualized yield across all vaults |
+After [connecting](/operate/authentication), open **Operate → My SuperVaults**. This list is scoped to your assigned vault roles. If a vault is missing, check the connected account, chain, address, and role assignment before creating another vault.
 
-## Vault List
+The selected vault determines the context for Setup, Dashboard, Strategy, Simulation, Intent History, Hooks, Yield Sources, User Management, Vault Settings, Keepers, and Pause. Recheck this context before saving a definition or signing a transaction.
 
-Below the overview cards, a searchable and filterable vault list displays every deployed SuperVault:
+| Task | Surface |
+|---|---|
+| Browse public vault data | Public discovery and vault detail |
+| Inspect assigned private rules | Operate with view-only or manager role |
+| Change configuration | Operate with the operation-specific manager role |
+| Deploy a new vault | **Create a SuperVault**, `/operate/create` |
+| Review listing availability | **Distribute**, `/distribute` |
 
-| Field | Description |
-|-------|-------------|
-| Vault Name | Operator-defined name |
-| Underlying Asset | Token depositors supply (USDC, WETH, etc.) |
-| TVL (USD) | Total value locked |
-| APY | Current annualized yield |
-| Chain | Ethereum or Base |
-
-### Filtering and Search
-
-| Control | Options |
-|---------|---------|
-| Chain filter | All, Ethereum (1), Base (8453) |
-| Search | Text match by vault name or asset |
-
-Clicking a vault opens the public read-only vault route at `/supervaults/{chain_name}/{vaultAddress}`. That route uses the same allocator-facing dashboard context described in [Dashboard](/operate/ui/dashboard), while manager-only actions remain in Operate.
-
-## Navigation Context
-
-Home sits alongside the operator and distribution sections in SuperformOS:
-
-| Section | Path | Purpose |
-|---------|------|---------|
-| **Home** | `/` | Global overview — TVL, vault count, APY, vault list |
-| **Operate** | `/operate` | Per-vault operation - dashboard, setup, strategy, simulation, merkle trees, yield sources, and settings |
-| **Distribute** | `/distribute` | Vault and provider distribution workflows |
-
-## API Reference
-
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/api/v1/public/vaults` | GET | None | All vault deployments with TVL/APY |
-| `/api/v1/registry/token-assets` | GET | None | Token metadata (symbol, decimals, logo) |
-
-```json
-// GET /api/v1/public/vaults — response shape
-[
-  {
-    "vault_address": "0x...",
-    "escrow_address": "0x...",
-    "chain_id": 8453,
-    "name": "USDC Yield Vault",
-    "symbol": "svUSDC",
-    "vault_share_decimals": 18,
-    "underlying_asset_symbol": "USDC",
-    "underlying_asset_decimals": 6,
-    "underlying_asset_address": "0x...",
-    "tvl_usd": 1250000.00,
-    "apy": 0.0847
-  }
-]
-```
-
-Token metadata is fetched separately via `GET /api/v1/registry/token-assets?chain_id={}&addresses={}` and cached for the session (infinite stale time).
+[Launch sequence](/operate/quickstart) covers setup; [Access and roles](/operate/permissions) defines permissions. Do not use a visible public route as evidence of authenticated access or execution readiness.

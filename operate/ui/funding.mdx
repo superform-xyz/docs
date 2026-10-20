@@ -1,0 +1,43 @@
+---
+title: "Upkeep and gas funding"
+description: "Keep UP upkeep, execution gas, and investable assets separate."
+---
+
+## Three balances
+
+| Balance | Pays for | Does not replace |
+|---|---|---|
+| UP upkeep | Protocol upkeep and activation policy | Native-chain gas or strategy input assets |
+| Native execution gas | Transactions from the configured submitting account | UP upkeep or a valid session grant |
+| Vault/position assets | Deposits, repayments, reserves, and redemption liquidity | Execution gas or keeper authorization |
+
+A funded manager wallet may pay for setup signatures while the automation execution path uses a different submitting account. Verify that account and chain with the authorized deployment configuration. Do not derive a funding address from a display name, KMS identifier, or session signer field.
+
+## Fund upkeep
+
+1. Open **Vault Settings → Upkeep** for the intended vault.
+2. Read the upkeep token, raw balance, `threshold.required_balance`, and `threshold.shortfall`. Use the token's decimals for display and input conversion.
+3. Review the token allowance and prepared deposit amount, recipient, and chain. Sign the intended approval/deposit transactions only.
+4. Wait for confirmation, then refresh the balance, shortfall, and activation state.
+
+Read current thresholds instead of hardcoding Ethereum or non-L1 minima. The management service supports activation exemptions; `is_active: true` with a positive shortfall does not establish that execution gas is funded or PPS is current.
+
+Upkeep withdrawal follows proposal and execution. Check the pending withdrawal, effective time, and recipient; inspect the resulting balance after execution. Removing upkeep can change activation and discovery and must be reviewed against continuing obligations to depositors.
+
+## Fund execution gas
+
+Before activation, verify the configured executor/submitting account, native token, chain, balance, and expected transaction costs with the deployment owner. Account mode and sponsorship configuration can change which account pays. These docs do not provide a universal funding address or a universal gas threshold.
+
+Monitor the actual execution account's native balance and rejected submissions. If gas is low, fund the verified account through the approved treasury process, then confirm the credited balance. Do not retry a failing production intent merely to test the top-up; inspect its existing state before any resubmission.
+
+## Distinguish funding failures
+
+| Symptom | Check |
+|---|---|
+| Positive upkeep shortfall | Required UP threshold, balance, exemption policy, and pending withdrawal |
+| Session ready but submission fails | Native gas, payer/account mode, transaction error, nonce, and service availability |
+| True rule but no publication | Freshness, positive integer size, cooldown, concurrency, pause, and kill-switch gates |
+| Repayment or redemption cannot complete | Input token units, available idle funds, source exit liquidity, and remaining debt |
+| Unknown balance or stale response | Treat as unknown; refresh the authoritative source before declaring readiness |
+
+See [Launch checklist](/operate/ui/setup-checklist), [Monitoring](/operate/automation/monitoring), and [Fund redemption requests](/operate/playbooks/redemptions). Upkeep, gas, and cash-reserve controls must each have an owner and an alert path.

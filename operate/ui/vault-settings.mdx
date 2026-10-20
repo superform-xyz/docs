@@ -3,7 +3,7 @@ title: "Vault Settings"
 description: "Configure fees, PPS parameters, redeem timelock, banned hook leaves, session keys, notifications, and upkeep activation."
 ---
 
-![SuperformOS Vault Settings — upkeep activation and notification-channel controls](/operate/images/screenshots/vault-settings.jpg)
+
 
 Vault Settings is the configuration hub for vault-level controls. Most settings use the same pattern: Erebor prepares calldata, the manager wallet signs, and the protocol contract applies the change onchain.
 
@@ -15,7 +15,7 @@ Prepare endpoints return transaction data. They do not mutate protocol state by 
 
 ## Access Model
 
-Primary managers own sensitive vault settings. Secondary managers can operate the vault but do not control primary-only settings such as manager assignment and some security parameters.
+Erebor settings writes for fees, deviation threshold, PPS expiration, banned leaves, and redemption timing require the Primary Manager. For minimum update interval, proposal and cancellation are Primary-Manager-only, but either manager can prepare execution. The Aggregator permits any caller to execute a valid pending interval proposal after its timelock expires. A narrower UI control does not change that contract authority. Notification-channel operations permit either manager. Preparing calldata is not authorization to sign as another account.
 
 See [Permissions Model](/operate/permissions) for the full matrix.
 
@@ -39,25 +39,19 @@ These settings are read from vault detail data and changed through signed transa
 
 ## Redeem Timelock
 
-Redeem timelock adds a delay between redemption request and fulfillment eligibility.
-
-Use it for:
-
-- Liquidity sourcing before fulfillment.
-- Fraud and risk review windows.
-- Regulatory or operational policy requirements.
+Redeem timelock is an offchain keeper timing setting. The management service stores the configured delay; it is not a new onchain lock or a guarantee of liquidity at expiry.
 
 Relevant APIs:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/redeem-timelocks` | GET | List configured timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Bulk set offchain timelocks |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's timelock |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare timelock update transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, store, or remove the offchain setting |
 
 <Warning>
-Changing a redeem timelock affects future redemption requests. Existing requests are not retroactively changed.
+Do not infer how existing requests will be processed from a successful settings write. Review pending requests, effective keeper policy, and liquidity before changing the delay; read the stored value back afterward.
 </Warning>
 
 ## Banned Hook Leaves
@@ -68,7 +62,7 @@ Banning a leaf is narrow: it blocks the exact leaf, not the entire hook category
 
 ## Upkeep and Activation
 
-Upkeep funds vault automation. It is also the practical activation gate for a new vault.
+UP upkeep funds the upkeep system and contributes to vault activation. It does not fund native-chain execution gas. See [Upkeep and gas funding](/operate/ui/funding).
 
 The Upkeep panel shows:
 
@@ -79,7 +73,7 @@ The Upkeep panel shows:
 - Whether the vault is active for keeper operations and discoverable in public listing surfaces.
 - Pending upkeep withdrawal proposal, if any.
 
-A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable. Erebor returns this as `upkeep_info` plus `activation`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
+Erebor computes activation from threshold sufficiency or an activation exemption. An active flag can coexist with a positive shortfall; inspect both rather than assuming every operational gate is clear. Responses separate `upkeep_info`, `activation`, and upkeep `withdrawal_status`.
 
 ### Deposit Upkeep
 
@@ -115,7 +109,7 @@ Erebor exposes vault-scoped session-key inventory and prepare endpoints:
 | `/api/v1/vaults/session-key/prepare` | POST | Prepare grant transaction |
 | `/api/v1/vaults/session-key/revoke/prepare` | POST | Prepare revoke transaction |
 
-OMS also exposes strategy-automation session-key readiness and rotation endpoints. See [OMS API](/operate/api/oms).
+OMS also exposes strategy-automation session-key readiness and rotation endpoints. Follow [Execution accounts and session keys](/operate/ui/execution-accounts); do not infer execution readiness from a session inventory row alone.
 
 ## Notification Channels
 
@@ -128,7 +122,7 @@ Notification channels attach Slack, webhook, or websocket destinations to a vaul
 | `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | POST | Attach channel |
 | `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}` | DELETE | Detach channel |
 
-Use notification channels for operational alerts, monitoring, and downstream automation.
+Use notification channels for operational alerts. They are not a guaranteed durable integration event stream; see [Notifications and audit polling](/operate/automation/webhooks).
 
 ## Alert Delivery
 
@@ -185,7 +179,7 @@ Troubleshooting:
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |

@@ -1,66 +1,47 @@
 ---
-title: "Setup Checklist"
-description: "The canonical post-create path from onchain vault to live Superform availability."
+title: "Launch checklist"
+description: "Reconcile setup counters with execution evidence and distribution state."
 ---
 
-The Setup page turns a newly-created SuperVault into an operational and discoverable vault. Use it after Create Vault and after any major configuration reset.
+## Setup rows
 
-![SuperformOS Setup Checklist - post-create readiness rows](/operate/images/screenshots/setup-checklist.jpg)
+Open **Setup** with the intended chain and vault selected. The visible checklist summarizes configuration; it does not preflight every executable plan.
 
-Use this page to move from created to available: fund upkeep, configure hooks, add yield sources, create strategies, and confirm Superform availability.
+| Row | Evidence represented | Additional launch check |
+|---|---|---|
+| **Vault is created** | Indexed deployment exists | Verify chain, underlying, vault, and strategy addresses |
+| **Upkeep is staked** | Reported activation state | Inspect actual balance, required threshold, and shortfall |
+| **Hooks are set up** | At least one hook in the active config | Verify all plan leaves, generated root, onchain sync, and available proofs |
+| **Yield sources are set up** | A source is whitelisted | Verify each intended source, oracle, unit scale, freshness, and liquidity |
+| **Strategy is set up** | A strategy exists | Inspect definition/version, intended state, sizing, priority, cooldown, and concurrency |
+| **Vault is live on Superform** | Distribution visibility/availability | Verify allocator-facing listing and redemption path before routing public deposits |
 
-If no vault is selected, the page asks the operator to select one from the Operate sidebar. The checklist is vault-scoped: every row is calculated from the selected chain and vault address.
+The displayed order is not a dependency scheduler. Configure source targets before authoring hooks and plans that reference them. An inactive saved strategy can satisfy an existence check without being approved to run.
 
-## Checklist rows
+## Execution readiness
 
-| Row | Complete when | Primary action |
-|-----|---------------|----------------|
-| **Vault is created** | Vault exists onchain and is readable in dashboard data. | Create Vault |
-| **Upkeep is staked** | Vault is active and can run operational automation. | Fund Upkeep |
-| **Hooks are set up** | At least one hook is configured in the active root config. | Configure Hooks |
-| **Yield sources are set up** | At least one yield source is whitelisted for this vault. | Configure Yield Sources |
-| **Strategy is set up** | At least one strategy exists for this vault. | Open Strategy |
-| **Vault is live on Superform** | Vault is visible and available in Superform distribution surfaces. | Open Distribute |
+- [Execution account](/operate/ui/execution-accounts): executor is an authorized manager, session is valid, and rotation is not incomplete.
+- [Funding](/operate/ui/funding): UP upkeep, native execution gas, and strategy input assets are independently sufficient.
+- [Hooks](/operate/ui/merkle-trees): intended configuration and onchain root agree; every plan step has usable authorization.
+- [Strategy tests](/operate/ui/simulation): expressions and denominations have been checked; model limits are recorded. A model run is not a transaction preflight.
+- [Operational state](/operate/ui/pause): no unintended vault pause, keeper pause, kill switch, or target emergency lock.
+- [Monitoring](/operate/automation/monitoring): stale or unavailable observations raise an alert rather than becoming healthy defaults.
 
-Statuses are `complete`, `in_progress`, `needs_setup`, or `blocked`.
-
-## Activation gate
-
-Upkeep is the activation gate. Fund upkeep from **Vault Settings → Upkeep** to enable automation and discovery. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
-
-Current Erebor-facing activation fields used by the UI include:
+## Activation fields
 
 | Field | Meaning |
-|-------|---------|
-| `activation.is_active` | Whether the vault is eligible for keeper operations. |
-| `activation.is_discoverable` | Whether the vault is surfaced in discovery. |
-| `activation.status` | `active` or `insufficient_upkeep`. |
-| `activation.reason` | Optional explanation when the vault is not active. |
-| `upkeep_info.balance` | Current upkeep balance, in raw token units. |
-| `upkeep_info.threshold.required_balance` | Required balance for activation, in raw token units. |
-| `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. `0` means the threshold is satisfied. |
+|---|---|
+| `activation.is_active` | Management service's activation decision |
+| `activation.is_discoverable` | Eligibility for public discovery |
+| `activation.status` / `activation.reason` | Reported state and optional explanation |
+| `upkeep_info.balance` | Raw UP upkeep balance |
+| `upkeep_info.threshold.required_balance` | Raw required balance for this chain/vault |
+| `upkeep_info.threshold.shortfall` | Raw amount missing from the threshold; zero means sufficient |
 
-Current minimum upkeep thresholds:
+Read current thresholds rather than hardcoding a chain minimum. The management implementation supports activation exemptions, so an active flag and positive shortfall are not necessarily contradictory. An exemption is not proof of funded gas, fresh PPS, or a working strategy. Investigate the balance and effective policy before changing funds.
 
-| Vault Chain | Minimum Upkeep for Activation |
-|-------------|-------------------------------|
-| Ethereum L1 | `100,000 $UP` |
-| Non-L1 chains | `1,000 $UP` |
+## Private readiness versus public launch
 
-## Distribution Evidence
+A deployed, role-accessible vault can be prepared and tested privately. It need not be listed to author inactive strategies. Public launch adds distribution metadata, visibility, availability, and an approved depositor operating path. See [Distribution](/operate/ui/distribute).
 
-The live-on-Superform row compares the managed vault against distribution data. Evidence includes `visibility` and `availability`, for example `listed` and `available`. If no matching distribution entry exists, the vault is onchain and manager-visible but not available in Superform allocator-facing surfaces.
-
-## Troubleshooting
-
-| Symptom | Likely cause | Next step |
-|---------|--------------|-----------|
-| Vault readable but not active | Upkeep shortfall. | Fund upkeep. |
-| Hooks count is zero | No active root config. | Draft, activate, generate, and propose a merkle root. |
-| Yield sources count is zero | Nothing is whitelisted. | Add yield sources and oracles. |
-| Strategy count is zero | No strategy exists. | Create a strategy after adding sources. |
-| Not live on Superform | Missing or unavailable distribution entry. | Open Distribute and confirm visibility/availability. |
-
-## Operator rule
-
-Route deposits only after the checklist shows that upkeep, hooks, yield sources, strategies, and distribution availability are all complete.
+If Setup and a detailed read disagree, inspect the underlying contract/API state and its freshness. Do not declare readiness from a green summary row alone.

@@ -1,11 +1,11 @@
 ---
-title: "Merkle Trees"
+title: "Hooks and authorization"
 description: "Configure hook authorization, generate merkle proofs, and publish active proof artifacts."
 ---
 
-![SuperformOS Merkle Trees — hook configs, roots, and proof publishing](/operate/images/screenshots/merkle-trees.jpg)
 
-Merkle Trees are the authorization layer for keeper and strategy execution. A keeper can only execute a hook when the hook call matches a leaf in an authorized merkle tree.
+
+Open **Hooks** in Operate. The route retains the name `/merkle-trees`. Hook registration, applicable Merkle proofs, and contract checks authorize execution; offchain trigger rules are a separate policy layer.
 
 Public SuperVault detail pages expose hook and proof context as read-only inspection tabs. Drafting, activating, generating, syncing, and publishing remain manager workflows in Operate.
 
@@ -14,7 +14,7 @@ The operational flow is:
 1. Draft a root configuration.
 2. Activate the configuration version.
 3. Generate a merkle tree from the active config.
-4. Primary manager proposes / publishes the root onchain.
+4. Primary Manager proposes the root, waits for the configured timelock, then the update is executed onchain.
 5. Publish the proof artifact for consumers.
 
 ## Hook Configs
@@ -98,15 +98,17 @@ Publishing is separate from syncing. Sync updates the protocol root; publish exp
 
 When `is_stale` is true, re-publish before relying on the artifact for execution. Even when `is_stale` is false, verify `root_hash` against the onchain SuperVaultAggregator state; offchain publish and onchain root sync are independent steps.
 
-```bash
-curl https://erebor.superform.xyz/api/v1/merkle/published/8453/{vault_address}
-```
+An unpublished public artifact does not prove that the onchain root is absent. Conversely, `published: true` does not establish that its root is the root currently accepted by the contract. Compare configuration version, generated tree, published artifact, and contract state separately.
+
+Compact definition discovery and mapped onchain-version history are additional management API reads, not replacements for proofs. Pin the returned tree/version when paginating definitions. An executed root without a completed local generation can be absent from mapped history. See [Management API](/operate/api/erebor#merkle-authorization).
 
 ## Emergency Exit Dependency
 
 Emergency liquidity exit requires an active withdrawal hook for the target yield source. If the active config has no matching withdrawal hook or the proof artifact is missing the leaf, the Pause page cannot arm that source until the merkle configuration is fixed.
 
 ## API Reference
+
+These are upstream management paths, not a promise of direct anonymous access to every endpoint. The browser uses `/api/erebor`; [API boundaries](/operate/api/overview) and [Access and roles](/operate/permissions) identify the authentication and role checks. Config creation, activation, and generation permit either manager; proof publication requires the Primary Manager.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

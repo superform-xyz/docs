@@ -1,17 +1,28 @@
 ---
-title: "Erebor API Reference"
+title: "Management API"
 description: "Management API for vaults, settings, merkle authorization, registries, upkeep, notifications, session keys, and pause controls."
 ---
 
 Erebor is the SuperVaults management API. It powers vault reads, settings preparation, registries, merkle workflows, upkeep, users, pause controls, notification channels, and public vault data.
 
-**Base URL:** `https://erebor.superform.xyz`
-
-**Auth:** `Authorization: Bearer <jwt>` except public endpoints
+**Browser prefix:** `/api/erebor`. Tables below use upstream `/api/v1` paths. Public policies, browser-session access, and approved direct service access are distinct; see [API boundaries](/operate/api/overview). Do not obtain API credentials by extracting browser auth state.
 
 <Note>
-For onchain changes, Erebor prepares calldata and the manager wallet signs the transaction. The REST request is not the state change; the signed transaction is.
+For onchain changes, Erebor prepares calldata and the authorized wallet signs. Offchain operations such as view-only assignment, configuration activation, redemption timing, and service control mutate state without a transaction. Verify the affected target after either type of change.
 </Note>
+
+## Access policy
+
+| Endpoint family | Source-backed policy |
+|---|---|
+| Public vault list; registry GETs; proof lookup and published artifacts | Public read policies, with the route's validation and filtering |
+| Vault-scoped whitelist and Merkle config reads | Public-vault read policy; private-vault authorization is separate |
+| User/session/audit/service inventories and settings reads | Authenticated and scoped by the relevant handler/service; not a blanket public GET surface |
+| Source whitelist preparation, config creation/activation/generation, service controls, view-only assignments | Either manager for the selected vault; UI and contract checks can be narrower |
+| Fee configuration, PPS expiration, deviation threshold, banned leaves, Secondary Manager assignment, Erebor session grant/revoke preparation, proof publication | Primary Manager for the selected vault |
+| Minimum-update-interval proposal/cancellation; execution preparation | Primary Manager for proposal/cancellation; either manager for execution preparation. Matured contract execution is permissionless, subject to pending-proposal and timelock checks. |
+
+The application has its own BFF checks in addition to upstream RBAC. [Access and roles](/operate/permissions) names action-specific gates. These inventories were reviewed against source; they are not deployed-binary parity or authenticated rehearsal evidence.
 
 ## Auth
 
@@ -64,15 +75,17 @@ Distribution metadata is handled by the dashboard/listing layer after vault addr
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
 | `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Bulk set redeem timelocks, Primary Manager for every target |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
 
-Upkeep data drives activation and discoverability in the dashboard. Operators should treat insufficient upkeep as a launch blocker.
+Upkeep data contributes to activation and discoverability. The implementation also supports exemptions, so activation and threshold sufficiency are not interchangeable. Inspect raw balance, threshold, shortfall, and effective policy; UP upkeep is not execution gas.
+
+`PUT /api/v1/settings/redeem-timelock` stores an offchain timing setting; it does not prepare an onchain transaction. `DELETE` removes that setting. Read the stored value back after an approved change.
 
 Current upkeep responses use:
 
@@ -93,6 +106,8 @@ Current upkeep responses use:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/merkle/configs/versions` | GET | Config version history |
+| `/api/v1/merkle/configs/onchain-versions` | GET | Executed root history mapped to local config versions |
+| `/api/v1/merkle/definitions` | GET | Compact typed hook definitions from a completed tree snapshot; excludes proofs |
 | `/api/v1/merkle/configs/version` | GET | Single config version |
 | `/api/v1/merkle/configs/active` | GET | Active config |
 | `/api/v1/merkle/configs` | POST | Create config |
@@ -110,6 +125,8 @@ Current upkeep responses use:
 | `/api/v1/merkle/publish/jobs/{id}` | GET | Poll publish job |
 | `/api/v1/merkle/published/{chain_id}/{vault}` | GET | Public published tree metadata |
 
+`/api/v1/merkle/definitions` is a public upstream read policy. Omit `config_version` to resolve the active onchain root; supply it for an executed historical root. Continue with returned `tree_id` and `config_version` to pin the snapshot, following `next_offset` until null. Definitions are not cryptographic proofs. Onchain-version history omits executed roots without a completed local generation, so its total is not a count of every contract root update. Browser anonymous routing is a separate access check from this upstream policy.
+
 ## Registry
 
 | Endpoint | Method | Description |
@@ -120,7 +137,7 @@ Current upkeep responses use:
 | `/api/v1/registry/token-assets` | GET | Browse token metadata |
 | `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
-Yield source registry entries include active/inactive state and can carry external provider metadata. Registry create, update, delete, and sync endpoints are registry-maintainer surfaces, not normal third-party operator flows.
+Yield source registry entries include active/inactive state and can carry external provider metadata. Registry reads have public policies. Creating a yield-source entry permits a vault manager or registry maintainer; updating, deleting, and provider-sync operations require a registry maintainer. Do not generalize one registry operation's gate to all registries.
 
 ## Yield Source Whitelist
 
@@ -177,18 +194,23 @@ Providers include Slack, webhook, and websocket channels.
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable services |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/interval` | PATCH | Update service interval |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/run` | POST | Request a service run |
 | `/api/v1/services/bulk` | PUT | Bulk service update |
 
 ## Analytics and Audit
 
-Analytics endpoints live under:
+Analytics and audit have different access policies. Vault-scoped overview, performance, risk, APY/PPS/TVL histories, fees, cohort, concentration, drawdown, retention, holders, user metrics, and volatility use upstream `publicVaultRead`: discoverable public vaults can be read publicly; private vaults require selected-vault authorization. Browser BFF anonymous routing remains a separate check.
+
+Comparison/export, daily volume, operations summary, transaction history, and yield-source history/snapshots retain authenticated policies. Do not generalize a public vault metric to all analytics operations.
+
+Vault-scoped analytics endpoints live under:
 
 ```bash
 /api/v1/vaults/{chain_id}/{address}/analytics/*
 ```
 
-Audit endpoints:
+Audit list, detail, and export require authenticated access. They are not a public event subscription. Use [Notifications and audit polling](/operate/automation/webhooks) for paginated polling and durable watermarks.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

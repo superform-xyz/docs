@@ -1,131 +1,42 @@
 ---
-title: "Authentication"
-description: "How JWT auth works in SuperVaults: wallet connection, token storage, and programmatic access."
+title: "Authentication and sessions"
+description: "Use the supported browser session without extracting credentials."
 ---
 
-## Auth Flow
+## Browser access
 
-SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+1. Open [SuperformOS](https://os.superform.xyz) and choose **Connect**.
+2. Complete the shared Superform account flow. If prompted, review **Accept the Superform terms** and choose **Accept and continue** yourself.
+3. Open **Operate → My SuperVaults**. Confirm the chain and vault address, then verify the assigned role.
+4. Inspect rules with an assigned view-only role, or use manager controls with a Primary or Secondary Manager role.
 
-<Steps>
-  <Step title="Connect Wallet">
-    Open [os.superform.xyz](https://os.superform.xyz) and click **Connect Wallet**. Dynamic.xyz presents a wallet selection modal supporting MetaMask, Rabby, WalletConnect, and others.
-  </Step>
-  <Step title="Sign Auth Message">
-    Your wallet signs a non-transactional message. Dynamic.xyz verifies the signature and issues a JWT tied to your wallet address.
-  </Step>
-  <Step title="JWT Stored in Browser">
-    SuperformOS stores auth state in `localStorage`:
-    - `curator_jwt` — the Bearer token used on all API requests
-    - `curator_address` — connected wallet address
-    - `curator_is_manager` — boolean flag
-    - `curator_vaults` — array of vault addresses you operate
-  </Step>
-  <Step title="Auth Verified">
-    The app calls `GET /api/v1/auth/me` on load to fetch your vault roles and confirm the JWT is valid.
-  </Step>
-</Steps>
+Authentication is not a manager assignment or a transaction approval. Public Strategy cards can be locked even when public API data is readable; authenticated **View rules** and manager **Manage** are separate UI affordances.
 
-## Primary Auth Endpoint
+## Browser and upstream boundaries
 
-```bash
-GET /api/v1/auth/me
-Authorization: Bearer <your-jwt>
-```
+SuperformOS uses same-origin backend-for-frontend (BFF) routes. The BFF reads the browser session server-side, checks vault access, and forwards requests using the appropriate upstream authentication. Strategy and OMS service credentials stay server-side. Erebor user authentication is forwarded by the server, not supplied by copying a token into a browser script.
 
-Returns the current user with all assigned vault roles. Use this endpoint when building integrations.
+| Browser route family | Responsibility |
+|---|---|
+| `/api/auth/me` | Resolve the current browser session and roles |
+| `/api/erebor/api/v1/...` | Management reads and configuration operations |
+| `/api/strategy/api/v1/...` | Strategy definitions, lifecycle, simulations, and intent projections |
+| `/api/oms/defix/...` | Execution and session-key operations |
 
-Response:
-```json
-{
-  "wallet_address": "0xabc...",
-  "is_manager": true,
-  "vaults": [
-    {
-      "vault_address": "0xdef...",
-      "chain_id": 8453,
-      "role": "primary_manager"
-    }
-  ]
-}
-```
-
-<Note>
-`GET /api/v1/auth/me` returns the current user with all assigned vault roles. Use this endpoint when building integrations.
-</Note>
-
-## JWT Verification Endpoint
-
-```bash
-GET /api/v1/auth/verify
-Authorization: Bearer <your-jwt>
-```
-
-Returns:
-```json
-{
-  "verified": true,
-  "walletAddress": "0xabc...",
-  "isManager": true,
-  "vaults": ["0xdef..."]
-}
-```
-
-## Token Lifecycle
-
-- JWTs expire after a session period defined by Dynamic.xyz
-- Any `401 Unauthorized` from Erebor triggers automatic logout via `authService.handleAutoLogout()`
-- Reconnecting your wallet re-issues a fresh JWT
-
-## Public Endpoints (No Auth)
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/v1/public/vaults` | All SuperVault deployments with TVL and APY |
-| `GET /api/v1/registry/token-assets` | Token asset metadata |
-
-## Programmatic Authentication
-
-For automation scripts, generate a JWT without the browser:
-
-1. Sign an EIP-712 auth message with your wallet's private key
-2. Submit the signature to Dynamic.xyz to receive a JWT
-3. Pass the JWT as `Authorization: Bearer <your-jwt>` on all requests
-
-<CodeGroup>
-
-```python Python
-import requests
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-
-headers = {"Authorization": f"Bearer {JWT}"}
-
-resp = requests.get(f"{EREBOR_URL}/api/v1/auth/me", headers=headers)
-resp.raise_for_status()
-user = resp.json()
-
-print(f"Connected as: {user['wallet_address']}")
-print(f"Manages {len(user['vaults'])} vault(s)")
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = "<your-jwt>";
-
-const headers = { Authorization: `Bearer ${JWT}` };
-
-const resp = await fetch(`${EREBOR_URL}/api/v1/auth/me`, { headers });
-if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
-
-const user = await resp.json();
-console.log(`Connected as: ${user.wallet_address}`);
-console.log(`Manages ${user.vaults.length} vault(s)`);
-```
-
-</CodeGroup>
+An upstream error is not by itself proof that the browser session has expired. Reconnect when the application's session check requires it; inspect service and permission failures separately.
 
 <Warning>
-Never hardcode JWTs in source code. Use environment variables (for example, `SUPERFORMOS_JWT`) and rotate tokens regularly. JWTs grant full manager-level access to your vaults.
+Do not export cookies, extract browser tokens, copy service credentials, or treat a wallet private key as an API key. These docs do not define a generic Dynamic signature-to-token recipe for automation.
 </Warning>
+
+## Public reads
+
+The BFF permits a narrow allowlist of anonymous Strategy GET requests after verifying that the referenced vault is public. This includes vault-scoped strategy and intent lists, intent detail and fills. It does not include intent events, arbitrary engine state, simulation requests, or writes. Unknown query keys and unbound identity filters can be rejected.
+
+Public discovery and published proof artifacts have their own management API policies. Do not infer that every GET is public, or that a public read grants a write role. See [Strategy API](/operate/api/strategy).
+
+## Programmatic access
+
+Use public read routes where documented. For authenticated automation, obtain an approved endpoint, identity mechanism, role scope, credential lifecycle, and rate policy from the Superform team. Upstream service credentials are infrastructure credentials, not self-service curator credentials.
+
+A successful browser login does not establish that a headless writer is supported. Keep automation read-only until its identity and permissions have been agreed and tested in a separately authorized environment.

@@ -122,81 +122,69 @@
         "tab": "Operate",
         "groups": [
           {
-            "group": "Introduction",
+            "group": "Start",
             "root": "operate",
             "pages": [
               "operate",
-              "operate/concepts"
-            ]
-          },
-          {
-            "group": "Getting Started",
-            "pages": [
+              "operate/concepts",
               "operate/prerequisites",
-              "operate/authentication",
               "operate/permissions",
-              "operate/quickstart"
-            ]
-          },
-          {
-            "group": "Vault Setup",
-            "pages": [
               "operate/ui/home",
-              "operate/ui/create-vault",
+              "operate/quickstart",
               "operate/ui/setup-checklist"
             ]
           },
           {
-            "group": "Vault Operations",
+            "group": "Configure",
             "pages": [
-              "operate/ui/dashboard",
-              {
-                "group": "Strategy Canvas",
-                "pages": [
-                  "operate/ui/strategy",
-                  "operate/strategy/quickstart",
-                  "operate/strategy/dsl",
-                  "operate/strategy/action-config",
-                  "operate/strategy/troubleshooting",
-                  "operate/strategy/anti-patterns"
-                ]
-              },
-              "operate/ui/simulation",
-              "operate/ui/intent-history",
+              "operate/ui/create-vault",
               "operate/ui/yield-sources",
-              "operate/ui/merkle-trees"
-            ]
-          },
-          {
-            "group": "Access & Settings",
-            "pages": [
+              "operate/ui/merkle-trees",
+              "operate/ui/execution-accounts",
+              "operate/ui/funding",
               "operate/ui/vault-settings",
               "operate/ui/user-management"
             ]
           },
           {
-            "group": "Distribution",
+            "group": "Strategies",
             "pages": [
+              "operate/ui/strategy",
+              "operate/strategy/quickstart",
+              "operate/strategy/variables",
+              "operate/strategy/dsl",
+              "operate/strategy/action-config",
+              "operate/strategy/lifecycle",
+              "operate/ui/simulation",
+              "operate/strategy/anti-patterns"
+            ]
+          },
+          {
+            "group": "Playbooks",
+            "pages": [
+              "operate/playbooks/reserves",
+              "operate/playbooks/carry",
+              "operate/playbooks/deleverage",
+              "operate/playbooks/redemptions"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "operate/ui/dashboard",
+              "operate/ui/intent-history",
+              "operate/strategy/troubleshooting",
+              "operate/automation/overview",
+              "operate/automation/monitoring",
+              "operate/automation/webhooks",
+              "operate/ui/pause",
               "operate/ui/distribute"
             ]
           },
           {
-            "group": "Safety & Incident Response",
+            "group": "Reference",
             "pages": [
-              "operate/ui/pause"
-            ]
-          },
-          {
-            "group": "Automation",
-            "pages": [
-              "operate/automation/overview",
-              "operate/automation/monitoring",
-              "operate/automation/webhooks"
-            ]
-          },
-          {
-            "group": "API Reference",
-            "pages": [
+              "operate/authentication",
               "operate/api/overview",
               "operate/api/erebor",
               "operate/api/strategy",
@@ -307,6 +295,5 @@
   "thumbnails": {
     "appearance": "light",
     "background": "/images/docs_3_seo.png"
-  },
-  "openapi": "https://persephone.superform.xyz/openapi.json"
+  }
 }

@@ -1,0 +1,96 @@
+---
+title: "Deleverage and unwind"
+description: "Distinguish partial repayment, attempted full repayment, collateral release, and depositor liquidity."
+---
+
+## Name the intended outcome
+
+| Operation | Completion condition |
+|---|---|
+| Partial repayment | Measured debt/risk values reach the selected target, or a documented cap leaves a residual |
+| Attempted full repayment | Debt is measured at zero after settlement and interest/dust handling |
+| Collateral release | Remaining collateral is withdrawn under venue constraints |
+| Fund depositor redemptions | Required vault-underlying assets are available for fulfillment |
+| Special emergency exit | Platform-specific target exit and lock lifecycle is reconciled |
+| Pause automation | New activity is stopped in the selected control's scope; no economic unwind is implied |
+
+Repayment is not source redemption, collateral withdrawal, or a depositor claim. The captured AF strategies are USER_DEFINED economic rules, not the special `EMERGENCY_EXIT` kind.
+
+## Partial repayment with idle debt tokens
+
+The [dated carry case study](/operate/playbooks/carry#captured-configuration) defines AP0/AP1's window as `52% <= LTV < 55%`, with a 50% repayment target. For unchanged collateral valuation, repay the fraction of debt value above the target, applied to raw debt-token units.
+
+This is an executable **simplified teaching rule and size**, using the captured aliases. It omits production interest/dust buffers and is not a deployment recommendation.
+
+```json
+{
+  "type": "EXPR",
+  "expr": "position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0 && position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0 && position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 > 0 && position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.52 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 && position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 < 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 && token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount >= 1"
+}
+```
+
+```text
+min(token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount, min(position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount, position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount * max(position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 - 0.50 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18, 0) / max(position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18, 1)))
+```
+
+For synthetic collateral risk value 100 and debt 54, ample idle requests `4000000` raw USDC. Idle capped at one USDC requests `1000000`, leaving modeled debt 53 and missing the 50% target. Zero debt/collateral blocks the trigger. At exactly 52% it passes; at exactly 55% the partial branch is false.
+
+The captured AP0 adds a `1.001` buffer and one raw unit before capping by idle funds. Its tested 54% request with ample idle is `4004001` raw USDC, not the simplified expression's `4000000`.
+
+## Redeem assets to repay
+
+AP1/AF2 require idle USDC below one raw unit, positive source PPS, positive asset/share exit liquidity, usable capped shares, and conservative expected output of at least one raw asset unit. The [plan](/operate/strategy/action-config#redeem-then-repay) redeems shares first and repays using the preceding hook's actual asset output.
+
+The dated formulas use:
+
+- The smaller of held shares, 99% of share liquidity, and the shares represented by 99% of asset liquidity.
+- A desired repayment converted into shares with the **18-share / 6-asset decimal difference** and positive human PPS.
+- A separate 2-bps output allowance and one-raw-share rounding buffer.
+
+Do not pass a raw share count to the USDC repayment hook. Do not use source TVL as exit liquidity. Zero PPS or zero exit liquidity prevents these guarded rules from firing; a valid capped size still does not guarantee a target can be reached.
+
+## Attempted full repayment is stateless
+
+AF0/AF2 trigger at 55% or higher and request buffered full debt, capped by idle USDC or redeemable source shares. Unlike AP0/AP1, the captured AF rules do **not** add a positive-collateral-value guard. That describes the captured configuration; it is not a recommendation to remove safety checks from a new strategy.
+
+Consider a synthetic position that moves from 56% to 51% after a constrained repayment. Debt remains, but AF's `LTV >= 55%` condition is now false. AP's `LTV >= 52%` condition is also false. Neither branch continues merely because a previous tick was in distress.
+
+A full-exit label does not create a persistent unwind state machine. Track the approved zero-debt objective outside AF/AP. The dated capture includes **M0** and **M1** manual full-exit profiles that remove the LTV window, but they were CREATED, not running recovery policy.
+
+## Recover residual debt after disarming
+
+This is an operator-supervised procedure using existing definitions, not an automatic recovery feature. Use the IDs in the [captured configuration](/operate/playbooks/carry#captured-configuration) to identify profiles; refresh their versions, rules, and plans before relying on them.
+
+1. In the Strategy canvas, stop competing borrowing, USDC deployment, and collateral-supply definitions within the approved recovery scope. Record all outstanding intents and let them reach reconciled terminal outcomes before enabling another spender. A stop does not cancel submitted transactions.
+2. Read the same position's fresh raw USDC debt, risk debt value, idle USDC at the execution strategy, and source shares/PPS/exit liquidity. Debt amount and risk debt value must both be positive for M0/M1. If they disagree, stop for a pricing/position investigation; do not force the rule true.
+3. Open **M0 — Manual full-exit profile: idle USDC** (`bbf0310b-bea9-4291-a0a1-b8cfbffc523d`, captured version 1). Its `REBALANCE` plan is a single `AaveV4RepayHookV2`; size is the lesser of idle USDC and buffered full debt (`1.001 × debt + 1` raw unit). The first hook consumes **six-decimal USDC from the execution strategy**, with `use_prev_hook_amount: false`. It has no 52%/55% gate. With residual debt and idle at least one raw USDC unit, this is the captured repayment profile to review, not AF0 with a lowered threshold.
+4. If idle USDC is below one raw unit, inspect **M1 — Manual full-exit profile: capped cbAssets repay** (`3cef534b-d6f6-49ab-9925-c69483bf2ea3`, captured version 15). Its `WITHDRAWAL` plan is `Redeem4626VaultHook → AaveV4RepayHookV2`, with actual-output propagation on the repay step. Size is **18-decimal Clearstar shares**, capped by holdings, 99% asset/share liquidity, and buffered full debt converted through positive PPS. Preserve its liquidity and minimum-output guards. This profile also has no LTV window.
+5. After explicit approval, use the selected card's lifecycle toggle to start only the reviewed profile. Follow each new intent through receipt and position refresh; keep the recovery supervised. If positive USDC dust remains, M1 is false and M0 is the eligible branch. Do not bypass that split by starting both blindly.
+6. Stop the recovery profile when both measured debt amount and risk debt value are zero. Reconcile interest and residual USDC at the execution strategy. If liquidity is exhausted, the size truncates below one usable unit, data is stale, or debt stops decreasing, stop further attempts and hand the operator the profile ID/version, latest block/observation, balances, and last intent/receipt. Do not release collateral on an unverified zero.
+
+Captured M0 uses 3-bps slippage; M1 uses 2 bps; both have a 60-second cooldown and one concurrent intent **per profile**. These are historical values to review, not recommended defaults. If the profiles are absent or the manager cannot inspect/start them, request a configuration review from the vault's authorized manager with those exact IDs and hook chains. There is no curator “repay once” endpoint established by this walkthrough.
+
+## Release zero-debt collateral
+
+**MW — Manual full-exit profile: zero-debt collateral** (`4f7bcb58-e86d-4983-922b-fc3b0b9920a7`, version 3 / IDLE in the capture) provides the concrete full-release path:
+
+| Check | Required value / evidence |
+|---|---|
+| Rule | Raw USDC debt equals zero **and** risk debt value equals zero **and** raw NVDAc collateral is positive |
+| Action | `REBALANCE`, target type `VAULT`; one `AaveV4WithdrawHookV2` step, `use_prev_hook_amount: false` |
+| Position binding | Captured Spoke, supply reserve `5`, borrow reserve `7`, NVDAc collateral and USDC debt; use the complete carry mapping, not another market's parameters |
+| Size | Entire `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_collateral_0xb20000000000000000000078ee7ce2fe4908108c_amount`: **8-decimal NVDAc**, not USDC, risk value, or Clearstar shares |
+| Account | Execution strategy `0xef83abc641b98af01f0652e3af49a25d65c601a5`; verify NVDAc returns there, not to the manager wallet |
+| Result | Collateral decreases, idle NVDAc increases, debt stays zero; measure actual deltas and residuals |
+
+Reopen MW, compare those fields and the active hook proof/session permissions, and obtain a fresh venue withdrawal preflight before any approved start. Zero debt removes the repayment prerequisite but does not establish venue liquidity, transferability, or transaction success. Keep collateral-supply automation stopped so it cannot resupply the released NVDAc. Start only after approval, reconcile the receipt and position, then stop MW when collateral is zero or the approved release is complete. Stop on any nonzero/missing debt observation, insufficient venue liquidity, rejection/revert, or unmatched receipt.
+
+MW is a **zero-debt full release**, not a documented partial-withdrawal-at-nonzero-debt recipe. For a partial release, hand the authorized vault manager the required raw NVDAc shortfall, current debt/collateral observations and block, exact Spoke/reserves, and requested post-withdrawal risk bound for a separate plan/preflight review. Do not weaken MW's zero-debt checks. Continue with [redemption funding](/operate/playbooks/redemptions) only after underlying is measured at the strategy.
+
+On a failure, distinguish no publication, rejected execution, reverted transaction, and successful but insufficient repayment. Avoid duplicate recovery while a prior intent can still settle. Missing freshness or liquidity is a reason to escalate, not to erase the guard.
+
+## Pause scope
+
+Stopping these strategies or using a kill switch does not cancel all in-flight work, remove the loan, or withdraw remaining collateral. [Pause Operations](/operate/ui/pause) documents the distinct control scopes. A special emergency exit introduces target locks and its own lifecycle; it is not equivalent to running AF0/AF2.
+
+Source and fixture boundary: [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd). Evaluator tests cover threshold behavior, sizes, and disarming; they do not prove Aave repayment execution or live post-action LTV.

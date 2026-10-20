@@ -1,83 +1,25 @@
 ---
-title: "Quickstart"
-description: "Create, activate, and operate a SuperVault end to end."
+title: "Launch sequence"
+description: "Prepare a vault without confusing deployment, execution readiness, and listing."
 ---
 
-This guide follows the operator path from vault deployment to a live Superform listing. Use it for sequence; use [Setup Checklist](/operate/ui/setup-checklist) as the canonical readiness source after the vault exists.
-
-Prerequisites: operator access, connected EVM wallet, gas on the deployment chain, provider profile, and the token/yield-source details for the vault.
-
 <Steps>
-
-<Step title="Create the vault">
-Open **Create Vault** (`/vaults/create`). The editable wizard has four steps:
-
-1. **Basic Information** — select chain, provider, underlying asset, listing metadata, and the computed onchain name/symbol.
-2. **Managers** — assign the primary manager and optional secondary managers.
-3. **Fees** — configure fee recipient, performance fee, management fee, PPS timing, and redemption timing.
-4. **Review** — inspect the full configuration before the transaction phase.
-
-After review, the modal moves through transaction signing, indexing, optional yield-source setup, and completion. See [Create Vault](/operate/ui/create-vault).
+<Step title="Create or select the vault">
+Open **Operate → My SuperVaults** and verify the chain and address. For a new vault, use **Create a SuperVault** at `/operate/create`. Review identity, managers, fees, and metadata; sign only the intended deployment, then wait for indexing. [Create a vault](/operate/ui/create-vault) describes the transaction and recovery path.
 </Step>
-
-<Step title="Work through the setup checklist">
-Open **Setup**. Treat it as the canonical go-live checklist. It coordinates the required rows for creation, upkeep, hook authorization, yield sources, strategy coverage, and Superform availability.
-
-Do not maintain a second checklist from this page. If the Setup page disagrees with another surface, Setup wins. See [Setup Checklist](/operate/ui/setup-checklist).
+<Step title="Prepare sources and pricing">
+In **Yield Sources**, select the intended source and compatible oracle, review asset/share units and pricing, then complete the whitelist transaction. A source must exist before hook parameters and strategy plans can refer to it. See [Yield sources and pricing](/operate/ui/yield-sources).
 </Step>
-
-<Step title="Fund upkeep and activate automation">
-Open **Vault Settings → Upkeep**. Fund the required upkeep balance. Erebor marks the vault active and discoverable once the funding gate is satisfied.
-
-Without upkeep, operator pages can still show the vault by direct link, but keeper automation and public discoverability remain gated. Ethereum L1 vaults currently require at least `100,000 $UP`; non-L1 vaults require at least `1,000 $UP`.
+<Step title="Authorize hooks">
+Open **Hooks**. Save and activate the intended configuration version, generate its tree, and compare it with the current onchain root. The Primary Manager proposes the strategy root; after the configured timelock, execute the update and verify it. Publish the matching proof artifact separately. See [Hooks and authorization](/operate/ui/merkle-trees).
 </Step>
-
-<Step title="Whitelist yield sources">
-Open **Yield Sources**. Add each target yield source with its paired oracle. Bulk add, bulk remove, and bulk oracle update flows prepare a single transaction for multiple rows.
-
-Emergency-exit readiness is tied to the whitelist: each whitelisted yield source can have a paired `EMERGENCY_EXIT` strategy used by the Pause page to drain that source during an incident.
+<Step title="Prepare execution and funding">
+Check the executor's manager status and session validity in [Execution accounts](/operate/ui/execution-accounts). Fund [UP upkeep and native gas](/operate/ui/funding) independently. A hook count, strategy count, or active flag does not prove an executable plan.
 </Step>
-
-<Step title="Configure hook authorization">
-Open **Merkle Trees** and follow the manager-root flow:
-
-1. Draft a root config.
-2. Activate the config.
-3. Generate the merkle tree.
-4. Have the primary manager propose and publish the root onchain.
-
-Keepers and OMS intents need active merkle proofs for each hook/parameter combination they execute.
+<Step title="Save and test an inactive strategy">
+Follow [Build your first strategy](/operate/strategy/quickstart). Read back the saved definition, version, and inactive lifecycle state. Check expressions, units, and plan fixtures; use [Simulation](/operate/ui/simulation) only for admitted inputs and modeled actions. Do not start production automation to test an editor.
 </Step>
-
-<Step title="Create and order strategies">
-Open **Strategy Canvas**. Create user-defined strategies for deposits, withdrawals, and rebalances. Strategy priority is server-managed: use drag-to-reorder, which persists through `POST /api/v1/strategies/reorder`. Create and update requests do not carry `priority`.
-
-Before a strategy can publish intents, the OMS session key must be ready and the active merkle tree must contain the required withdrawal/deposit hooks.
+<Step title="Review launch evidence">
+Use the [Launch checklist](/operate/ui/setup-checklist) to reconcile deployment, authorization, execution readiness, and distribution. Activation of an approved strategy and public listing are separate decisions. Private testing does not require a public listing. Monitor actual runs through [Intent History](/operate/ui/intent-history) and [Positions and accounting](/operate/ui/dashboard).
 </Step>
-
-<Step title="Confirm distribution readiness">
-Open **Distribute**. Confirm the vault has the metadata, visibility, and availability needed for Superform surfaces.
-
-Onchain created means the vault contract exists. Available in Superform means the vault is indexed, activated, configured, and visible to allocator-facing surfaces. See [Distribute](/operate/ui/distribute).
-</Step>
-
-<Step title="Monitor intents and operations">
-Use **Dashboard** for vault health, **Intent History** for execution traces, and **Pause** for incident controls. Intent History maps Strategy Engine rows to OMS events, fills, gas usage, mined timestamps, and hook transaction details.
-</Step>
-
 </Steps>
-
-## Source of Truth
-
-After creation, [Setup Checklist](/operate/ui/setup-checklist) is the source of truth for go-live readiness. This quickstart intentionally avoids duplicating its row logic.
-
-Use the other pages for the work behind each row:
-
-| Work | Page |
-|------|------|
-| Upkeep and activation | [Vault Settings](/operate/ui/vault-settings) |
-| Hook authorization and proof publishing | [Merkle Trees](/operate/ui/merkle-trees) |
-| Yield-source whitelist and oracles | [Yield Sources](/operate/ui/yield-sources) |
-| Strategy authoring and ordering | [Strategy Canvas](/operate/ui/strategy) |
-| Distribution availability | [Distribute](/operate/ui/distribute) |
-| Execution monitoring | [Intent History](/operate/ui/intent-history) |

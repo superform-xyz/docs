@@ -1,117 +1,64 @@
 ---
-title: "Dashboard"
-description: "9-section vault monitoring dashboard covering TVL, PPS, fees, risk, users, operations, and the Zap Terminal."
+title: "Positions and accounting"
+description: "Reconcile vault accounting, lending positions, source liquidity, and operational readiness."
 ---
 
-![SuperformOS Dashboard — vault monitoring panels and operational health](/operate/images/screenshots/dashboard.jpg)
+## Read the selected vault
 
-The Dashboard is the primary monitoring view for a single vault. It appears in the manager Operate surface and as the read-only public route at `/supervaults/{chain_name}/{vaultAddress}`. Nine sidebar sections cover every dimension of vault health: financial state, allocation composition, pricing, fee accrual, access control, performance history, risk metrics, depositor analytics, and operational throughput.
+The Dashboard is vault-scoped. In Operate, select the intended chain and vault; public pages use `/supervaults/{chain_name}/{vaultAddress}` and expose read-only context without manager mutation controls.
 
-In Operate, select your chain and vault from the app controls. Public detail links use `/supervaults/{chain_name}/{vaultAddress}`. Financial data refreshes every 15 seconds from `GET /api/v1/vaults/{chain_id}/{vault_address}` plus Erebor analytics sub-endpoints.
+Record observation times alongside values. A refreshing panel is not proof that every source, oracle, loan position, or service metric is fresh. Public visibility also does not grant access to all engine diagnostics.
 
-## Public Read-Only Route
+## Vault accounting
 
-Allocator-facing vault pages use the same dashboard data model without exposing manager controls. Use the public route to inspect vault state, tabs, settings context, strategy visibility, and merkle proof status exactly as a non-manager would see them.
+| Quantity | Interpretation |
+|---|---|
+| USD TVL | Display valuation; not the engine's raw `vault_tvl` |
+| Current PPS | Last recorded vault price per share |
+| Calculated PPS | Offchain calculation, which can differ before the next accepted update |
+| High-water mark | Fee-accounting reference, not a floor guaranteeing share price |
+| Total supply | Vault shares, using vault share decimals |
+| Free assets | Idle vault-underlying assets at the strategy; not arbitrary debt tokens |
+| Escrowed/pending assets | Redemption-accounting state; not automatically spendable liquidity |
+| Upkeep | Service funding/readiness, separate from execution gas |
 
-Manager-only actions such as settings updates, user changes, merkle generation, strategy editing, upkeep deposits, and pause flows stay in authenticated Operate pages.
+PPS can decrease, including at a performance-fee skim. Do not interpret every downward step as an oracle failure or claim monotonic growth. Inspect the vault's fee configuration and reconcile the relevant update/skim event.
 
-## 1. Overview
+## Allocation versus realizable liquidity
 
-Top-level vault health metrics:
+A source allocation describes exposure, not the amount withdrawable immediately. Inspect source shares, asset-equivalent value, PPS, and asset/share exit liquidity separately. Async requests add pending and claimable stages; a position can remain economically owned while unavailable for immediate redemption.
 
-| Metric | Description |
-|--------|-------------|
-| TVL (USD) | Current total value locked |
-| Current PPS | Last onchain recorded price-per-share |
-| Calculated PPS | Off-chain computed PPS (may differ during update intervals) |
-| HWM PPS | All-time high-water mark. Performance fees accrue only above this level. |
-| Total Supply | Outstanding vault shares |
-| Free Assets | Assets in vault not deployed to yield sources |
-| Escrowed Assets | Assets pending cross-chain redemptions |
-| Pause Status | Whether vault strategy execution is paused |
-| $UP Upkeep | Upkeep token balance and payment status |
-| Staleness Countdown | Time until PPS expires. Client-calculated from `last_pps_update_timestamp`. |
+Never convert a raw share balance using underlying-token decimals. [Variables and units](/operate/strategy/variables) explains the Clearstar 18-share / 6-USDC conversion and the difference between wire scale and human display.
 
-## 2. Allocation
+## Lending positions
 
-Pie chart showing current distribution of vault assets across yield sources. Each slice represents one whitelisted yield source with its allocation amount and percentage of total.
+For each position, identify the venue, Spoke/market, reserve IDs, collateral/debt tokens, owner, and normalized position ID. Inspect:
 
-## 3. PPS & Pricing
+- Raw collateral and debt amounts with token decimals.
+- Collateral/debt risk-reference values using the same provider convention.
+- Borrow/liquidation capacity and health measures where supplied.
+- Borrow and supply rates, with their units and period.
+- Observation freshness, not just last-known values.
 
-PPS history chart (time series from `analytics/pps`). Current, calculated, and HWM values displayed alongside staleness countdown with visual indicator. Min/max update intervals from SuperGovernor config.
+LTV is debt reference value divided by collateral reference value. It is not raw USDC divided by raw NVDAc. A source-oracle address does not by itself establish a fresh stock price or hard venue threshold.
 
-## 4. Fees & Upkeep
+For the [carry case study](/operate/playbooks/carry), separate NVDAc collateral, USDC debt, Clearstar shares, idle USDC, and idle NVDAc. Debt repayment can succeed without releasing collateral or funding depositor redemptions.
 
-| Field | Description |
-|-------|-------------|
-| Management Fee | Annualized bps on TVL |
-| Performance Fee | Bps on yield above HWM |
-| Pending Performance Fee | Total accrued, Superform share, recipient share, profit since HWM |
-| Can Skim | Whether pending fees are claimable now |
+## Operational readiness
 
-Fee configuration data comes from the vault detail endpoint (`GET /api/v1/vaults/{chain_id}/{address}`) in the `fee_config` field. Fee history is derived from vault analytics and audit log data.
+| Surface | Question |
+|---|---|
+| Strategy lifecycle | Is the intended version RUNNING, IDLE, CREATED, or ERROR? |
+| Engine state | Are feeds/indicators ready and referenced observations fresh? |
+| Publication controls | Are cooldown, slots, locks, breaker, or kill switch suppressing new intents? |
+| OMS/executor | Is the session key valid, authorization ready, and gas funded? |
+| Intent History | Which operation was published and what actually settled? |
+| Redemption queue | What value and age remain, and which requests are still outstanding? |
 
-## 5. Managers
+Missing telemetry is **unknown**, not healthy. A RUNNING card, sufficient upkeep, or a successful last fill does not prove every row above is ready now.
 
-Lists all wallet addresses with roles on this vault: primary manager, secondary managers, view-only users.
+## Reconcile a change
 
-## 6. Performance
+Record a before snapshot, find the specific intent and receipt, then compare after values using the same tokens, scales, and valuation convention. Account for interest, fees, oracle changes, and intervening transactions. The [worked AP1 trace](/operate/ui/intent-history) demonstrates why aggregate output fields alone cannot explain an economic result.
 
-- APY overview: current, 7-day, 30-day from `analytics/overview`
-- APY time series chart with selectable periods
-- TVL time series chart with selectable periods
-- 24h and 7d TVL change
-
-## 7. Risk
-
-| Metric | Description |
-|--------|-------------|
-| Risk Score | Composite 0-100 score |
-| Risk Level | Low / Medium / High classification |
-| Concentration Score | Exposure to any single yield source |
-| Max Drawdown (30d) | Worst peak-to-trough PPS decline |
-| Sharpe Ratio | Risk-adjusted return |
-| Volatility (Daily) | Daily PPS standard deviation |
-| Top Holder % | Share of TVL held by the largest depositor |
-
-Risk data has a 2-minute stale time.
-
-## 8. Users
-
-From `analytics/users`: total users, active users (24h/7d/30d), new users (24h/7d/30d), churned users, retention rate (7d/30d), average deposit size. Includes retention cohort table and top holders table.
-
-## 9. Operations
-
-From `analytics/operations`: transaction count, deposit and withdrawal counts, gas costs (average and total), slippage (average and max), net flow. Deposit/withdraw volume chart and transaction history table.
-
-## Zap Terminal
-
-The Zap Terminal opens as a modal overlay providing AI-powered vault analysis: a narrative covering performance, risk, yield sources, fees, and liquidity. Also includes an operator-focused social feed and WebSocket-based AI chat for vault Q&A.
-
-<Note>
-The Zap Terminal analysis endpoint (`GET /api/v1/vaults/{vaultAddress}/ai/analysis?chain_id={}`) is operational and used by the Zap Terminal.
-</Note>
-
-## API Endpoints
-
-| Endpoint | Stale Time |
-|----------|-----------|
-| `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
-| `GET .../analytics/overview` | 15s |
-| `GET .../analytics/pps` | 15s |
-| `GET .../analytics/performance` | 15s |
-| `GET .../analytics/performance/apy?period={p}` | 15s |
-| `GET .../analytics/performance/tvl?period={p}` | 15s |
-| `GET .../analytics/risk` | 2min |
-| `GET .../analytics/risk/concentration` | 2min |
-| `GET .../analytics/risk/drawdown` | 2min |
-| `GET .../analytics/risk/volatility` | 2min |
-| `GET .../analytics/users` | 30s |
-| `GET .../analytics/users/retention` | 30s |
-| `GET .../analytics/users/top` | 30s |
-| `GET .../analytics/users/cohorts` | 30s |
-| `GET .../analytics/operations` | 30s |
-| `GET .../analytics/operations/transactions` | 30s |
-| `GET .../analytics/operations/volume` | 30s |
-| `GET .../analytics/social` | 60s |
-| `GET .../analytics/export` | on-demand |
+Use [Monitoring and alerts](/operate/automation/monitoring) for collection and [Troubleshooting](/operate/strategy/troubleshooting) for stage-specific diagnosis. This page describes source-reviewed accounting concepts, not a guarantee that every public dashboard panel exposes authenticated position telemetry.

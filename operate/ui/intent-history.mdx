@@ -1,60 +1,109 @@
 ---
 title: "Intent History"
-description: "Trace Strategy Engine intents through OMS events, fills, gas, and execution status."
+description: "Trace a real intent to its execution, fill, transaction, and partially reconciled asset flows."
 ---
 
-![SuperformOS Intent History - read-only strategy execution ledger](/operate/images/screenshots/history.jpg)
+## Start with identity and time
 
-Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+Filter by vault and strategy, then search an intent ID, execution ID, error message, or fill transaction hash. Expand the row to inspect lifecycle timestamps, signal context, OMS summary, and fills.
 
-## What it shows
+| Identifier | Meaning |
+|---|---|
+| Strategy ID / version | Definition that generated the signal; current definition may differ from historical configuration |
+| Intent ID | Requested operation and its projected lifecycle |
+| Execution ID | OMS execution linked to the intent |
+| Fill ID | Individual execution result; an intent can have multiple fills |
+| Transaction hash | Onchain evidence on the fill's chain |
 
-| View | Use it for |
-|------|------------|
-| Intent list | Search and filter intents across vaults and strategies. |
-| Facets | Count by state, action, chain, vault, and strategy. |
-| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
-| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
-| OMS events | Audit message type, sequence, payload, and source. |
-| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+Signal snapshots describe historical publication context, not current position values. Intent History is not a record of every false rule evaluation. Lifecycle vocabulary includes RECEIVED, ACKED, STAGED, PLANNED, EXECUTING, COMPLETED, ABORTED, EXPIRED, FAILED, CANCELED, and UNKNOWN for unnormalized rows.
 
-## Lifecycle states
+## Worked AP1 investigation
 
-The explorer uses the OMS lifecycle vocabulary:
+Open the [public superNVDA AP1 history](https://os.superform.xyz/supervaults/base/0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc?istr=a8d25935-9f6d-4046-a87a-82048af0cc1c&tab=intent-history), then search `99a5081e-9975-4cc9-82ec-fac97f355bc5`. The authenticated equivalent uses `/intent-history` with strategy, chain, and vault filters.
 
-`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+Search the scoped ledger through the public BFF:
 
-## How it maps to OMS
+```bash
+curl --fail-with-body --get \
+  'https://os.superform.xyz/api/strategy/api/v1/intents' \
+  --data-urlencode 'vault_id=8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc' \
+  --data-urlencode 'strategy_id=a8d25935-9f6d-4046-a87a-82048af0cc1c' \
+  --data-urlencode 'limit=50' --data-urlencode 'offset=0' \
+  --data-urlencode 'sort=created_at' --data-urlencode 'order=desc'
+```
 
-The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+The OS host's browser-facing prefix is `/api/strategy/api/v1`, not bare `/api/v1`. The latter names the upstream engine route. Paginate if looking for an older record rather than assuming it remains on page one.
 
-- `intent_id`, `execution_id`, `correlation_id`
-- strategy and vault IDs
-- last event sequence and message type
-- ack/executing/completed/terminal timestamps
-- error code and message
-- total amount in/out
-- total gas used
-- fills count
-- signal snapshot and summary
-- source: `engine`, `nats`, or `backfill`
+Read the exact historical record and its fills:
 
-## API mapping
+```bash
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/99a5081e-9975-4cc9-82ec-fac97f355bc5'
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/99a5081e-9975-4cc9-82ec-fac97f355bc5/fills'
+```
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/intents` | Global intent search. |
-| `GET /api/v1/intents/facets` | Facet counts for filters. |
-| `GET /api/v1/intents/{intent_id}` | Intent detail. |
-| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
-| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
-| `GET /api/v1/fills` | Global fill search. |
+Both returned HTTP 200 on read-only verification. The corresponding `/events` route returned HTTP 401 with `{"error":"no_session"}`. Public detail supplies lifecycle metadata; full events require authorized session access. Do not extract browser credentials to bypass this boundary.
 
-## Common reads
+| Field | Observed value |
+|---|---|
+| Intent | `99a5081e-9975-4cc9-82ec-fac97f355bc5` |
+| Execution | `967eb2f7-f8f9-4eff-82cc-a933e9bb3f95` |
+| Strategy | `a8d25935-9f6d-4046-a87a-82048af0cc1c` |
+| Action / state | WITHDRAWAL / COMPLETED |
+| Created | `2026-10-19T09:51:30.023762Z` |
+| Acknowledged | `2026-10-19T09:51:30.042024Z` |
+| Executing | `2026-10-19T09:51:31.491645Z` |
+| Completed | `2026-10-19T09:51:35.164241Z` |
+| Last event | `ExecutionCompleted`, sequence `4`, source `nats` |
+| Fill | `ea9eb763-469d-5a10-a6d7-11f50e665079`, venue `hook_tx`, chain `8453` |
+| Transaction | `0x100e0ae81927d2141d2a9d65b342c8e900fedd37e8c32eea195117e2681a8a2f` |
+| Gas used | `844495` |
 
-| Symptom | Check |
-|---------|-------|
-| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
-| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
-| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
-| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |
+One fill was returned and `fills_count` is one. This reconciles the ledger count, not the entire economics.
+
+## Receipt and asset-flow evidence
+
+Read the transaction receipt, without signing or submitting a transaction:
+
+```bash
+curl --fail-with-body 'https://mainnet.base.org' \
+  -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionReceipt","params":["0x100e0ae81927d2141d2a9d65b342c8e900fedd37e8c32eea195117e2681a8a2f"]}'
+```
+
+The receipt returned success (`status: 0x1`) in Base block `52807073`, with gas `844495`, matching the fill. Receipt logs establish the following **transaction-local** flows:
+
+| Evidence | Observed amount |
+|---|---:|
+| Clearstar share Transfer from strategy to zero address | `10794509528234745284889` raw shares burned |
+| Clearstar Withdraw event | Same share amount, `11124399402` raw USDC assets |
+| USDC Transfer from Clearstar to strategy | `11124399402` raw USDC, or `11124.399402` USDC |
+| USDC Transfer from strategy into the lending repayment path | Same `11124399402` raw USDC |
+
+The receipt's share burn matches the ledger's raw `amount_in`. The fill projection has zero-address `token_in` / `token_out` placeholders and `amount_out: "0"`. Those fields do **not** mean zero economic output, and the raw input must not be labeled USDC.
+
+<Warning>
+This is partial reconciliation, not proof that the position reached 50% LTV or zero debt. The receipt shows redemption and token flow; before/after loan balances, interest, collateral valuation, and residual account balances were not independently reconciled. Current configuration is not proof of the exact historical definition used at publication.
+</Warning>
+
+## Finish economic reconciliation
+
+For a complete case study, preserve the receipt and decoded events at the execution block, then obtain the same position's state immediately before and after execution:
+
+1. Reconcile shares held/burned and the source's Withdraw assets.
+2. Reconcile received debt tokens, repayment events, actual debt reduction, and interest/dust.
+3. Check residual idle tokens rather than assuming all receipts were spent.
+4. Recompute LTV from consistent post-action collateral/debt risk values and oracle observations.
+5. Identify other transactions in the comparison interval. Block-level balance differences can include unrelated activity.
+6. For an intended exit, verify remaining collateral and depositor-funding state separately.
+
+A successful receipt proves that transaction did not revert. It does not establish every operating objective, current safety, or future execution capacity.
+
+## Diagnose by stage
+
+- **No intent:** inspect lifecycle, readiness, rule evaluation, size, freshness, conviction, cooldown, and locks.
+- **Intent without completion:** inspect execution status, error, session keys, proof coverage, gas, and in-flight work before retrying.
+- **COMPLETED without intended state:** decode the receipt and reconcile positions; do not rely on placeholder aggregate amounts.
+
+Use the [diagnostic tree](/operate/strategy/troubleshooting) and [monitoring guidance](/operate/automation/monitoring). UI/source interpretation is pinned to [b782f60](https://github.com/superform-xyz/monorepo/tree/b782f601be8c29b5258fc9a2ed02f71209ee5c37/apps/superman/src/domains/strategy/ui/intent-history); the linked historical record and receipt are the execution evidence.

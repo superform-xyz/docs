@@ -1,141 +1,56 @@
 ---
-title: "Permissions Model"
-description: "Access boundaries for primary managers, secondary managers, view-only users, registry maintainers, session keys, and keepers."
+title: "Access and roles"
+description: "Operation-specific browser, API, and onchain authority."
 ---
 
-The SuperVaults system separates protocol governance, vault accounting, and day-to-day operations. The safest mental model is:
+## Role boundaries
 
-- **Primary manager** is the highest-authority vault operator within protocol, timelock, Merkle, fee, PPS, and accounting constraints.
-- **Secondary managers** execute delegated operational actions within the same onchain constraints.
-- **View-only users** observe the vault.
-- **Registry maintainers** maintain global metadata.
-- **Session keys / keepers** execute narrowly-authorized automation.
+| Role | Scope |
+|---|---|
+| Primary Manager | Onchain main manager; primary-only configuration and delegation |
+| Secondary Manager | Delegated onchain manager; operational actions within protocol constraints |
+| View-only | Offchain vault assignment; authenticated inspection, not execution |
+| Registry maintainer | Global metadata maintenance; not automatically a vault manager |
+| Executor/session key | Delegated execution authority with explicit validity and scope |
 
-## Role Tiers
+Manager authority does not bypass hook proofs, venue checks, fee limits, pricing constraints, or timelocks. Assets may be held in external positions, not only idle in the vault.
 
-| Role | Onchain? | Scope | Typical Use |
-|------|----------|-------|-------------|
-| Primary Manager | Yes | Highest-authority vault operations | Multisig / hardware-backed operator |
-| Secondary Manager | Yes | Delegated operational execution | PM, operations, risk |
-| View Only | No | Read access | Analysts, auditors, monitors |
-| Registry Maintainer | No | Global registry CRUD | Internal registry operations |
-| Session Key / Keeper | Yes, delegated | Specific executable actions | Strategy and OMS automation |
+## Operation matrix
 
-## Primary Manager
+The table distinguishes the inspected application/API policy from contract authority. A UI control can be narrower than an API policy; API preparation is not permission to sign as another account.
 
-The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets remain in vault contracts and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
+| Operation | Application or API gate | Transaction boundary |
+|---|---|---|
+| Inspect public dashboard and allowed history | Public vault and anonymous read allowlist | None |
+| Open **View rules** in Operate | Assigned view-only, Primary, or Secondary Manager | None |
+| Create/save/reorder/start strategies; run simulation | Primary or Secondary Manager for the selected vault | Offchain mutation; starting can cause later execution |
+| Add/remove Secondary Manager | Erebor prepare endpoints: Primary Manager | Aggregator `addSecondaryManager` / `removeSecondaryManager`: main manager |
+| Add/remove view-only user; update display name | Erebor: either manager | Offchain mutation |
+| Whitelist/remove sources or change paired oracle | Yield Sources UI: Primary Manager; Erebor prepare endpoints: either manager | Check the prepared contract call and signing authority |
+| Create/activate hook config; request tree generation | Erebor: either manager | Offchain until root update |
+| Propose strategy hook root | Main manager | Signed proposal; execution waits for configured timelock |
+| Request proof artifact publication | Erebor: Primary Manager | Artifact publication is separate from root activation |
+| Change fee configuration, PPS expiration, deviation threshold, or banned leaves | Erebor settings writes: Primary Manager | Prepared onchain calls; proposal/execute where applicable |
+| Propose/cancel minimum PPS update interval | Erebor: Primary Manager | Signed proposal/cancellation |
+| Execute matured minimum PPS update interval | Erebor execution preparation: either manager | Contract execution is permissionless after a valid pending proposal's timelock expires |
+| Set/delete redemption timing setting | Erebor: Primary Manager | Offchain setting, not a transaction prepare call |
+| Prepare Erebor session grant/revoke | Primary Manager | Delegation transaction still requires the authorized signer |
+| Pause/unpause vault | Erebor prepare: either manager | Aggregator pause/unpause: either manager |
+| Pause/resume per-vault keeper services | Erebor: either manager | Offchain service control |
+| Create/attach/detach vault notification channels | Erebor: either manager | Offchain configuration |
+| Propose upkeep withdrawal | Primary Manager | Timelocked withdrawal; inspect recipient and execution conditions |
 
-Primary manager responsibilities:
+OMS grant/rotation preparation has a separate BFF manager gate and contract signing requirements. Do not infer that access to prepared calldata makes a Secondary Manager eligible to sign every delegated-session change. See [Execution accounts](/operate/ui/execution-accounts).
 
-- Vault settings and sensitive configuration.
-- Secondary-manager assignment.
-- Session-key grant and revoke flows.
-- Upkeep funding and withdrawal control.
-- Pause, unpause, and emergency operations.
-- Merkle root proposal / publish workflows.
+## Primary Manager replacement
 
-<Warning>
-Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker may be able to exercise the role's authorized operating powers, subject to protocol checks, timelocks, Merkle allowlists, and accounting constraints.
-</Warning>
+The current Aggregator has two different paths:
 
-## Secondary Managers
+- `changePrimaryManager`: privileged `SUPER_GOVERNOR` path.
+- `proposeChangePrimaryManager`: a Secondary Manager proposes a replacement and fee recipient; `executeChangePrimaryManager` applies it after the manager-change timelock and contract checks.
 
-Secondary managers are onchain delegates for operational work. They can execute only the actions authorized for their role and, for hook execution, only pre-authorized hook/parameter combinations proven against the active Merkle roots.
+The ordinary User Management tab displays the Primary Manager; it is not a replacement wizard. Replacement is neither an unrestricted Secondary Manager edit nor governance-only. Review pending proposals, effective time, and the contract's reset of delegated configuration before using an approved recovery procedure.
 
-They can typically:
+## Verification boundary
 
-- Manage strategies.
-- Configure yield sources.
-- Work with merkle tree configuration.
-- Pause/unpause operational services.
-- Add view-only collaborators.
-
-They cannot unilaterally bypass primary-only settings, timelocks, Merkle validation, PPS checks, fee limits, or vault accounting.
-
-## What Managers Cannot Do
-
-Manager roles are operational roles, not custody of depositor wallets or unrestricted control over vault assets. Managers cannot:
-
-- Withdraw depositor assets to arbitrary wallets outside vault redemption, strategy, or emergency flows enforced by the contracts.
-- Execute arbitrary calldata against yield sources; hook execution must match pre-authorized Merkle leaves and protocol validation.
-- Bypass ERC-7540 redemption accounting, PPS-based calculations, slippage expectations, or share/accounting updates when fulfilling redemptions.
-- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, primary-manager changes, and hook-root updates.
-- Override global protocol constraints such as banned leaves, pause state, validator-secured PPS requirements, or governance-maintained limits.
-
-## View-Only Users
-
-View-only access is offchain. It grants dashboard visibility without transaction authority.
-
-Use it for:
-
-- Risk monitors.
-- Analysts.
-- Auditors.
-- Partners who need vault state without write access.
-
-## Registry Maintainers
-
-Registry maintainers manage global metadata shared across vaults, including:
-
-- Yield source registry entries.
-- Oracle registry entries.
-- Hook registry entries.
-- Token asset metadata.
-
-This role is not vault-scoped and should be tightly controlled.
-
-## Session Keys and Keepers
-
-Session keys are delegated execution keys used by automation. A session key does not imply broad manager authority; it authorizes a specific automation path.
-
-Keepers and OMS execution still depend on:
-
-- Active upkeep funding.
-- Valid session key readiness.
-- Active merkle root and proofs.
-- Non-paused vault / services.
-- Strategy state and emergency locks.
-
-If any of those gates fail, automation should stop even when a session key exists.
-
-## Permission Matrix
-
-| Action | Primary | Secondary | View Only | Registry Maintainer | Session Key / Keeper |
-|--------|---------|-----------|-----------|---------------------|----------------------|
-| View dashboard | ✅ | ✅ | ✅ | — | — |
-| Create vault | ✅ | — | — | ✅ | — |
-| Fund upkeep | ✅ | ✅ | ❌ | — | — |
-| Withdraw upkeep | ✅ | Usually ❌ | ❌ | — | — |
-| Configure strategies | ✅ | ✅ | ❌ | — | — |
-| Reorder strategies | ✅ | ✅ | ❌ | — | — |
-| Manage yield sources | ✅ | ✅ | ❌ | — | — |
-| Configure hooks / merkle roots | ✅ | ✅ | ❌ | — | — |
-| Propose or publish merkle root | ✅ | Permissioned | ❌ | — | — |
-| Grant / revoke session key | ✅ | Usually ❌ | ❌ | — | — |
-| Pause vault | ✅ | ✅ | ❌ | — | — |
-| Arm emergency exit | ✅ | ✅ | ❌ | — | — |
-| Add/remove secondary managers | ✅ | ❌ | ❌ | — | — |
-| Add/remove view-only users | ✅ | ✅ | ❌ | — | — |
-| Registry CRUD | — | — | — | ✅ | — |
-| Execute authorized hooks | — | — | — | — | ✅ |
-
-## API Patterns
-
-```bash
-# List vault users
-GET /api/v1/users?vault_address={address}&chain_id={chainId}
-
-# Prepare add secondary manager transaction
-POST /api/v1/users/secondary-manager/prepare
-
-# Prepare remove secondary manager transaction
-POST /api/v1/users/secondary-manager/remove/prepare
-
-# Add view-only user offchain
-POST /api/v1/users/view-only
-
-# Remove view-only user offchain
-DELETE /api/v1/users/view-only/{wallet}
-```
-
-A `403 Forbidden` means the connected wallet lacks the required role for that operation.
+These gates were checked against application, Erebor policy, and Aggregator source. They do not certify the deployed bytecode or a successful authenticated signing rehearsal. For any mutation, verify the selected vault, current role, prepared call, resulting receipt if applicable, and a fresh readback. [Authentication](/operate/authentication) covers session failures; [User Management](/operate/ui/user-management) covers assignments.

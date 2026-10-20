@@ -1,217 +1,78 @@
 ---
-title: "Monitoring Vault State"
-description: "Poll endpoints to track PPS, service health, and alert conditions for your vault."
+title: "Monitoring and alerts"
+description: "Track freshness, operating gates, and outcomes without treating missing telemetry as healthy."
 ---
 
-SuperVaults uses a polling-first monitoring model. No webhook system is implemented yet. Use these intervals as a baseline:
+## Monitor separate layers
 
-| Data | Endpoint | Interval |
-|------|----------|----------|
-| Vault state (PPS, pause, supply) | `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
-| Analytics overview (APY, TVL) | `GET .../analytics/overview` | 60s |
-| Risk metrics | `GET .../analytics/risk` | 120s |
-| Service health | `GET /api/v1/vaults/{chain_id}/{vault}/services` | 30s |
-| Infrastructure health | `GET /health` | 30s |
+| Layer | Inspect | Escalate when |
+|---|---|---|
+| Accounting | PPS, observation time, idle underlying, supply | PPS expires, observations are unavailable, or accounting cannot be reconciled |
+| Carry | Debt/collateral, risk values, rates | Threshold crossed, spread deteriorates, or position data is stale |
+| Source | Shares, PPS, asset/share exit liquidity | Repayment or redemption cannot be funded |
+| Strategy | Version, lifecycle, readiness, cooldown, slots | Intended RUNNING policy does not evaluate or publish |
+| OMS | Session keys, proof coverage, gas, intents, fills | Execution fails, expires, or remains unresolved |
+| Redemptions | Queue value/age, requests, claimable assets | Obligations grow without realizable underlying liquidity |
+| Service telemetry | Observation time, status, sample coverage | Collection fails, samples are absent, or metrics degrade |
 
-## Key Metrics
+Upkeep funding and execution gas are distinct. A RUNNING definition and a successful last intent do not imply every dependency is ready now.
 
-### PPS Staleness
+## Access and collection
 
-```python
-def check_pps_staleness(vault):
-    remaining = vault.get("remaining_staleness_time", 0)
-    if remaining < 3600:  # <1 hour
-        alert("WARNING: PPS staleness — less than 1 hour remaining")
-    if remaining < 600:   # <10 minutes
-        alert("CRITICAL: PPS about to expire")
-```
+Use public GET routes only for fields they expose. The [intent trace](/operate/ui/intent-history) provides copyable public detail/fill requests. Shard state, service telemetry, audit logs, and manager writes have separate [access boundaries](/operate/authentication).
 
-### Service Success Rate
+Programmatic monitoring needs an approved integration with a documented endpoint, response schema, and credential scope. Do not extract browser cookies/JWTs or invent a wallet-signature login flow. The example below is local classification logic, not an anonymous service-health API.
 
-```python
-def check_service_health(services):
-    for svc in services:
-        rate = svc["success_rate"]
-        if rate < 0.80:
-            alert(f"CRITICAL: {svc['name']} success rate {rate:.0%}")
-        elif rate < 0.95:
-            alert(f"WARNING: {svc['name']} success rate {rate:.0%}")
-```
+Record collection time separately from producer observation time. HTTP success with stale data is not a fresh observation. Avoid overlapping polls, use timeouts/backoff, and retain collection failures rather than replacing them with defaults.
 
-### Redemption Queue Depth
+## Unknown-safe classification
+
+The function accepts a normalized record from your verified adapter, not an unverified API payload. `value` is a success ratio in `[0, 1]`; `observed_at` is an aware datetime. Maximum age and alert thresholds are operator policy.
 
 ```python
-def check_redemption_queue(executions):
-    pending = [e for e in executions if e["status"] == "pending"]
-    if len(pending) > 10:
-        alert(f"WARNING: {len(pending)} pending redemptions in queue")
+import math
+from datetime import datetime
+
+def classify_success_ratio(record, now, max_age_seconds):
+    if max_age_seconds <= 0 or now.tzinfo is None:
+        raise ValueError("an aware time and positive maximum age are required")
+    if not isinstance(record, dict):
+        return "UNKNOWN"
+    value = record.get("value")
+    observed = record.get("observed_at")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "UNKNOWN"
+    if not math.isfinite(value) or not 0 <= value <= 1:
+        return "UNKNOWN"
+    if not isinstance(observed, datetime) or observed.tzinfo is None:
+        return "UNKNOWN"
+    age = (now - observed).total_seconds()
+    if age < 0 or age > max_age_seconds:
+        return "UNKNOWN"
+    if value < 0.80:
+        return "CRITICAL"
+    if value < 0.95:
+        return "WARNING"
+    return "HEALTHY"
 ```
 
-## Full Monitoring Loop
+Tests include absent value/time, NaN, out-of-range values, stale/future timestamps, and exact 0.80/0.95 boundaries. No absent metric defaults to `1.0`. Verify whether the upstream field is a ratio or percentage before normalizing; do not silently clamp an unknown unit.
 
-<CodeGroup>
+## Alert policy
 
-```python Python
-import requests
-import time
-import logging
+Assign thresholds, an owner, and a response per vault/venue. Track independent conditions for:
 
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-CHAIN_ID = 8453
-VAULT = "0xYourVault..."
+- PPS near expiry and unavailable PPS.
+- Automation risk trigger versus hard venue threshold.
+- Insufficient debt tokens or exit liquidity for the repayment objective.
+- Growing queue value/age and stalled funding requests.
+- Failed or unresolved intents, expired session keys, and gas shortfall.
+- Successful transactions that miss the intended resulting position.
 
-headers = {"Authorization": f"Bearer {JWT}"}
-log = logging.getLogger(__name__)
+Deduplicate by vault, condition, and incident identity. Preserve first/last observation and recovery evidence. A successful fetch does not erase an unresolved economic shortfall.
 
-def fetch_vault_state():
-    r = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}",
-        headers=headers, timeout=10
-    )
-    r.raise_for_status()
-    return r.json()
+## Investigate before recovery
 
-def fetch_service_health():
-    r = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}/services",
-        headers=headers, timeout=10
-    )
-    r.raise_for_status()
-    return r.json()
+Attach definition version, producer timestamps, raw values/scales, intent IDs, and transaction hash. Follow [Troubleshooting](/operate/strategy/troubleshooting) to separate collection/access, evaluation, publication, execution, and outcome failures.
 
-def alert(severity: str, message: str):
-    """Replace with Slack/PagerDuty integration."""
-    log.warning(f"[{severity}] {message}")
-
-def run_checks():
-    # Vault state
-    try:
-        vault = fetch_vault_state()
-
-        if vault.get("is_paused"):
-            alert("CRITICAL", f"Vault {VAULT} is paused onchain")
-
-        remaining = vault.get("remaining_staleness_time", 9999)
-        if remaining < 600:
-            alert("CRITICAL", f"PPS expires in {remaining}s")
-        elif remaining < 3600:
-            alert("WARNING", f"PPS expires in {remaining // 60}min")
-
-        tvl = vault.get("tvl_usd", 0)
-        log.info(f"TVL: ${tvl:,.0f} | PPS: {vault.get('current_pps')} | Staleness: {remaining}s")
-
-    except Exception as e:
-        alert("ERROR", f"Failed to fetch vault state: {e}")
-
-    # Services
-    try:
-        services = fetch_service_health()
-        for svc in services:
-            rate = svc.get("success_rate", 1.0)
-            if rate < 0.80:
-                alert("CRITICAL", f"Service {svc['name']}: {rate:.0%} success rate")
-            elif rate < 0.95:
-                alert("WARNING", f"Service {svc['name']}: {rate:.0%} success rate")
-    except Exception as e:
-        alert("ERROR", f"Failed to fetch service health: {e}")
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    while True:
-        run_checks()
-        time.sleep(30)
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-const CHAIN_ID = 8453;
-const VAULT = "0xYourVault...";
-const headers = { Authorization: `Bearer ${JWT}` };
-
-async function fetchWithTimeout(url: string, timeoutMs = 10000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, { headers, signal: controller.signal });
-    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-    return resp.json();
-  } finally {
-    clearTimeout(id);
-  }
-}
-
-function alert(severity: string, message: string) {
-  console.warn(`[${severity}] ${message}`);
-}
-
-async function runChecks() {
-  try {
-    const vault = await fetchWithTimeout(
-      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}`
-    );
-    if (vault.is_paused) alert("CRITICAL", `Vault ${VAULT} is paused`);
-
-    const remaining = vault.remaining_staleness_time ?? 9999;
-    if (remaining < 600) alert("CRITICAL", `PPS expires in ${remaining}s`);
-    else if (remaining < 3600) alert("WARNING", `PPS expires in ${Math.floor(remaining / 60)}min`);
-
-    console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
-  } catch (e) {
-    alert("ERROR", `Vault state fetch failed: ${e}`);
-  }
-
-  try {
-    const services = await fetchWithTimeout(
-      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}/services`
-    );
-    for (const svc of services) {
-      if (svc.success_rate < 0.80) alert("CRITICAL", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
-      else if (svc.success_rate < 0.95) alert("WARNING", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
-    }
-  } catch (e) {
-    alert("ERROR", `Service health fetch failed: ${e}`);
-  }
-}
-
-setInterval(runChecks, 30_000);
-```
-
-</CodeGroup>
-
-## Alert Integrations
-
-Replace the `alert()` stub with your notification system:
-
-### Slack
-
-```python
-import httpx
-
-def send_slack(message: str):
-    httpx.post(
-        os.environ["SLACK_WEBHOOK_URL"],
-        json={"text": message}
-    )
-```
-
-### PagerDuty
-
-```python
-import httpx
-
-def pagerduty_alert(summary: str, severity: str = "warning"):
-    httpx.post(
-        "https://events.pagerduty.com/v2/enqueue",
-        json={
-            "routing_key": os.environ["PAGERDUTY_ROUTING_KEY"],
-            "event_action": "trigger",
-            "payload": {
-                "summary": summary,
-                "severity": severity,
-                "source": "supervaults-monitor"
-            }
-        }
-    )
-```
+[Notification channels and audit polling](/operate/automation/webhooks) cover delivery and collection. Notifications are not a lossless execution ledger; reconcile state and fills independently.

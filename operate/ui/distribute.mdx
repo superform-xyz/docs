@@ -3,7 +3,7 @@ title: "Distribute"
 description: "Browse distributable vaults, review provider actions, and move from operational readiness to public availability."
 ---
 
-![SuperformOS Distribute - vault table with provider and action controls](/operate/images/screenshots/distribute.jpg)
+
 
 The Distribute section is the bridge between operating a vault and making it available through Superform surfaces. It shows vaults, providers, status, and actions that help operators confirm that a SuperVault is ready for allocators.
 
@@ -30,12 +30,14 @@ The table can include:
 
 ## Distribution Readiness
 
-Do not treat a created vault as distributable just because the contract exists. A launch-ready vault should have:
+Do not treat a created vault as distributable just because the contract exists. Private preparation and inactive strategy testing do not require a public listing. A public launch should have:
 
 - Upkeep funded and activation cleared.
 - Hooks authorized by the active merkle root.
 - Yield sources whitelisted with compatible oracles.
 - Strategy coverage for the intended deposit, withdrawal, or rebalance path.
+- Verified execution-account/session readiness and native gas, separate from UP upkeep.
+- Tested units, sizing, liquidity handling, and monitoring for the intended portfolio policy.
 - Distribution metadata with `listed` visibility and `available` status.
 
 When the table shows a vault as unavailable, return to [Setup Checklist](/operate/ui/setup-checklist) before routing depositor traffic.
@@ -45,7 +47,7 @@ When the table shows a vault as unavailable, return to [Setup Checklist](/operat
 Provider actions are used by distribution operators to keep listing metadata accurate. Depending on access, the UI can expose provider creation, provider review, or continuation actions for incomplete listings.
 
 <Note>
-The staging account used for these docs did not have access to provider approval queues, so this page documents the visible Distribute surface and avoids internal-only registry maintenance tools.
+Listing state, vault activation, and execution readiness are separate. This source-backed guide does not certify provider approval or authenticated publication for a deployed account. Verify the actual allocator-facing entry after an approved listing change.
 </Note>
 
 ## API Reference
@@ -55,6 +57,8 @@ Vault list data comes from `GET /api/v1/public/vaults` for unauthenticated/publi
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `GET /api/v1/public/vaults` | GET | None | Public vault list (no auth, used on Home page) |
-| `GET /api/v1/vaults` | GET | JWT | Authenticated vault list (`?detail=minimal&limit=500`) |
-| `GET /api/v1/registry/yield-sources` | GET | JWT | List yield sources (`?chain_id={}&is_active=true`) |
-| `GET /api/v1/registry/oracles` | GET | JWT | List oracles |
+| `GET /api/v1/vaults` | GET | Browser session / approved upstream identity | Role-scoped authenticated vault list; paginate results |
+| `GET /api/v1/registry/yield-sources` | GET | Public read policy | Browse source metadata |
+| `GET /api/v1/registry/oracles` | GET | Public read policy | Browse oracle metadata |
+
+These are upstream paths. The browser uses the Erebor BFF; see [API boundaries](/operate/api/overview). Registry availability does not grant listing or vault mutation authority.

@@ -1,68 +1,33 @@
 ---
-title: "Prerequisites and Access"
-description: "What you need before you can operate a SuperVault: wallet, role, and API access."
+title: "Prerequisites and access"
+description: "Prepare identity, vault roles, asset information, and execution funding."
 ---
 
-## Wallet Requirements
+## Access checklist
 
-SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+- Open [SuperformOS](https://os.superform.xyz). Public discovery does not require manager access.
+- For Operate, use **Connect**, complete the shared account flow, and accept the Superform terms if prompted. The user must review and accept terms themselves.
+- Obtain a role for the exact **chain and vault address**. Primary and Secondary Managers can author strategies. Assigned view-only users can inspect rules but cannot save strategies or run simulations.
+- Prepare the authorized transaction-signing wallet, and native gas on the target chain. Connecting a different wallet does not transfer a vault role.
+- For a new vault, prepare the underlying token address and decimals, provider metadata, managers, fee recipient, and fee/timing configuration.
 
-- **EVM-compatible wallet** (MetaMask, Rabby, Frame, or any WalletConnect-compatible wallet)
-- **Native gas token** for each chain where you operate vaults
-- **Operator access** assigned on at least one vault before SuperformOS features are accessible
+A private demonstration needs an explicitly authorized, isolated vault and inactive strategies. Base is a production network, not a sandbox.
 
-<Note>
-View-only users are added offchain and do not require a wallet connection. All write operations require at minimum a secondary manager role.
-</Note>
+## Configuration checklist
 
-## Supported Chains
+| Input | Check before use |
+|---|---|
+| Chain and vault | Use the selected network and deployed address, not a name-only search |
+| Underlying asset | Verify token identity and precision; do not assume all SuperVaults use the same decimals |
+| Source and oracle | Confirm the source's assets, shares, pricing denomination, freshness, and withdrawal limits |
+| Hook plan | Confirm every target and parameter combination is authorized |
+| Executor | Confirm manager membership and a valid delegated session |
+| Funding | Check UP upkeep, execution gas, and strategy input balances separately |
 
-| Chain | Chain ID | Status |
-|-------|----------|--------|
-| Ethereum Mainnet | 1 | ✅ Live |
-| Base | 8453 | ✅ Live |
-| HyperEVM | 999 | ✅ Live |
-| Flare | 14 | ✅ Live |
+Use the application's supported network choices and [Deployment Addresses](/deployment-addresses); network availability is not permission to reuse another chain's source or oracle configuration.
 
-The SuperVault contract architecture supports additional chains. Contact the Superform team for expansion requests.
+## Supported access paths
 
-## SuperformOS
+[Authentication](/operate/authentication) explains the browser session. [API boundaries](/operate/api/overview) identifies public reads and upstream service contracts. A documented service path is not a promise of public automation credentials. Arrange approved programmatic access with the Superform team before building a writer.
 
-| Environment | URL |
-|-------------|-----|
-| Production | [os.superform.xyz](https://os.superform.xyz) |
-
-## API Base URLs
-
-Each backend service exposes its own base URL. Use these when building automation:
-
-| Service | Base URL | OpenAPI Spec |
-|---------|----------|-------------|
-| **Erebor** (management API) | `https://erebor.superform.xyz` | ✅ Available |
-| **Strategy Engine** | `https://strategy.superform.xyz` | ✅ Available |
-| **OMS** (DeFiX intents) | `https://oms.superform.xyz` | ✅ Available |
-
-## Role Requirements by Page
-
-| Page | Minimum Role |
-|------|-------------|
-| Home | Public (no auth) |
-| Dashboard | Operator |
-| Strategy | Operator |
-| Yield Sources | Operator |
-| Merkle Trees | Operator |
-| User Management | Primary Manager |
-| Vault Settings | Primary Manager |
-| Pause | Operator |
-| Create Vault | Operator (you become primary manager of the new vault) |
-| Alerts | Operator |
-
-## Getting Access
-
-**Joining an existing vault:** The primary manager adds you via [User Management](/operate/ui/user-management) as a secondary manager (onchain transaction) or view-only user (offchain).
-
-**Creating a new vault:** Any wallet with operator access can create a vault and automatically becomes its primary manager.
-
-<Card title="Authentication" icon="key" href="/operate/authentication">
-  JWT auth flow, token storage, and programmatic access.
-</Card>
+The [launch sequence](/operate/quickstart) leads to one [readiness checklist](/operate/ui/setup-checklist). Strategy authoring starts separately at [Build your first strategy](/operate/strategy/quickstart).

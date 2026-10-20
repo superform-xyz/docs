@@ -1,13 +1,11 @@
 ---
-title: "OMS API — DeFiX Intents & Session Keys"
+title: "OMS API"
 description: "Submit, track, cancel, and execute DeFiX intents, including session-key readiness for strategy automation."
 ---
 
 The OMS implements the DeFiX intent execution path. The Strategy Engine publishes intents; OMS validates authorization, builds execution, submits hook transactions, and emits lifecycle events / fills back to operators.
 
-**Base URL:** `https://oms.superform.xyz`
-
-**Auth:** `Authorization: Bearer <jwt>`
+**Browser prefix:** `/api/oms`. Paths below are upstream `/defix` contracts. OMS uses server-side service authentication, not a curator browser bearer-token recipe. The BFF checks the session and vault role; it supplies service credentials and actor attribution upstream. Direct service access requires explicit integration approval.
 
 In normal dashboard operations, managers do not submit intents directly. They configure strategies and monitor the resulting intent history.
 
@@ -46,18 +44,9 @@ Terminal states cannot be modified.
 POST /defix/intents
 ```
 
-Typical requests include:
+This internal execution contract accepts a `SubmitIntentEnvelope`, not a Strategy create payload. The Strategy Engine constructs the intent from the current definition and execution plan. Do not copy a strategy JSON object directly to this endpoint.
 
-- `vault_id`
-- `strategy_id`
-- `action`
-- `objective`
-- `action_config`
-- `auth`
-- merkle proof / root data
-- account mode (`OMS`, `EIP4337`, `EIP4337_COMPANION`, or `EIP7702`)
-
-OMS validates the intent and authorization before execution.
+Acceptance for processing is asynchronous, not a completed trade. Normal curator operation uses strategies and reads the resulting history rather than submitting raw OMS envelopes.
 
 ## Get Intent
 
@@ -75,7 +64,7 @@ Fields such as `completed_at` may be `null` before terminal execution.
 POST /defix/intents/{intent_id}/cancel
 ```
 
-Cancellation is only valid before the intent reaches a terminal state.
+Cancellation is asynchronous and subject to the current cancellable state. An accepted cancel request does not reverse a mined transaction or guarantee that an already submitted transaction will not settle. Read back intent state and reconcile receipts before retrying.
 
 ## Intent Events
 
@@ -97,7 +86,7 @@ The Strategy Engine consumes these events and projects them into operator-friend
 
 ## Fills and Mined Transactions
 
-Fills represent confirmed onchain execution evidence. In the operator UI, fills may include:
+Fill records link recorded execution to transaction evidence. In the operator UI, fills may include:
 
 - `tx_hash`
 - `chain_id`
@@ -109,7 +98,7 @@ Fills represent confirmed onchain execution evidence. In the operator UI, fills 
 - `gas_used`
 - mined / fill timestamp
 
-Pre-receipt rows can have `null` gas or missing fill fields until the transaction is mined and backfilled.
+Pre-receipt rows can have `null` gas or missing fill fields until the transaction is mined and backfilled. Placeholder token addresses, zero aggregate output, or a `COMPLETED` label are not economic reconciliation. Check receipt status, transfers, source shares, received assets, debt reduction, and residual balances. See [Intent History](/operate/ui/intent-history).
 
 ## Hook Transactions and Account Modes
 
@@ -134,7 +123,7 @@ Strategy automation requires a valid session key for the vault.
 GET /defix/vaults/{vault_id}/session-key/readiness
 ```
 
-Returns whether the vault has a valid session key and whether a rotation is pending.
+Returns executor manager membership, signing-configuration presence, session validity/expiry, pending rotation, and aggregate readiness. A ready session does not prove funded gas, valid hook proofs, or source liquidity. Infrastructure identifiers in authenticated responses are confidential.
 
 ### Grant
 
@@ -163,10 +152,12 @@ GET /defix/vaults/{vault_id}/session-key/revoke
 Returns calldata to revoke the current session key.
 
 <Note>
-Session-key endpoints return transaction data for wallet signing. They do not bypass onchain permission checks.
+Grant, revoke, and rotation preparation return transaction data for wallet signing. Readiness is a state read; rotation complete/cancel are service mutations. Even preparation GETs are manager-gated. Follow [Execution accounts and session keys](/operate/ui/execution-accounts), verify every required receipt, then refresh readiness.
 </Note>
 
 ## Endpoint Inventory
+
+This inventory is checked against the repository OpenAPI contract, not an authenticated deployed rehearsal. Anonymous Strategy fills access does not grant direct OMS event access.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|

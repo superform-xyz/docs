@@ -3,9 +3,9 @@ title: "Create Vault"
 description: "Deploy a SuperVault, attach distribution metadata, and move from onchain creation to launch-ready operations."
 ---
 
-The Create Vault flow (`/vaults/create`) deploys a new SuperVault and captures the metadata needed to present it in Superform distribution surfaces. Creation is intentionally split into two phases:
+Open **Create a SuperVault** at `/operate/create`. Deployment and distribution metadata are separate parts of creation:
 
-![SuperformOS Create Vault - basic information and launch wizard](/operate/images/screenshots/create-vault.jpg)
+
 
 1. Editable configuration before anything is signed.
 2. Operational setup after the vault exists onchain.
@@ -26,7 +26,7 @@ The wizard has four editable steps. You can move back through these steps until 
 
 ### 1. Basic Information
 
-Basic Information combines the old chain, asset, identity, and listing screens into one step.
+Basic Information contains chain, asset, identity, and listing fields.
 
 Configure:
 
@@ -109,7 +109,7 @@ During indexing, the dashboard also submits distribution metadata when the vault
 
 ### Activate With Upkeep
 
-After indexing, the wizard can send the operator to **Vault Settings -> Upkeep**. Upkeep funding is the activation gate for automation and discoverability. The setup route can deep-link with `panel=upkeep&activateVault=1` so the manager lands directly on the funding action.
+After indexing, open **Vault Settings → Upkeep**. Read the balance, threshold, shortfall, and activation decision. Upkeep is distinct from execution gas; an activation exemption can affect the reported state. See [Upkeep and gas funding](/operate/ui/funding).
 
 ### Set Up Yield Sources
 
@@ -121,16 +121,7 @@ The vault can exist before all setup rows are complete. If you leave the wizard 
 
 ## Post-Create Setup
 
-Once the vault is indexed, complete the launch checklist:
-
-1. Vault exists onchain and appears in dashboard data.
-2. Upkeep is funded so the vault becomes active and discoverable.
-3. Hooks are configured in the active merkle root config.
-4. Yield sources are whitelisted and paired with oracles.
-5. At least one strategy exists for the vault.
-6. The vault is visible and available in Superform distribution surfaces.
-
-See [Setup Checklist](/operate/ui/setup-checklist) for the canonical readiness flow.
+Once the vault is indexed, follow the [Launch sequence](/operate/quickstart) and [Launch checklist](/operate/ui/setup-checklist). Configure sources before the hooks and strategy plans that reference them. Verify execution accounts and gas independently of upkeep. Save and read back an inactive strategy before testing; public listing is a separate decision.
 
 ## API Reference
 
@@ -143,6 +134,8 @@ See [Setup Checklist](/operate/ui/setup-checklist) for the canonical readiness f
 | `/api/v1/vaults/create/jobs/{id}` | GET | Poll indexing job status |
 
 ### PrepareCreateVaultRequest
+
+The following is an illustrative field map, not an executable request. Replace every abbreviated address with independently verified configuration and use the current UI-generated request. No deployment or signing is implied by this example.
 
 ```json
 {
@@ -163,6 +156,8 @@ See [Setup Checklist](/operate/ui/setup-checklist) for the canonical readiness f
 ```
 
 ### ConfirmCreateVaultRequest
+
+Illustrative field map only. Use the actual transaction hash and chain from the deployment, then read back the indexing job and deployed addresses.
 
 ```json
 {

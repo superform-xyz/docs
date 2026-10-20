@@ -1,73 +1,193 @@
 ---
-title: "Action Config"
-description: "Reference for the action_config block that dispatches strategy results into OMS intents."
+title: "Sizing and execution plans"
+description: "Separate the trigger, first-hook denomination, and amounts passed between execution steps."
 ---
 
-`action_config` tells the Strategy Engine what OMS intent to publish when a strategy's rules pass.
+## Three decisions
 
-## Fields
+1. `rules` decides whether the strategy is eligible.
+2. `action_config.size_expr` produces the first action's positive integer input amount.
+3. `execution_params.plan.steps` describes hook order, effects, parameters, and amount propagation.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
-| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
-| `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `execution_name` | Yes | Hook identifier from the hook registry. |
-| `execution_address` | Yes | Hook contract address for the target chain. |
-| `target_address` | Yes | Yield source, route target, or protocol address being acted on. |
-| `from_address` | Yes | Account or executor address used for the intent. |
-| `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
-| `execution_params` | Optional | Hook-specific encoded parameters. |
-| `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
-| `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
+A true trigger does not fix a wrong denomination. A positive size does not prove sufficient balance, authorization, or liquidity.
 
-## Target Requirements
+## Action fields
 
-Before an action can execute, the target must be operationally allowed:
+| Field | Contract |
+|---|---|
+| `action` | Directional enum such as `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE` |
+| `size_expr` | Numeric expression converted to integer raw input units |
+| `objective` | `BALANCED`, `MIN_SLIPPAGE`, or `MIN_TIME` routing objective |
+| `from_address` | Vault/account context; not necessarily the token-holding strategy contract |
+| `target_address`, `target_type` | Target and canonical family such as `ERC4626` or `VAULT` |
+| `execution_params.strategy_address` | Strategy execution contract |
+| `execution_params.plan.steps` | Ordered registry-selected hook metadata and arguments |
+| `max_slippage_bps` | End-to-end slippage budget; positive when a plan consumes one |
+| `max_duration_seconds` | Deadline policy; deferred plans have additional duration requirements |
 
-- The target yield source is whitelisted for the vault.
-- The source has a compatible oracle where pricing is required.
-- The hook exists in the active merkle config.
-- The active merkle tree has been generated, synced onchain when required, and published for proof consumers.
-- The vault has OMS/session-key readiness.
-- The vault is not paused, and the target is not locked by an active emergency exit.
+Legacy top-level `execution_name` and `execution_address` are not the current plan contract. Generate hooks and arguments with the registry-backed editor. Do not invent addresses or mix encoded arguments with a different source/oracle.
 
-See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [OMS API](/operate/api/oms).
+## Input denominations
 
-## Action Notes
+| Hook pattern | First input | Output |
+|---|---|---|
+| Approve + deposit ERC-4626 | Raw underlying assets | Received source shares |
+| Redeem ERC-4626 | Raw source shares | Received underlying assets |
+| Aave V4 borrow | Raw debt-token amount | Received debt tokens |
+| Aave V4 repay | Raw debt-token amount | Spent amount / debt reduction, not redeemed vault shares |
 
-| Action | Notes |
-|--------|-------|
-| `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
-| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
-| `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
-| `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
-| `SWAP` | Requires route/slippage constraints and target authorization. |
-| `BRIDGE` | Requires bridge route, destination-chain controls, and stricter incident monitoring. |
+The VM returns a high-precision number. Intent construction truncates toward zero, rejects non-positive/infinite values, and rejects positive fractions that become zero. Adding `1` means one **raw** unit of the current denomination, not one human token.
 
-## Example
+## Borrow then deposit
+
+This complete `action_config` was captured on 2026-10-19 from the **IDLE** fixed-amount strategy in the [carry case study](/operate/playbooks/carry#captured-configuration). It passes the pinned engine's plan validation. It is a read-only example, not a creation request or activation recommendation.
+
+<Accordion title="Captured borrow → deposit action_config">
 
 ```json
 {
   "action": "DEPOSIT",
-  "size_expr": "min(vault_free_assets, 0.05 * vault_tvl)",
+  "size_expr": "10000000000",
   "objective": "BALANCED",
-  "execution_name": "ApproveAndDeposit4626VaultHook",
-  "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-  "target_address": "0x0000000000000000000000000000000000000001",
-  "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-  "target_type": "erc4626",
-  "max_slippage_bps": 50,
-  "reason": "Deploy capped idle assets into the active ERC-4626 source"
+  "from_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+  "target_address": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+  "target_type": "ERC4626",
+  "max_slippage_bps": 2,
+  "max_duration_seconds": 60,
+  "execution_params": {
+    "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5",
+    "plan": {
+      "steps": [
+        {
+          "chain_id": 8453,
+          "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "hook_name": "AaveV4BorrowHookV2",
+          "hook_address": "0xa8f63E4B3bB2b5204ad0C4a2a6a15B0F11729ed8",
+          "family": "LOAN",
+          "phase": "EXECUTE",
+          "effect_schema_version": 2,
+          "effect_consumes": "NONE",
+          "effect_produces": "TOKEN",
+          "effect_out_amount": "RECEIVED",
+          "effect_latency": "IMMEDIATE",
+          "effect_reversible": "NONE",
+          "position_effects": [{"change": "INCREASE", "kind": "DEBT"}],
+          "use_prev_hook_amount": false,
+          "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+          "params": {
+            "borrowReserveId": "7",
+            "supplyReserveId": "5",
+            "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+            "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+            "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+            "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+          }
+        },
+        {
+          "chain_id": 8453,
+          "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+          "hook_name": "ApproveAndDeposit4626VaultHook",
+          "hook_address": "0xba687c9D5113a3B2692fd87b0F389dD5fF402808",
+          "family": "ERC4626",
+          "phase": "EXECUTE",
+          "effect_schema_version": 1,
+          "effect_consumes": "ASSETS",
+          "effect_produces": "SHARES",
+          "effect_out_amount": "RECEIVED",
+          "effect_latency": "IMMEDIATE",
+          "effect_reversible": "NONE",
+          "use_prev_hook_amount": true,
+          "encoded_args": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "params": {
+            "token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "yieldSource": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+            "yieldSourceOracleId": "0x2412A5d7261995b49D1F3a731F8452641B916994"
+          }
+        }
+      ]
+    }
+  }
 }
 ```
 
-## Operational Review
+</Accordion>
 
-Before switching a strategy to `RUNNING`, review:
+The second step consumes the first step's received USDC because `use_prev_hook_amount` is true. The initial size is raw USDC, not raw NVDAc or source shares. This inactive fixed-size definition is not evidence of a running borrow policy.
 
-- The `size_expr` cannot consume more than the vault/source can safely supply.
-- The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
-- The target has emergency exit coverage if it can hold material liquidity.
-- `max_slippage_bps` matches the liquidity profile of the action.
-- The reason is clear enough for Incident History and postmortems.
+## Redeem then repay
+
+This plan fragment is AP1's captured `execution_params`. Its first input is raw Clearstar shares; repayment consumes actual assets produced by redemption. Retrieve the matching rules and `size_expr` from the [dated configuration read](/operate/playbooks/carry#captured-configuration), and review the [guard and sizing explanation](/operate/playbooks/deleverage#redeem-assets-to-repay). Do not pair it with the borrow example's amount or the simplified idle-repayment size.
+
+<Accordion title="AP1 v21 execution_params, captured 2026-10-19">
+
+```json
+{
+  "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5",
+  "plan": {
+    "steps": [
+      {
+        "chain_id": 8453,
+        "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "hook_name": "Redeem4626VaultHook",
+        "hook_address": "0x95C61fE513885E23Bd7DA1f27B1ad9B16AE29f81",
+        "family": "ERC4626",
+        "phase": "EXECUTE",
+        "effect_schema_version": 1,
+        "effect_consumes": "SHARES",
+        "effect_produces": "ASSETS",
+        "effect_out_amount": "RECEIVED",
+        "effect_latency": "IMMEDIATE",
+        "effect_reversible": "NONE",
+        "use_prev_hook_amount": false,
+        "encoded_args": "0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3cef83abc641b98af01f0652e3af49a25d65c601a5",
+        "params": {
+          "owner": "0xef83abc641b98af01f0652e3af49a25d65c601a5",
+          "yieldSource": "0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c",
+          "yieldSourceOracleId": "0x2412A5d7261995b49D1F3a731F8452641B916994"
+        }
+      },
+      {
+        "chain_id": 8453,
+        "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc",
+        "hook_name": "AaveV4RepayHookV2",
+        "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+        "family": "LOAN",
+        "phase": "EXECUTE",
+        "effect_schema_version": 2,
+        "effect_consumes": "TOKEN",
+        "effect_produces": "NONE",
+        "effect_out_amount": "SPENT",
+        "effect_latency": "IMMEDIATE",
+        "effect_reversible": "NONE",
+        "position_effects": [{"change": "DECREASE", "kind": "DEBT"}],
+        "use_prev_hook_amount": true,
+        "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+        "params": {
+          "borrowReserveId": "7",
+          "supplyReserveId": "5",
+          "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+          "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+          "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+        }
+      }
+    ]
+  }
+}
+```
+
+</Accordion>
+
+These plans have immediate `EXECUTE` steps on the same chain and vault, intended as a bundled hook transaction. The historical AP1 record has one `hook_tx` fill. Do not generalize that to every route: deferred, bridged, or asynchronous actions can require separate transactions and settlement phases. Canvas order is not a dependency scheduler.
+
+## Sizing and verification
+
+For a target repayment, apply `(debt value - target × collateral value) / debt value` to the raw debt amount, then cap by available funds. For redeem → repay, convert the desired assets to shares using PPS and the decimal difference, then cap by held shares and observed asset/share exit liquidity.
+
+AP1's `0.99` liquidity cushion, `1.001` repayment buffer, and `0.9998` slippage factor are distinct controls. A liquidity cap can leave the target unmet. See [Variables and units](/operate/strategy/variables#assetshare-conversion).
+
+Before publication, inspect freshness, input/output units, hook authorization, slippage, balances, session keys, and gas. After a fill, reconcile source shares, debt-token receipts, debt reduction, and residual tokens. Schema validation is not a transaction preflight or economic proof.
+
+Source: [engine action/plan validation](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd/internal/domain) and [OMS hook adapter](https://github.com/superform-xyz/superman-oms/tree/bf36ed9fb23a640c34943544f824ff4f5fb77939/internal/execution/adapters/hook_tx). No production writes or fork execution were performed.

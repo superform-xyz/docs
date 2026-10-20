@@ -1,0 +1,132 @@
+---
+title: "Variables and units"
+description: "Map exact identifiers to feed sources, raw amounts, display scales, and freshness."
+---
+
+## Inspect values before writing a rule
+
+The engine evaluates raw snapshot numbers. Authorized shard-state responses expose `fields` as `{raw, scale}`; human display is `raw × 10^-scale`. A display conversion does not change expression input units. The editor's Copy operation emits the normalized engine expression, which can include decimal divisors.
+
+Use the editor's variable catalog and authorized shard state for the selected vault. Upstream routes are `GET /api/v1/indicators/catalog` and `GET /api/v1/engine/shards/{vault_id}/state`; these are not promises of anonymous access. The OS browser uses the session-mediated Strategy BFF. Public definitions reveal aliases, but not necessarily their current values. Historical intent snapshots are not live balances.
+
+Vault IDs use chain ID, an underscore, and vault address. The [dated carry example](/operate/playbooks/carry#captured-configuration) supplies the superNVDA mapping. Do not reuse its position ID for another Spoke, reserve pair, owner, or chain.
+
+## Field catalog
+
+Patterns below are descriptive, not executable aliases. Addresses in aliases are lowercase `0x` plus 40 hex characters; position IDs are `0x` plus 64 lowercase hex characters. Supported yield-source identities can also be 32-byte market IDs where the provider supplies them.
+
+| Field / pattern | Source and quantity | Engine units and display |
+|---|---|---|
+| `vault_free_assets` | Underlying-token balance at the strategy | Raw underlying units; underlying decimals |
+| `vault_tvl` | Engine accounting from total supply × PPS | Underlying asset base units, **not USD TVL** |
+| `vault_total_supply` | Vault accounting | Raw vault shares; share decimals |
+| `vault_pps` | Vault PPS feed | Fixed-point PPS; use returned scale, not source-PPS assumptions |
+| `vault_redeem_queue_count` | Redemption queue | Integer request count |
+| `vault_redeem_queue_value` | Pending redemption accounting | Raw underlying units, comparable to `vault_free_assets` |
+| `vault_inflight_request_count` | Outstanding async requests | Integer count |
+| `token_<address>_amount` | ERC-20 `balanceOf(strategy)` | Raw token units; token decimals |
+| `native_amount` | Native strategy balance | Raw native units; chain-native decimals |
+| `token_<address>_price_usd` | Token quote provider | Human USD price, scale zero |
+| `position_<id>_collateral_<token>_amount` | Normalized lending position | Raw collateral-token units |
+| `position_<id>_debt_<token>_amount` | Normalized lending position | Raw debt-token units |
+| `position_<id>_risk_collateral_value_e18` | Venue risk adapter | Risk-reference value scaled by `1e18` |
+| `position_<id>_risk_debt_value_e18` | Same position and risk convention | Risk-reference value scaled by `1e18` |
+| `position_<id>_borrow_capacity_e18` | Venue capacity adapter | Risk-reference value scaled by `1e18` |
+| `position_<id>_liquidation_capacity_e18` | Venue liquidation adapter | Risk-reference value scaled by `1e18` |
+| `position_<id>_capacity_used_bps` | Venue adapter | Basis points; `10000` represents full capacity |
+| `position_<id>_health_factor_e18` | Optional venue metric | Dimensionless ratio scaled by `1e18` |
+| `position_<id>_borrow_rate_e18`, `_supply_rate_e18` | Optional pricing-provider rates | Integer ratio scaled by `1e18`; period/APR-vs-APY is **not carried by this schema**; see rate boundary below |
+| `ys_<identity>_amount` | Source allocation converted to assets | Raw source-underlying units |
+| `ys_<identity>_shares` | Source share balance | Raw source shares |
+| `ys_<identity>_pps` | Source price provider | Human assets per share, scale zero |
+| `ys_<identity>_liquidity` | Exit-liquidity observation | Raw source-underlying units |
+| `ys_<identity>_liquidity_shares` | Exit-liquidity observation | Raw withdrawable shares |
+| `ys_<identity>_inflight_request_count` | Source async tracking | Integer count |
+| `ys_<identity>_apy`, `_base_apy`, `_reward_apy` | Analytics opportunity `apy`, `baseApy`, `rewardApy` | Scale-zero annual percentage points in the analytics/model contract: `5` means 5%, not `0.05`; upstream convention must match |
+| `ys_<identity>_tvl` | Analytics opportunity `tvl` | Provider's scale-zero TVL, not raw vault-underlying liquidity; currency metadata is not returned with this field |
+| `price`, `underlying_price` | Configured price feed/context | Scale-zero quote; establish quote currency and source, do not infer either from the alias |
+| `volume`, `days_to_maturity` | Track input / configured maturity | Volume retains producer units (no universal period); maturity is fractional days until `maturity_unix` in seconds, evaluated with millisecond tick time |
+| `tick_unix`, `tick_unix_ms` | Evaluation clock | Seconds and milliseconds; wire scale of milliseconds is 3 |
+| `tick_hour`, `tick_minute`, `tick_second`, `tick_dow`, `tick_day`, `tick_month`, `tick_year` | UTC evaluation clock | Integer calendar components; Sunday is day-of-week zero |
+| Configured indicator alias | Indicator DAG over a selected track | Units depend on indicator and track; warmup required |
+
+## Real carry aliases
+
+<Accordion title="Exact production identifiers, captured 2026-10-19">
+
+| Quantity | Exact alias |
+|---|---|
+| Idle USDC | `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount` |
+| USDC debt | `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount` |
+| Collateral risk value | `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18` |
+| Debt risk value | `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18` |
+| NVDAc collateral | `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_collateral_0xb20000000000000000000078ee7ce2fe4908108c_amount` |
+| Clearstar shares | `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_shares` |
+| Clearstar assets | `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_amount` |
+| Clearstar PPS | `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_pps` |
+| Asset exit liquidity | `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity` |
+| Share exit liquidity | `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_liquidity_shares` |
+
+</Accordion>
+
+Debt and collateral values are comparable within the same provider's risk-reference convention. Their ratio is LTV; neither is a token amount. Do not assume every reference value is USD. `vault_free_assets` in this NVDAc-denominated vault is not idle USDC.
+
+## Asset/share conversion
+
+For human PPS `P`, asset decimals `a`, and share decimals `s`:
+
+- Asset raw → share raw: `asset_raw × 10^(s-a) / P`.
+- Share raw → asset raw: `share_raw × P / 10^(s-a)`.
+
+Clearstar uses 18-decimal shares and six-decimal USDC, so the factor is `10^(18-6) = 1e12`. With synthetic PPS 1.25, two USDC (`2000000` raw) converts to `1600000000000000000` raw shares:
+
+```text
+2000000 * 1e12 / 1.25
+```
+
+This factor is specific to that pair. Intent sizing truncates toward zero. A redemption hook consumes shares; a repayment hook consumes debt tokens. Use metadata and [plan effects](/operate/strategy/action-config), not a universal “size is assets” assumption.
+
+## Rate and analytics conventions
+
+- **Analytics APY:** `ys_0x91c056b6d4311a743614fbc03ac32d4e6a2d3a3c_apy` is the concrete alias shape for the case-study source; its presence/value must be checked, not inferred from the source's existence. The adapter copies opportunity `apy`, `baseApy`, and `rewardApy` without conversion. The model explicitly interprets APY as **annual percentage points** and accrues `amount × (APY / 100) × elapsed / year`; it is not evidence of a provider's compounding methodology. Do not add reward APY to an `apy` that already includes rewards. The current-opportunity schema has no lookback or provider observation timestamp. Its historical fallback can copy an old APY/TVL point into a newly timestamped feed update. An updated shard is therefore **not proof of current yield**.
+- **Position rates:** for example, `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_borrow_rate_e18` has display scale 18. Raw `50000000000000000` displays as ratio `0.05`; it means 5% **only for the provider's stated period**, not necessarily annual APY. The position client parses upstream `borrow_rate`/`supply_rate` integer strings without annualizing. Neither position response nor engine alias encodes rate period, compounding, or APR/APY type. Omitted optional rates stay absent, not verified zero. No live Aave V4 rate-period contract was established by this capture.
+- **Resolve the provider boundary before a spread rule:** inspect the authorized position row's `provider`, `protocol_address`, `market_label`, reserve bindings, and `observed_at`. Ask the pricing/feed operator for that exact provider/reserve's rate definition (period, APR or APY, scale, observation block) and the analytics operator for the matched opportunity's `source`, `chain`, `address`, base/reward inclusion, lookback, observation time, and TVL currency. Compare like annualized notionals only after those records agree. If those metadata are unavailable, leave spread-dependent entry inactive; do not guess a multiplier or substitute the dashboard APY.
+
+## Availability, freshness, and inspection
+
+Use **Strategy → the selected definition → variable/state inspection** under an authorized browser session. The upstream shard route above returns `fields`, `positions`, `yield_source_allocations`, `yield_source_liquidity`, and per-strategy `last_eval_at`/`last_signal`. It does **not** expose a universal per-field timestamp, feed-ready flag, or indicator-ready endpoint. A current `last_eval_at` is evaluation time, not the age of every input.
+
+| Family | What the curator can inspect | Availability / freshness boundary and concrete next check |
+|---|---|---|
+| Vault PPS, supply, total assets, free assets and queue | Exact aliases in `fields`; raw/scale; pending requests and underlying balance via authorized reads | Internal `TrackedField.UpdatedAt` and feed-cycle readiness are not serialized in `fields`. Obtain the subgraph/queue poll timestamp and indexed block from the engine/feed operator when freshness matters; compare onchain state at a named block. Missing evaluator fields can look like zero. |
+| Token/native balances | `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`, `native_amount`; compare strategy `balanceOf`/native balance at a named block | Token RPC failure retains the last-known value. Field presence is not a successful latest poll. Ask for token/native feed last successful poll and failure status; do not treat a missing field as an empty wallet. |
+| Position amounts, risk, capacity, health and rates | `positions[]`: `position_id`, `provider`, `protocol_address`, token `amount`/`decimals`, `block_number`, `block_hash`, `observed_at`, optional `stale`/`retired`, and optional rate/health values | All belong to a pinned-block generation. An incomplete poll retains prior data and marks it stale; optional omissions remain absent. Compare block/observation and require non-stale matching identity. Ask the position-feed operator for configured maximum age if it is not visible. A retired zero position is not an active zero-debt loan. |
+| Source allocation assets/shares | `fields` and `yield_source_allocations[]`; Clearstar `_amount`/`_shares` above | Raw source assets/shares, not USD. Allocation rows omit zero-valued optional properties, so inspect `fields` plus source contract balances. Poll provenance is not exposed in the allocation row; obtain balance-feed block/time before sizing. |
+| Source PPS | Clearstar `_pps` in `fields`; source/oracle selection in the plan | FairPrice ingest uses producer `observed_at` and optional `valid_until`, plus configured `FairPriceMaxAge`; receipt time is not source age. Missing/future/expired observations fail admission. These PPS provenance fields are **not forwarded by this shard allocation projection**: ask the feed operator for the matched FairPrice observation/deadline and configured age bound. Zero is never a valid divisor. |
+| Asset/share exit liquidity | `yield_source_liquidity[]`: `address`, `asset_address`, `status`, `shares_status`, `collected_at`, `valid_until`, `shares_valid_until`; values in `_liquidity` and `_liquidity_shares` | Inspect asset and share status separately. Missing asset decimals can prevent asset liquidity even when a share observation exists. Require usable, unexpired observations for the exact source/asset; never substitute TVL. |
+| APY/base/reward APY and analytics TVL | `yield_source_allocations[]` and corresponding `fields` aliases | Zero properties may be omitted; analytics defaults and absence are not proof of zero yield. Ask for the matched opportunity/history timestamp and source conventions above. Feed-cycle readiness does not reject an old historical APY merely because it is old. |
+| Token/market prices | `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_price_usd` for USD quotes; `price` for the configured market track | Positive quotes and configured observation-age checks are required. Price provenance is not attached to every shard field. Obtain the provider observation time and configured quote maximum age from the price-feed operator. Do not infer market hours or price freshness from chain activity. |
+| Volume / maturity | Selected indicator `params.field`, `maturity_unix`, configured tick inputs | Volume has no universal currency, interval, or availability guarantee; require the producer's contract. Maturity uses Unix seconds and floors remaining days at zero. Missing required track input is not a ready zero series. |
+| In-flight counts | `vault_inflight_request_count`, source count, and shard tracked/occupying intent counts; verify actual OMS/source requests | Counts are derived workload, not amounts or guaranteed arrival. Inspect request ID, phase, claimability and last event time for settlement readiness. |
+| Indicators | Saved `indicators` configuration, catalog outputs, dependency fields and historical intent snapshot when present | Internal `Ready()` gates evaluation; no universal ready boolean is exposed by this shard response. Ask the engine operator for warmup/root-input diagnostics using strategy ID/version and alias. Zero output does not establish readiness. |
+| Clock | `tick_unix`, `tick_unix_ms`, UTC calendar fields | Evaluation clock, not feed freshness; no `tick_age_seconds` alias. |
+
+Referenced dependencies must have been observed and satisfy the configured feed warmup. Positions, PPS, liquidity and price quotes add their own freshness checks; this is **not a uniform maximum-age guarantee for every balance or analytics field**. `risk_params.eval_max_staleness_ms` checks evaluation age, not upstream observation age. If the authorized response omits the provenance needed for a consequential decision, obtain it from the named feed operator; do not extract browser credentials or invent an inspection API.
+
+## Reusable calculations
+
+The inspected backend persists `indicators: [{name, params, alias}]`, rules, and size expressions. `StrategyConfig` does not expose a generic persisted `custom_variables` expression map. Use registered indicator aliases with catalog parameters, or repeat an explicit subexpression. Shorthand such as `D`, `C`, or `repay_needed` is not executable unless it is an actual configured output.
+
+Derived expressions and indicator outputs are not durable “keep unwinding” state. A threshold becoming false stops a stateless rule even if debt remains.
+
+### Verified indicator serialization
+
+The engine's `TestDeriveRequiredSnapshotKeys_IndicatorAliasUsesRootPPS` configures this indicator: `{"name":"sma","alias":"smooth_pps","params":{"window_ms":1000,"field":"ys_0xe8dd6a1e13244a27bdaa19ccbf33013647c675d1_pps"}}`. It is an **actual source-test configuration**, not a claim that the dated NVDAc strategies use indicators (their captured arrays are empty). Store it as an entry in `indicators`, not in a `custom_variables` map. In the editor select the catalog's `sma`, its `field`, a `window_ms` of `1000`, and alias `smooth_pps`; the field must resolve for the selected vault before authoring against it.
+
+`smooth_pps` is the executable single-output alias; the test's rule is `smooth_pps > 0.9`. The value is the sample mean of the human PPS track, so it remains assets per share, not a token amount or annual yield. A one-second window is milliseconds, **not one sample**: readiness requires at least two retained samples and window coverage (including the implementation's aged-out anchor). The engine follows the indicator's root PPS dependency for freshness; an indicator alias does not bypass PPS admission. Multi-output indicators use `alias_output` such as MACD's `_histogram`, and chained parameters use `from` plus the catalog's `from_output` rather than inventing an expression variable.
+
+Indicator tracks use float64. Do not use a smoothed raw 18-decimal balance as an exact integer sizing substitute; values above `2^53` can lose precision. Inspect catalog outputs, saved parameters, and root-feed evidence, then test the actual graph's warmup and rule before activation.
+
+## Source boundary
+
+Naming and scale are pinned to [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd/internal/domain), especially `eval_field.go`, `position_eval.go`, `balance_eval.go`, and `eval_state_keys.go`. Source inspection and synthetic fixtures do not establish freshness of a live position.

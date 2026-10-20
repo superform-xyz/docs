@@ -1,90 +1,46 @@
 ---
-title: "User Management"
-description: "Add and remove secondary managers and view-only users for your vault."
+title: "User management"
+description: "Assign operational and view-only access without confusing roles with sessions."
 ---
 
-![SuperformOS User Management — primary, secondary, and view-only access controls](/operate/images/screenshots/user-management.jpg)
+## Select the vault
 
-This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (onchain delegates), and view-only users (offchain read access). Primary manager access required.
+Open **User Management** in authenticated Operate and verify chain, vault address, and connected wallet. The public Roles tab is read-only. Session authentication does not itself grant access to a vault.
 
-The public SuperVault detail page exposes roles as read-only context. Adding or removing users requires the authenticated Operate surface and the appropriate manager role.
+| Action | Required management role | Change type |
+|---|---|---|
+| Add/remove Secondary Manager | Primary Manager | Prepared onchain transaction |
+| Add/remove view-only user | Primary or Secondary Manager | Offchain assignment |
+| Update user display name | Primary or Secondary Manager | Offchain metadata |
+| Replace Primary Manager | Separate contract recovery/governance path | Not an ordinary edit in this tab |
 
-The full manager list is fetched from `GET /api/v1/users?vault_address={}&chain_id={}&limit=100`.
+## Secondary Managers
 
-## Tab 1: Primary Manager
+Choose **Add Secondary Manager**, enter the verified wallet address, and prepare the transaction. Inspect chain, strategy, target wallet, and decoded operation before signing. For removal, prepare and sign the removal transaction. After confirmation, read the manager list and onchain membership again.
 
-Displays the primary manager's wallet address and display name. Set at vault creation, immutable without governance-level contract interaction. This key is the root of trust for the vault.
+A Secondary Manager has delegated operational powers, not unrestricted access to primary-only settings. Removing a manager is not the same as revoking every session that may have been granted previously; review [Execution accounts](/operate/ui/execution-accounts) during an access change.
 
-## Tab 2: Secondary Managers
+## View-only users and display names
 
-On-chain delegates with full operational access (except vault settings and user management).
+Either manager can add or remove an offchain view-only assignment. The assigned user must authenticate to inspect private rules. View-only users cannot save, start, or simulate strategies.
 
-### Adding
+Display names help identify wallets but are not authority. Verify addresses independently before granting access; read the assignment back after each change.
 
-1. Click **Add Secondary Manager**
-2. Enter wallet address
-3. Click **Prepare** — `POST /api/v1/users/secondary-manager/prepare` → calldata
-4. Sign the onchain transaction
+## Primary Manager
 
-### Removing
+The Primary Manager tab displays the current main manager. The Aggregator supports a `SUPER_GOVERNOR` replacement path and a separate Secondary-Manager-initiated timelocked proposal path. It is not immutable or governance-only. Review [Access and roles](/operate/permissions) and the current contract state before an approved recovery procedure.
 
-1. Click **Remove** — `POST /api/v1/users/secondary-manager/remove/prepare` → calldata
-2. Sign the onchain transaction
+## Management API contracts
 
-### Updating Display Names
+These upstream paths are mediated by the browser BFF; they are not standalone credential instructions.
 
-Click the pencil icon to update any user's display name (offchain, no gas):
+| Method | Path | Operation |
+|---|---|---|
+| GET | `/api/v1/users` | List users, scoped by `chain_id` and `vault_address`; paginate the result |
+| POST | `/api/v1/users/secondary-manager/prepare` | Prepare add-manager transaction |
+| POST | `/api/v1/users/secondary-manager/remove/prepare` | Prepare remove-manager transaction |
+| POST | `/api/v1/users/view-only` | Add view-only assignment |
+| DELETE | `/api/v1/users/view-only/{wallet}` | Remove assignment with vault/chain context |
+| PATCH | `/api/v1/users/{wallet}/display-name` | Update offchain name with vault/chain context |
 
-```bash
-PATCH /api/v1/users/{wallet_address}/display-name
-{ "display_name": "Alice (Operations)" }
-```
-
-## Tab 3: View Only
-
-Read-only dashboard access. No onchain transaction required.
-
-```bash
-# Add
-POST /api/v1/users/view-only
-{ "vault_address": "0x...", "chain_id": 8453, "wallet_address": "0x...", "display_name": "Risk Monitor" }
-
-# Remove
-DELETE /api/v1/users/view-only/{wallet_address}?vault_address={}&chain_id={}
-```
-
-## API Reference
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/users` | GET | All users for vault |
-| `/api/v1/users/secondary-manager/prepare` | POST | Prepare add tx |
-| `/api/v1/users/secondary-manager/remove/prepare` | POST | Prepare remove tx |
-| `/api/v1/users/view-only` | POST | Add view-only |
-| `/api/v1/users/view-only/{wallet}` | DELETE | Remove view-only |
-| `/api/v1/users/{wallet}/display-name` | PATCH | Update display name |
-
-### User Object
-
-```json
-{
-  "user": {
-    "id": "uuid",
-    "wallet_address": "0x...",
-    "display_name": "Alice"
-  },
-  "roles": [
-    {
-      "vault_address": "0x...",
-      "chain_id": 8453,
-      "role": "secondary_manager",
-      "granted_by": "0xPrimary...",
-      "granted_at": "2025-01-15T10:30:00Z"
-    }
-  ]
-}
-```
-
-<Tip>
-Add at least one secondary manager before going live. If you lose access to the primary key, secondary managers can continue vault operations.
-</Tip>
+If a role change appears stale, refresh the user session and selected-vault data. Do not retry grants until the transaction receipt and current membership have been checked.

@@ -1,0 +1,61 @@
+---
+title: "Execution accounts and session keys"
+description: "Prepare, verify, renew, and revoke delegated execution authority."
+---
+
+## Identities to check
+
+| Identity | Purpose |
+|---|---|
+| Connected manager wallet | Authorizes configuration and signs permitted delegation transactions |
+| SuperVault strategy contract | Holds the strategy's onchain execution context |
+| Executor address | Must have the required manager authority for this vault |
+| Session signer | Time-bound delegated signing identity used by automation |
+
+A browser login is not a session-key grant. An executor address is not a deposit destination. Do not send assets to a signer or an infrastructure key identifier based on its appearance in a response.
+
+## Readiness
+
+The manager Strategy view can show **Set up vault automation** before the canvas is usable. The gate distinguishes missing signing setup, missing executor permissions, invalid session, and an in-progress renewal. A transport error such as **Couldn't load automation status** is unknown readiness, not proof that a grant is missing.
+
+The OMS readiness response includes:
+
+| Field | Interpretation |
+|---|---|
+| `vault_id`, `chain_id`, `supervault_address`, `strategy_address` | Confirm the exact vault and execution context |
+| `executor_address`, `executor_is_manager` | Confirm the executor and its onchain manager membership |
+| `primary_kms_alias_present` | Signing configuration exists; not sufficient by itself |
+| `primary_session_valid`, `primary_session_expiry` | Current session validity and expiry |
+| `has_pending_rotation` | Renewal is in progress; inspect pending state before preparing another grant |
+| `ready` | Aggregate readiness result, not proof of hook authorization, gas, liquidity, or a successful plan |
+
+Treat infrastructure key metadata as confidential. Do not copy raw readiness or rotation responses into public tickets, screenshots, or documentation.
+
+## First-time setup
+
+1. Confirm the selected chain, vault, manager wallet, and approved execution scope.
+2. Choose **Continue** on **Set up vault automation**. Review **Understand the commitment** and the optional **Session length**.
+3. At **Authorize from your wallet**, inspect each prepared transaction's recipient, decoded call, executor, signer, and expiry. A prepare response can include multiple transactions.
+4. Use **Approve in wallet** only for the intended calls. Complete them in the displayed order and wait for confirmation.
+5. Use **Refresh status** and read readiness again. Submission or a success toast alone is not completion.
+
+The application can prepare calls for a manager but the contract determines which wallet may execute each call. Erebor's session grant/revoke preparation is Primary-Manager-only; OMS preparation and browser access are separate gates. See [Access and roles](/operate/permissions).
+
+## Renewal and revocation
+
+When **Session renewal in progress** appears, use **Continue session renewal** rather than first-time setup. Inspect current and pending signer state and follow the renewal flow's revoke/grant sequence. Complete rotation only after the required transactions have mined and readiness can be reconciled.
+
+For revocation, inspect the current session being revoked, sign with the authorized wallet, wait for its receipt, and read readiness back. Revocation prevents future use of that authority; it does not reverse mined actions or guarantee cancellation of transactions already submitted.
+
+## Failure handling
+
+| Observation | Response |
+|---|---|
+| Readiness request fails | Check session, service reachability, and vault role; do not repeatedly prepare new keys |
+| Executor is not a manager | Review the intended executor and authorized manager-assignment transaction |
+| Session expired or invalid | Review renewal state and prepare the appropriate grant/renewal path |
+| Transactions confirmed but UI remains gated | Refresh readiness; preserve transaction hashes and investigate indexing or service errors |
+| Pending rotation exists | Resume or explicitly cancel that flow; do not assume missing optional metadata means no pending rotation |
+| Ready but intents fail | Check [gas funding](/operate/ui/funding), proofs, inputs, and [execution diagnostics](/operate/strategy/troubleshooting) |
+
+The [OMS API reference](/operate/api/oms) lists the upstream contracts. These procedures are source-backed operating guidance, not evidence of a deployed authenticated rehearsal.

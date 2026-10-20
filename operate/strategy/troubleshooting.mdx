@@ -1,72 +1,73 @@
 ---
-title: "Strategy Troubleshooting"
-description: "Diagnose why a strategy is not saving, ticking, publishing, or filling."
+title: "Strategy troubleshooting"
+description: "Diagnose failures by definition, evaluation, publication, execution, and economic outcome."
 ---
 
-Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+## Cannot save
 
-## First Checks
+| Check | Fix |
+|---|---|
+| Rule shape | `NOT` needs one-element `children`; `VOTE.threshold` is a fraction, not a pass count |
+| Expression type | Rules return booleans; sizing returns a number |
+| Identifier policy | Use catalog-backed aliases; a name that looks plausible can still be rejected |
+| Source/token metadata | Resolve decimals and action parameters rather than deleting unit checks |
+| Execution plan | Review `execution_params.plan.steps`, hook effects, encoded arguments, chain, vault, and target family |
+| Slippage budget | Set a positive budget on a budget-consuming step |
+| Version | On `409 Conflict`, reload the current definition, compare changes, then submit a new reviewed update |
+| Permissions | Inspect `canManage`/read-only mode and the supported session path; public reads do not confer write access |
 
-| Question | Where to check |
-|----------|----------------|
-| Is the strategy `RUNNING`? | [Strategy Canvas](/operate/ui/strategy) or `GET /api/v1/strategies/{id}`. |
-| Is the vault active? | [Setup Checklist](/operate/ui/setup-checklist) and [Vault Settings](/operate/ui/vault-settings). |
-| Does OMS have a valid session key? | Strategy Canvas gate and [OMS API](/operate/api/oms#session-keys). |
-| Is the target whitelisted? | [Yield Source Management](/operate/ui/yield-sources). |
-| Is the hook authorized? | [Merkle Trees](/operate/ui/merkle-trees). |
-| Is an emergency lock active? | [Pause Operations](/operate/ui/pause) and engine shard state. |
+Observed or source-tested diagnostics include:
 
-## Create or Update Rejected
+| Diagnostic | Interpretation |
+|---|---|
+| `action_config: max_slippage_bps must be positive when the plan contains a budget-consuming step` | Missing/zero budget is not valid for that plan |
+| `liquidity observations are not supported by simulation replay` | Simulation admission rejects the dependency; do not remove a production guard |
+| HTTP 401 `{"error":"no_session"}` on public intent events | Detail/fills can be public while full events need a session |
+| HTTP 409 on stale-version update | Someone changed the definition since your read |
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
-| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
-| `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
-| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+Save validation is static. A division can pass save checks and still fail at runtime. See [Rules and expressions](/operate/strategy/dsl).
 
-## Strategy Saves but Does Not Tick
+## Saved but not evaluating
 
-| Cause | What to do |
-|-------|------------|
-| State is `CREATED` or `IDLE` | Transition to `RUNNING` after readiness checks. |
-| Vault activation incomplete | Fund upkeep and clear setup checklist blockers. |
-| Kill switch or vault pause active | Review Pause Operations and vault pause status. |
-| Target emergency lock active | Stop the emergency exit only after the incident is resolved. |
-| No shard state | Check Strategy Engine health and shard assignment for the vault. |
+Confirm the exact vault ID, strategy ID, version, and state. Only RUNNING strategies tick. A CREATED/IDLE definition is not broken because it has no intents.
 
-## Strategy Ticks but Does Not Publish
+For an intended RUNNING definition, inspect engine/shard availability, registered feeds, indicator warmup, referenced data availability, and the last evaluation time using authorized tools. Public strategy configuration alone cannot establish those values. Distinguish service errors from an access-denied telemetry request.
 
-| Cause | What to do |
-|-------|------------|
-| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
-| `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
-| Missing session key | Grant or renew OMS session-key authorization. |
-| Missing merkle proof | Generate, sync, and publish the active merkle tree. |
-| Target not whitelisted | Add the yield source and oracle. |
-| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+## Evaluating but no publication
 
-## Intent Publishes but Does Not Fill
+Check in order:
 
-| Cause | What to do |
-|-------|------------|
-| OMS route failure | Inspect OMS events for planning or execution errors. |
-| Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
-| Slippage too tight | Review `max_slippage_bps` against current liquidity. |
-| Gas or nonce issue | Check executor wallet state and OMS event details. |
-| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+1. Does the boolean rule pass on the actual raw snapshot, including exact boundaries and token identities?
+2. Are referenced position, PPS, token-price, and exit-liquidity observations fresh and usable?
+3. Does the size produce at least one raw unit after integer truncation?
+4. Does current-tick conviction meet the required score?
+5. Is the strategy in cooldown or holding an occupying intent slot?
+6. Is the signal suppressed in its current epoch, or blocked by a risk limit, kill switch, breaker, or target emergency lock?
 
-## Useful Endpoints
+An empty Intent History does not prove the rule is false. The ledger is not every evaluation tick. Run a controlled evaluator fixture for expression behavior, then inspect production gates separately.
 
-```bash
-GET /api/v1/strategies/{id}
-PATCH /api/v1/strategies/{id}/state
-GET /api/v1/engine/shards/{vault_id}/state
-GET /api/v1/intents?strategy_id={id}
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills?strategy_id={id}
-```
+## Published intent without successful execution
 
-If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.
+Follow the exact intent ID through execution ID, events where authorized, fills, and transaction. Inspect:
+
+- Hook/parameter authorization and active proof coverage.
+- Source whitelist and oracle configuration.
+- Session-key/executor readiness and execution gas, separately from upkeep.
+- Available input balance, exit liquidity, quote freshness, and slippage budget.
+- Venue constraints, transaction revert, expiration, or pending asynchronous settlement.
+
+Do not retry blindly while an earlier intent can still settle. A terminal failure does not automatically bypass cooldown. Some async workflows release a slot before the entire lifecycle ends; count outstanding requests as well as active slots.
+
+## Successful transaction, wrong resulting position
+
+Check the first hook's denomination, amount propagated to each subsequent hook, source shares burned, assets received, debt reduction, interest, and residual balances. A liquidity cap may prevent the target even when execution succeeds.
+
+The [AP1 historical trace](/operate/ui/intent-history) contains zero-address token placeholders and aggregate output zero, while its receipt records actual redemption proceeds. Neither a COMPLETED status nor that zero field is a complete economic interpretation.
+
+For a high-LTV rule, recompute the post-action trigger. A move from 56% to 51% disarms the captured high-LTV and partial branches despite residual debt. [Deleverage and unwind](/operate/playbooks/deleverage) explains why this is not persistent recovery.
+
+## Recovery record
+
+Preserve the definition/version, observation timestamps, raw units, intent/execution/fill IDs, transaction hash, and exact error. State what remains unknown. Pause only the intended scope, reconcile in-flight work, fix the cause, and read back any approved configuration change before restarting.
+
+Source: [Strategy Engine fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd) and the read-only AP1 trace. Authenticated recovery actions were not rehearsed for this documentation release.

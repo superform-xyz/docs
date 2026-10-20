@@ -1,0 +1,125 @@
+---
+title: "Run a borrow-and-carry strategy"
+description: "Map collateral, debt, lending assets, entry policy, and exit liquidity before activating carry."
+---
+
+## Position model
+
+A borrow-and-carry vault supplies collateral to a lending venue, borrows a debt token, and deposits that token into a yield source. The resulting assets and liabilities are different positions:
+
+| Position | Accounting question |
+|---|---|
+| Collateral token in the lending venue | How much can safely be released after debt changes? |
+| Debt token owed | What principal, accrued interest, and risk-reference value remain? |
+| Yield-source shares | How many shares are held and what assets can be realized now? |
+| Idle collateral and debt tokens | Which token is available at the strategy contract? |
+| Depositor redemption obligations | Which underlying token must return to the vault? |
+
+Lending income minus borrowing cost is the base carry spread. Compare rates over the same period and notional; include fees, slippage, idle balances, and execution costs. Incentives are a separate component, not evidence the base spread is positive. Collateral price performance is not carry income.
+
+## Bind the inputs
+
+Before authoring, select chain, strategy owner, lending venue/Spoke, supply and borrow reserves, collateral token, debt token, source, oracle, and normalized position ID. Confirm the source's share and asset decimals separately. Inspect the current field values and observation freshness through your authorized session.
+
+Offchain rules, onchain hook permissions, venue solvency constraints, and operating policy are different enforcement layers. A rule describing an LTV target does not turn that target into an onchain invariant.
+
+## Entry and idle reserves
+
+Set the intended collateral allocation, borrow limit, idle-token reserve, and minimum acceptable carry spread explicitly. A supported borrow → deposit plan can pass received debt tokens to the deposit step. Two separately ordered canvas cards do not create that transaction dependency.
+
+Do not use vault-underlying idle assets as debt-token liquidity when the tokens differ. For superNVDA, idle USDC is `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`; the vault's free underlying is NVDAc.
+
+Separate the **entry gate**, **repayment trigger**, **repayment sizing target**, and **hard venue threshold**. The last must come from the actual position/venue configuration. A 55% automation trigger is not itself the venue's liquidation boundary.
+
+## Captured configuration
+
+The following is a **2026-10-19 configuration snapshot**, not universal SuperStocks policy or a claim about current balances. Public strategy enumeration returned 27 definitions: six RUNNING, seventeen IDLE, and four CREATED. Refresh the public definitions before using this case study operationally:
+
+```bash
+curl --fail-with-body --get \
+  'https://os.superform.xyz/api/strategy/api/v1/strategies' \
+  --data-urlencode 'vault_id=8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc' \
+  --data-urlencode 'kind=USER_DEFINED' \
+  --data-urlencode 'state=CREATED' \
+  --data-urlencode 'state=IDLE' \
+  --data-urlencode 'state=RUNNING' \
+  --data-urlencode 'state=ERROR' \
+  --data-urlencode 'limit=50' --data-urlencode 'offset=0'
+```
+
+If the response total exceeds the returned page, continue pagination; a limit-one query cannot establish portfolio policy. Public reads do not authorize writes or expose all live shard values.
+
+<Accordion title="Case-study deployment and position mapping">
+
+| Input | Captured value |
+|---|---|
+| Chain | Base, `8453` |
+| Vault | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` |
+| Engine vault ID | `8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` |
+| Execution strategy | `0xef83abc641b98af01f0652e3af49a25d65c601a5` |
+| NVDAc collateral | `0xb20000000000000000000078ee7ce2fe4908108c`, 8 decimals |
+| USDC debt/source asset | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`, 6 decimals |
+| Aave V4 Spoke | `0x17905db0e4a3514467539956c084180616ae7b8d` |
+| Supply / borrow reserve IDs | `5` / `7` |
+| Loan yield-source identity | `0x2992B81B367207A10b8afe97daCe214b90892a0C` |
+| Loan source oracle | `0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146` |
+| Normalized position ID | `0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b` |
+| Clearstar cbAssets source | `0x91C056B6d4311a743614FBc03ac32d4E6A2d3a3c`, 18-decimal shares |
+| Source PPS oracle | `0x2412A5d7261995b49D1F3a731F8452641B916994` |
+
+</Accordion>
+
+| Definition | ID | Version / captured state | Economic role |
+|---|---|---|---|
+| AP0 | `5db21999-c05c-4af3-8824-9f7ecc746576` | 6 / RUNNING | Idle-USDC partial repayment |
+| AP1 | `a8d25935-9f6d-4046-a87a-82048af0cc1c` | 21 / RUNNING | Capped source redemption → partial repayment |
+| AF0 | `7166275b-5f8d-4b61-b79e-bddca00f3884` | 8 / RUNNING | Idle-USDC attempted full repayment |
+| AF2 | `b72f1db5-0956-4b9e-bb5a-e80591e34699` | 19 / RUNNING | Capped source redemption → attempted full repayment |
+| Deposit USDC in cbAssets | `556d695e-bf66-4cdc-863a-5542c67a305e` | RUNNING | Retains a 40% gate |
+| Supply excess NVDAc | `81dc231f-ae5a-4c3c-8eb1-f5b9ec47aa21` | RUNNING | Retains a 40% gate |
+| Borrow fixed amount and deposit | `5d3e2a1b-8f5a-4f68-b1a4-ce0e6069a2ad` | IDLE | Example plan, not active entry policy |
+| M0 / M1 manual repayment profiles | `bbf0310b-bea9-4291-a0a1-b8cfbffc523d` / `3cef534b-d6f6-49ab-9925-c69483bf2ea3` | CREATED | Not running unwind policy |
+| MW manual collateral release | `4f7bcb58-e86d-4983-922b-fc3b0b9920a7` | IDLE | Not an automatically completed exit |
+| Q3 / Q4 queue-funding profiles | `161c658a-5466-48a6-8fc3-fd3d51e91d71` / `1cf1fc20-46a1-4703-8eff-45702ae32cfc` | CREATED | Not running queue-funding policy |
+
+AP0/AP1 trigger at `52% <= LTV < 55%` and size toward 50%. AF0/AF2 trigger at `LTV >= 55%` and attempt full debt repayment, capped by resources. All four were USER_DEFINED, BINARY, with sixty-second cooldown, one concurrent intent per strategy, two-basis-point slippage, and sixty-second maximum duration. The 50% target is **not** a global vault entry target; the other RUNNING definitions retain their 40% gates.
+
+## Worked entry decision
+
+Inspect **Deposit USDC in cbAssets**, ID `556d695e-bf66-4cdc-863a-5542c67a305e`, captured version 14 / RUNNING. This is the deployment leg of carry, not a borrowing command. Its actual rule requires positive idle USDC and either (a) both debt amount and risk debt value equal zero, or (b) positive debt amount, positive debt/collateral risk values, and debt risk value **strictly below 40%** of collateral risk value. Its size is the entire idle-USDC alias; it does not retain a USDC reserve or test a rate spread.
+
+| Synthetic observation / decision | Result under the captured definition |
+|---|---|
+| Idle `10000000` raw USDC; debt `39000000` raw USDC; risk debt `39000000000000000000`; risk collateral `100000000000000000000` | Rule true; request `10000000` raw USDC |
+| Same observations but risk debt exactly `40000000000000000000` | Rule false at the strict 40% boundary |
+| Positive idle, both debt amount and risk debt value zero | Debt-free branch true; still requires fresh position/balance data |
+| Debt amount zero but risk debt value positive | Neither branch true; investigate inconsistent observations |
+
+The single `ApproveAndDeposit4626VaultHook` consumes USDC from execution strategy `0xef83abc641b98af01f0652e3af49a25d65c601a5` and receives Clearstar shares. At synthetic PPS `1.25`, no fees/loss, and the first row's input, expected new shares are `8000000000000000000` raw, idle USDC becomes zero, and the next trigger is false. Debt and collateral are unchanged by this deposit. Verify the actual receipt, share delta, and debt after execution; a modeled share amount is not a quote or fill.
+
+**Operator decision:** if your mandate requires an idle-USDC reserve or minimum spread, this captured definition is not sufficient even when its rule is true. Leave a proposed replacement inactive until those explicit conditions and its capped size have been reviewed. Do not represent the capture's 40% gate as a 50% target.
+
+The captured **Borrow fixed amount and deposit** draft (`5d3e2a1b-8f5a-4f68-b1a4-ce0e6069a2ad`, version 46 / IDLE) is more limited: its only rule is positive `borrow_capacity_e18`; size is `10000000000` raw USDC (10,000 USDC). The [two-step plan](/operate/strategy/action-config#borrow-then-deposit) passes actual borrowed USDC into Clearstar. A positive capacity observation does **not** prove capacity for that fixed amount: do not activate it as a complete entry policy. Review current venue capacity, proposed post-borrow risk, rate period/spread, and a deliberate idle policy before approving any borrowing. The draft supplies a supported plan shape, not evidence of active or bounded borrowing.
+
+## Exit and withdrawal pressure
+
+Use idle debt tokens first where the rule permits. If none are available, source redemption must be capped by held shares, asset liquidity, share liquidity, PPS, and slippage. The captured split is one raw USDC unit: even dust can select the idle branch rather than the source branch.
+
+Debt repayment does not release collateral automatically. To fund NVDAc redemptions, first reduce debt as needed, then release collateral under venue constraints and return the required underlying. A USDC source redemption that immediately repays debt has not yet funded an NVDAc redemption queue. See [Deleverage and unwind](/operate/playbooks/deleverage) and [Fund redemption requests](/operate/playbooks/redemptions).
+
+## SuperStocks checks
+
+- Read token precision from metadata. Do not assume all stock, debt, and share tokens have the same decimals.
+- Identify the actual market/risk oracle and its update policy. These source-oracle addresses do not by themselves establish freshness of the underlying stock price.
+- Account for market gaps, price jumps, issuer/transfer restrictions where applicable, and venue liquidity. A continuous blockchain does not make every underlying market continuously liquid.
+- A desired market-closed borrowing guard is not evidence such a guard exists in the captured rules. Verify explicit conditions rather than inferring policy from product names.
+
+## Controlled activation and monitoring
+
+Save new definitions inactive and read them back. Test exact boundaries and units with the evaluator. Review [simulation limitations](/operate/ui/simulation) before treating any model as validation. Activate only within an approved rollout after reviewing permissions, gas, upkeep, session keys, freshness, and conflicting strategies.
+
+Monitor collateral/debt value, debt amount, rate spread, idle USDC, source shares/PPS, exit liquidity, queue pressure, publication failures, and actual post-execution deltas. Missing telemetry is unknown, not healthy. Pause new borrowing when required by your approved policy; pausing automation does not unwind outstanding debt.
+
+## Evidence boundary
+
+Configuration was captured through public GETs. Engine behavior is reviewed at [fc50b3c](https://github.com/superform-xyz/superman-strategy/tree/fc50b3ca5f1d66294e7476b1ff1088e92b126fbd); plans at [OMS bf36ed9](https://github.com/superform-xyz/superman-oms/tree/bf36ed9fb23a640c34943544f824ff4f5fb77939). This is not deployed-binary verification, live position measurement, or authenticated activation rehearsal.

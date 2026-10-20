@@ -1,138 +1,83 @@
 ---
-title: "Notifications and Event Streams"
-description: "Use notification channels, audit logs, and polling to stream SuperVault operational events."
+title: "Notifications and audit polling"
+description: "Use configured alert delivery and bounded, deduplicated audit collection."
 ---
 
-Operate exposes two event surfaces for operators:
+## Delivery is not an execution ledger
 
-1. **Notification channels** for routed operational alerts.
-2. **Audit logs and polling** for integration-grade event reconstruction.
+Configured channels route operational alerts to selected destinations. Use authorized settings to manage a channel and bind it to a vault. Channel CRUD/binding does not prove every proposed alert category is emitted or establish a generic public webhook API.
 
-Use notification channels for humans and incident destinations. Use audit logs / state polling for deterministic integrations.
+Review supported delivery types, ownership, binding, and enabled event coverage. Keep destination secrets server-side. Do not send an unsolicited test notification while inspecting configuration.
 
-## Notification Channels
+Upstream routes include `/api/v1/notification-channels` and `/api/v1/vaults/{chain_id}/{vault_address}/notification-channels`. These are authenticated management surfaces, not anonymous automation endpoints. See [Access and API boundaries](/operate/authentication).
 
-Create a channel, then bind it to the vaults that should send alerts.
+## Audit contract
 
-```bash
-# List or create channels
-GET /api/v1/notification-channels
-POST /api/v1/notification-channels
+Source-reviewed `GET /api/v1/audit/logs` supports `limit`, `offset`, `start_time`, `end_time`, `action`, `resource_type`, `resource_id`, `actor`, `status`, and `correlation_id`. Rows include `id`, `created_at`, `action`, `resource_type`, `resource_id`, `actor`, `status`, `details`, and `correlation_id`.
 
-# List or bind channels for one vault
-GET /api/v1/vaults/{chain_id}/{vault_address}/notification-channels
-POST /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
+Do not copy older `from_timestamp`, `to_timestamp`, `action_type`, or `actor_wallet` examples. The handler returns a log array to the response layer; verify the deployed envelope in your approved adapter instead of assuming a `logs`/`has_more` object. A resource-ID filter is not a universal vault filter for every resource type.
 
-# Unbind a channel
-DELETE /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
-```
+The repository orders by `created_at DESC`, with offset pagination and inclusive time bounds. There is no stable timestamp-plus-ID cursor or snapshot across pages. Offset polling cannot guarantee lossless or exactly-once ingestion under concurrent inserts or equal-timestamp ordering.
 
-Recommended alert categories:
+## Bounded polling core
 
-- Upkeep shortfall or activation loss.
-- PPS staleness.
-- Failed keeper runs.
-- Session-key readiness changes.
-- Emergency pause / unpause.
-- Emergency liquidity exit arm / stop.
-- Merkle generation or publish failure.
-- Repeated OMS execution failure.
-
-See [Vault Settings](/operate/ui/vault-settings#alert-delivery) for the operator flow.
-
-## Audit Logs as an Event Stream
-
-The audit log endpoint records vault operations and manager actions:
-
-```bash
-GET /api/v1/audit/logs
-Authorization: Bearer <jwt>
-
-# Query params:
-# ?vault_address={addr}&chain_id={id}
-# &limit=100&offset=0
-# &action_type={type}
-# &from_timestamp={iso}&to_timestamp={iso}
-```
-
-```json
-{
-  "logs": [
-    {
-      "id": "uuid",
-      "timestamp": "2026-05-09T10:00:00Z",
-      "action_type": "yield_source_add",
-      "vault_address": "0x...",
-      "chain_id": 8453,
-      "actor_wallet": "0xManager...",
-      "details": {
-        "yield_source": "0xMorphoVault...",
-        "oracle": "0xOracle..."
-      }
-    }
-  ],
-  "total": 48,
-  "has_more": false
-}
-```
-
-Export when you need a point-in-time compliance artifact:
-
-```bash
-GET /api/v1/audit/export
-Authorization: Bearer <jwt>
-```
-
-## Polling Pattern
+Supply `fetch_page(params)` from an approved integration. It must validate/unwrap the response to a list, enforce HTTP timeouts, and raise on access, network, or schema errors. Supply durable processed IDs. This core sends no notifications and does not advance durable state itself.
 
 ```python
-import requests
-import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 
-EREBOR_URL = "https://erebor.superform.xyz"
-headers = {"Authorization": "Bearer <jwt>"}
-CHAIN_ID = 8453
-VAULT = "0xYourVault..."
-
-def poll_audit_logs(since: datetime):
-    resp = requests.get(
-        f"{EREBOR_URL}/api/v1/audit/logs",
-        headers=headers,
-        params={
-            "vault_address": VAULT,
-            "chain_id": CHAIN_ID,
-            "from_timestamp": since.isoformat(),
-            "limit": 100,
-        },
-        timeout=15,
-    )
-    resp.raise_for_status()
-    return resp.json().get("logs", [])
-
-last_check = datetime.now(timezone.utc)
-
-while True:
-    new_events = poll_audit_logs(since=last_check)
-    for event in new_events:
-        print(f"New event: {event['action_type']} by {event['actor_wallet']}")
-        # Process event...
-
-    if new_events:
-        last_check = datetime.now(timezone.utc)
-
-    time.sleep(60)
+def collect_audit_window(fetch_page, watermark, end_time, seen_ids,
+                         overlap_seconds=300, page_size=100, max_pages=1000):
+    if watermark.tzinfo is None or end_time.tzinfo is None:
+        raise ValueError("aware timestamps required")
+    if end_time < watermark or page_size < 1 or max_pages < 1:
+        raise ValueError("invalid window or pagination bounds")
+    if overlap_seconds < 0:
+        raise ValueError("negative overlap")
+    start = watermark - timedelta(seconds=overlap_seconds)
+    high = watermark
+    pending = {}
+    for page in range(max_pages):
+        rows = fetch_page({
+            "start_time": start.isoformat(),
+            "end_time": end_time.isoformat(),
+            "limit": page_size,
+            "offset": page * page_size,
+        })
+        if not isinstance(rows, list) or len(rows) > page_size:
+            raise ValueError("invalid audit page")
+        for row in rows:
+            event_id = row["id"]
+            stamp = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+            if not isinstance(event_id, str) or not event_id or stamp.tzinfo is None:
+                raise ValueError("invalid event identity or time")
+            if not start <= stamp <= end_time:
+                raise ValueError("event outside requested window")
+            high = max(high, stamp)
+            if event_id not in seen_ids:
+                pending[event_id] = row
+        if len(rows) < page_size:
+            ordered = sorted(pending.values(), key=lambda r: (r["created_at"], r["id"]))
+            return ordered, high
+    raise RuntimeError("page bound reached; watermark must not advance")
 ```
 
-## State Polling Map
+Fix `end_time` for the whole cycle, preferably behind current time by an ingestion-lag allowance. The returned watermark is the maximum **observed event time**, not local wall-clock time. An empty window leaves it unchanged. Overlap and ID deduplication allow repeated boundary events and ordinary delayed arrivals without duplicate processing.
 
-| Need | Source |
-|------|--------|
-| Vault state changes | `GET /api/v1/vaults/{chain_id}/{address}` |
-| Service degradation | `GET /api/v1/vaults/{chain_id}/{vault}/services` |
-| Operation events | `GET /api/v1/audit/logs` |
-| PPS staleness | Vault detail PPS timestamps and remaining staleness |
-| Intent execution | `GET /api/v1/intents` and OMS event/fill endpoints |
-| Emergency locks | `GET /api/v1/engine/shards/{vault_id}/state` |
+Persist rows, deduplication IDs, downstream outbox entries, and the returned watermark atomically only after the complete cycle succeeds. On any page/processing failure, retain the old checkpoint and retry idempotently. Never advance after page one just because newer events were visible there.
 
-See [Monitoring Vault State](/operate/automation/monitoring) for production-ready polling examples.
+A finite overlap does not protect against arbitrary late insertion. Periodically replay a larger range and compare with authoritative exports/state. Equal-timestamp offset instability and rows inserted behind the overlap remain limitations. If lossless ingestion is required, obtain a stable-cursor/snapshot contract rather than labeling this core production-complete.
+
+## Separate event families
+
+| Need | Evidence |
+|---|---|
+| Manager/configuration actions | Authorized audit records |
+| Current readiness | Current vault, engine, and service observations |
+| Intent lifecycle | Intent detail plus authorized OMS events |
+| Settlement | Fills, receipts, and position reconciliation |
+| Human alerts | Configured channel delivery evidence |
+
+Missing audit data does not prove no transaction occurred, and notification delivery does not prove settlement. Use [Intent History](/operate/ui/intent-history) and [Monitoring](/operate/automation/monitoring).
+
+Source: [management API 70dcf51](https://github.com/superform-xyz/erebor/tree/70dcf5126ec5aed70481dba5993df50c5b42c2b5/internal), `api/server_audit.go`, `domain/audit.go`, and `repository/audit/audit.go`. The core has synthetic multipage, duplicate, delayed-arrival, empty-window, and failure tests; authenticated live audit collection was not rehearsed.

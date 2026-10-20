@@ -1,0 +1,451 @@
+{
+  "operate.mdx": [],
+  "operate/api/erebor.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "5f2eef5e134ec0a231aa8a89fb94e15753b54ed85d7b37e13693c3857c5e45eb"
+    }
+  ],
+  "operate/api/oms.mdx": [
+    {
+      "language": "text",
+      "classification": "illustrative-text",
+      "check": "State-flow diagram, not executable code.",
+      "sha256": "e98fbcae6d744bc84b204a4a4d3ca1f275bbc594e14169ac99a053cd5c2746d7"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "69cbdc4544897dcc6e192ad5eef611341255e1d8796e7361fcc0abeb1e88293f"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "d736356b6e7a7ca3ac03d2ea27c1fb0d683d920da81c5b6596a97efa6015a535"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "3944149a2ef108e2780510fcb4967946f8547db466c22d452fa55ce5c7e4948c"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "acbfcdb013d73c57e2a718396cbb28ab0ba6edde6c4547302e31edc5746601b7"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "0a681b2d138b60c33d9bb8fe98b0603f02f9dc433abbb4103629f201d3eb0de7"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "018c9e54e1ef183a57090d0c66be1bbd5f405b1f0e0397b8ecbcd49d1cf3cecf"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "cf7c623fda6fbbcc60313bf508967fd68ea99f0733498fa4c8437d1212e62dca"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "ee5baff10ddc1c529850cff1cce830d0243918814656b4b1dcfa764232b77ab8"
+    }
+  ],
+  "operate/api/overview.mdx": [],
+  "operate/api/strategy.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "1e9bfc304eaf0ea142b74628ad45d1e34c306309380c7330398be3a416bfb8a7"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "27d9daa20a66f669c58fb4256ccb40509040ae0be6496639627cbe55913c3992"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "1dedf16bdf066122cc88d8a7084e3b06c949894a51fbeaeae1be42b290aae803"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "d5e683b4a3bd7d7c26e913187745a560230a7a665b557276a38dde5c1923e20c"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "4da253a30dd3156fdf75fc35c99dd013004a8d7eb891418734bca7be845c1495"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "32d4366f3069d4ed30c6048f5814021c115ce395f9721eeaabed83a673b8f391"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "05ea3ce613a6e3e7c4901b09f49f02ccc4b7d6f67fec9fc7bf7142f52d12f7c0"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "b30bea6e8cea85f19db5d86668994040831cb7b275f6515c30dd0b35fac560c7"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "e0fca144b58d0411a347630ce7899faf7d6097ca18e5a7591c379570ebad0284"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "df1213a9dad206ef8cafc2f2f88a4f2dedb0bf0b27d75061260e88f62fce1693"
+    }
+  ],
+  "operate/authentication.mdx": [],
+  "operate/automation/monitoring.mdx": [
+    {
+      "language": "python",
+      "classification": "python-tested",
+      "check": "Synthetic classifier/poller cases; no network.",
+      "sha256": "cdbdc0e7a5dfbc86efba8bdc6a3cf34231bb44055937e95db39681825eedcdf4"
+    }
+  ],
+  "operate/automation/overview.mdx": [],
+  "operate/automation/webhooks.mdx": [
+    {
+      "language": "python",
+      "classification": "python-tested",
+      "check": "Synthetic classifier/poller cases; no network.",
+      "sha256": "87903e019f82d589d59d96f0bad2e986147744b2fcd73af5ff149d2ce6186749"
+    }
+  ],
+  "operate/concepts.mdx": [],
+  "operate/permissions.mdx": [],
+  "operate/playbooks/carry.mdx": [
+    {
+      "language": "bash",
+      "classification": "public-read-command",
+      "check": "Shell syntax only offline; reviewed public GET or eth_getTransactionReceipt, not live replay.",
+      "sha256": "0db0a736bae0515f9a02ce98f8475e9936d8e2a78345eacbb4dce26b313e16a9"
+    }
+  ],
+  "operate/playbooks/deleverage.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "5329467d42211b5fc15558380b496802482c396db42d0dec8fcd10a39dd3e63a"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "b2f133cb398bc801debbacf57d6c3700f61d70e72ecc99ded2b507a82e0836d2"
+    }
+  ],
+  "operate/playbooks/redemptions.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "eb1744483667683825917c47f3eb46ecfbd4a3e1501db4feb461f78b45939bfb"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "3194fafa3f4422db5218af658c7bdd0915c85e145a3ca8c16b155a8bd71306df"
+    }
+  ],
+  "operate/playbooks/reserves.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "87a199710bf719eaf6a39b6f63a6e72a6f6554632bbea50c7d3d9981c343ebbf"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "fe4591b704ab4d86f5e712ae3f8ef5686e2446939b5cd289e3f17e5e2a7fe888"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "0a25cb165dd1c68b995d19210c731f0e3cb3f52747ce8be304a5633a412c8df8"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "8d711bc745b5e9d8218e91be89780f83ef7ff9b163b53b9d8beac26b1c616e90"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "53eedb1c989dea276b90e1dd90118f687bbca8b08b10d3eb2eeaee8cc58f642f"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual compiler plus complete same-asset refill guard cases.",
+      "sha256": "2c1293d0ba6c0a45e12b08ea482bfc6f0f0470237b52ebc799e473d886577114"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual evaluator: full refill, liquidity cap, zero/missing inputs, dust and post-action disarming.",
+      "sha256": "b739ee42f0baf3c5d9263008bb8830dddc1f48e9960c100ec3fe928d171c8524"
+    }
+  ],
+  "operate/prerequisites.mdx": [],
+  "operate/quickstart.mdx": [],
+  "operate/strategy/action-config.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "19f8d1dac9c2cea9d0706975e9f74c2ad87a1e14fc695bbb301d5ff6d07fcf5b"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "efd372ed3239b1166a2029549c1a1cd4b29ea30a7717e6706633f72c9c255c08"
+    }
+  ],
+  "operate/strategy/anti-patterns.mdx": [],
+  "operate/strategy/dsl.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "8980833ef2e41620df8927fef3ed5f3c365d8324ce0dc7e759fca3574b9a455e"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "224e51208cf9d85633280592bd3b1ab3ef4b193e7a4b3d038ded43f7fb775410"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "a7879e102a4449cdd00c70263ddbeb3914054267b2de29fafa3564c2ca442abd"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "133752b958fab6f7a23defa52ceaaeaecd82397abfc4c42d427d3f4c2e89a2f9"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "033193fd47e81a6fd0a94c1787f2b0cf764690025044181075abc87572cf151c"
+    },
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "9f3e25945e6cf9daca1c7fb25b4e234ad8e8c640c2f35f3a9706323a2f1fba8d"
+    }
+  ],
+  "operate/strategy/lifecycle.mdx": [],
+  "operate/strategy/quickstart.mdx": [
+    {
+      "language": "json",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "3f53221761e87353790dff06deb8305f54dd12851faae5da2f129a429bdf1eec"
+    },
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "fe4591b704ab4d86f5e712ae3f8ef5686e2446939b5cd289e3f17e5e2a7fe888"
+    }
+  ],
+  "operate/strategy/troubleshooting.mdx": [],
+  "operate/strategy/variables.mdx": [
+    {
+      "language": "text",
+      "classification": "engine",
+      "check": "Actual pinned compiler/schema validation with --source; evaluator cases where listed.",
+      "sha256": "1a1a14bb2e34acbb397d3ce692e19597ce4e7532ea497acfea87407703e54337"
+    }
+  ],
+  "operate/ui/create-vault.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "d2c7108211c712d949ab8e60422197f845a2668eabbc26f17d81dd7b468ff047"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "5305173dbe71f8e5cdc39827268373a77433861995a8a12c1383332a5deb3d5f"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "2e84b95619124ae521b6a3f725c614a234c22437d9a23d53cd29369b7f4424df"
+    },
+    {
+      "language": "json",
+      "classification": "illustrative-json",
+      "check": "Placeholder request shape, JSON parsing only; not submitted or schema certified.",
+      "sha256": "e7866db9f5bc7a10fb080a17073d3e04363fb0cdf21183fa43456ab7018d5b47"
+    },
+    {
+      "language": "json",
+      "classification": "illustrative-json",
+      "check": "Placeholder request shape, JSON parsing only; not submitted or schema certified.",
+      "sha256": "393a5b111d3e5dee3f09ec38a7f19643dcc945282506f0e26ff94d53d2404af3"
+    }
+  ],
+  "operate/ui/dashboard.mdx": [],
+  "operate/ui/distribute.mdx": [],
+  "operate/ui/execution-accounts.mdx": [],
+  "operate/ui/funding.mdx": [],
+  "operate/ui/home.mdx": [],
+  "operate/ui/intent-history.mdx": [
+    {
+      "language": "bash",
+      "classification": "public-read-command",
+      "check": "Shell syntax only offline; reviewed public GET or eth_getTransactionReceipt, not live replay.",
+      "sha256": "7e53a188c49ea0deefdef3eebf8e6ef61bb3e5d229c158402028a8c2ef94682b"
+    },
+    {
+      "language": "bash",
+      "classification": "public-read-command",
+      "check": "Shell syntax only offline; reviewed public GET or eth_getTransactionReceipt, not live replay.",
+      "sha256": "6380383dbed83f46c482814a6d1fa46f90e5bbd7a56d7e2156a81da36347ef70"
+    },
+    {
+      "language": "bash",
+      "classification": "public-read-command",
+      "check": "Shell syntax only offline; reviewed public GET or eth_getTransactionReceipt, not live replay.",
+      "sha256": "a86f64d4fb495a180581c677f4097eb2c5cef49e9d5deb069e60ebf95485459c"
+    }
+  ],
+  "operate/ui/merkle-trees.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "fab7f4581fb0cc5faf6d6c07831c1dca66a284d45f3a2ff2269fb2eff3452495"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "e8b9ae90809502039c6bcfdbf707313a7be0961469521cf8b968644faaf8feb0"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "7212eba0cce69fe2c2ab1cf6ebb7e37c2905e49a713ff2b5fee4958a9821f260"
+    }
+  ],
+  "operate/ui/pause.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "5e09f0fce29af8c50a45a876033b221156ff0470d46dd3ef25bbc1500902049b"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "d75d65441391fe4c6986896a4bc40fe081091eeb4ccc8d2ee1b02eb64c4fcb00"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "0613632e1384a2d3d4b15c796dc5c6504f6f16f08e48ba645ada2bd798ed147a"
+    }
+  ],
+  "operate/ui/setup-checklist.mdx": [],
+  "operate/ui/simulation.mdx": [
+    {
+      "language": "text",
+      "classification": "illustrative-text",
+      "check": "Expected admission error message, not an expression.",
+      "sha256": "3cc308885ef6a5a21b1c6b846d40e55c866b647c3624ba48759d6e20accbe0d5"
+    }
+  ],
+  "operate/ui/strategy.mdx": [],
+  "operate/ui/user-management.mdx": [],
+  "operate/ui/vault-settings.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "3c5d0edd6e5fbbab7ffb5ed5ef147f28eb05dca122696b74fa8107cf4bccb51e"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "95385e1ab52638b0187b8f7ccefc443d2f308edfb6b406b4ac2271b6eb88e470"
+    }
+  ],
+  "operate/ui/yield-sources.mdx": [
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "4a843d2f9d061c492c6bfc24a1b79a6ad996b929c5fa0574493013d1a3122c99"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "24f2445c4e14d1970d2746b16ac0a37a9c35ebaf3df5d98e6d3b33587fcfb014"
+    },
+    {
+      "language": "bash",
+      "classification": "api-route-notation",
+      "check": "HTTP route/body notation, not a runnable shell command or authorized transport.",
+      "sha256": "5e4922a417729501fd4fafdc5fee616f7be9b235b58d888fd9d3e68004591306"
+    }
+  ]
+}

@@ -4584,343 +4584,178 @@ The Zap Terminal analysis endpoint (`GET /api/v1/vaults/{vaultAddress}/ai/analys
 
 Source: https://docs.superform.xyz/operate/ui/strategy
 
-![SuperformOS Strategy Canvas — automated vault strategy lanes and controls](/operate/images/screenshots/strategy.jpg)
+![SuperformOS Strategy Canvas](/operate/images/screenshots/strategy.jpg)
 
-<Note>
-New to strategy authoring? Start with [Strategy Quickstart](/operate/strategy/quickstart), then use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config) as field references.
-</Note>
+Open **Strategy** for the intended chain and vault. Each card is a saved rule and action: the rule decides when to act, and the size and execution steps decide what to do.
 
-The Strategy Canvas is where operators define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
+[Write and update a strategy](/operate/strategy/quickstart) walks through a SuperStocks partial repayment, including safe edits to an existing definition. Follow its executions in [Intent History](/operate/ui/intent-history).
 
-Public SuperVault detail pages expose the canvas as a read-only tab. Manager actions such as create, update, reorder, run, stop, and archive are available only in the authenticated Operate surface.
-
-The canvas is organized by action lane:
+## Read the cards
 
 | Lane | Actions | Purpose |
-|------|---------|---------|
-| Inflow | `DEPOSIT` | Deploy idle assets into yield sources |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Source liquidity and claim proceeds |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Move capital between sources or routes |
+|---|---|---|
+| Deposit | `DEPOSIT` | Deploy assets into a source |
+| Redemption | `WITHDRAWAL`, `CLAIM` | Return source assets or claim proceeds |
+| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE`, `CLAIM_REWARDS` | Other supported movements and reward claims |
 
-## Strategy Lifecycle
+Public vault pages provide read-only strategy context. Opening an editor depends on inspection permissions; creating, editing, reordering, and starting strategies requires manager authority in Operate. A disabled control is not itself an engine error.
 
 | State | Meaning |
-|-------|---------|
-| `CREATED` | Drafted but not active |
-| `IDLE` | Ready but not ticking |
-| `RUNNING` | Evaluating rules and eligible to publish intents |
-| `ERROR` | Runtime error; inspect logs/events |
-| `ARCHIVED` | Soft-deleted |
+|---|---|
+| `CREATED` | Saved, not active |
+| `IDLE` | Not evaluating rules |
+| `RUNNING` | Eligible to evaluate and publish intents, subject to gates |
+| `ERROR` | Inspect the error before restarting |
+| `ARCHIVED` | Soft-deleted definition |
 
-The Strategy Engine API currently models these states directly. Vault-level kill switches and emergency locks can still prevent a strategy from publishing even when the stored state is `RUNNING`.
+A running card is not proof of a fill. An inactive card can still have an earlier intent in flight.
 
-## Create or Update a Strategy
+## Inspect before editing
 
-A strategy contains:
+Open the definition and check its ID, version, state, position or source, rule tree, **Size expression**, and execution steps. Use **Variables** to select real fields and **Copy** to inspect the normalized engine expression, including raw-unit conversions.
 
-- Name.
-- Indicators.
-- Rule tree.
-- Action config.
-- Conviction config.
-- Risk parameters.
-- Cooldown and concurrency controls.
+Use **Add deposit strategy**, **Add redemption strategy**, or **Add rebalance strategy** for a new definition. **Create** and **Save** persist configuration; the lifecycle toggle starts or stops evaluation separately. Save a new or changed definition inactive, reopen it, and compare what was stored before activation.
 
-Create and update calls do **not** carry priority. Ordering is handled by the dedicated reorder endpoint.
+Updates use a version. If another edit or state transition wins first, reload and reconcile the `409 Conflict` rather than overwriting it. Follow the [update procedure](/operate/strategy/quickstart#update-an-existing-strategy-safely) for threshold, size, or action changes.
 
-Updates require a `version` for optimistic concurrency. A stale version returns `409 Conflict`.
+## Order and execution gates
 
-## Authoring References
+Drag within a lane to change server-managed priority. Create and update do not set priority. A reorder includes every non-archived strategy in the lane exactly once. Order helps select eligible signals; it does not sequence transactions across cards.
 
-Strategy authoring is split into focused references:
+Cooldown and the editor's fixed one-concurrent-intent limit apply per strategy. They do not reserve a balance against other strategies. Conviction scores the current evaluation, not consecutive passing ticks.
 
-| Page | Use it for |
-|------|------------|
-| [Strategy Quickstart](/operate/strategy/quickstart) | Build and POST a first deposit/withdrawal reserve manager. |
-| [Strategy DSL](/operate/strategy/dsl) | Rule tree syntax, expressions, variables, and validation behavior. |
-| [Action Config](/operate/strategy/action-config) | OMS dispatch fields and yield-source execution requirements. |
-| [Strategy Troubleshooting](/operate/strategy/troubleshooting) | Diagnose strategies that do not tick, publish, or fill. |
-| [Strategy Anti-Patterns](/operate/strategy/anti-patterns) | Avoid designs that pass validation but fail operationally. |
+A missing session key, kill switch, stale data, or execution-readiness failure can block publication even when a card is `RUNNING`. A target-scoped emergency lock also blocks affected user-defined strategies and disables their related controls. Operate special emergency exits from [Pause Operations](/operate/ui/pause), not the ordinary editor.
 
-## Reorder Strategies
+Stopping a strategy does not cancel in-flight execution or unwind its position. Inspect outstanding work in [Intent History](/operate/ui/intent-history) before enabling a replacement spender.
 
-Drag within a lane to change priority. The UI persists order through:
+## References
 
-```bash
-POST /api/v1/strategies/reorder
-```
-
-The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
-
-<Note>
-The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
-</Note>
-
-## Rule Trees
-
-Rules are boolean trees:
-
-| Node | Meaning |
-|------|---------|
-| `EXPR` | Evaluate one expression |
-| `AND` | All children pass |
-| `OR` | At least one child passes |
-| `NOT` | Negate one child |
-| `VOTE` | N-of-M children pass |
-
-Conviction config can require repeated passing ticks before publishing an intent.
-
-## Action Config
-
-Action config tells the engine what to do after rules pass. Common fields include:
-
-- `action`
-- `size_expr`
-- `objective`
-- `execution_name`
-- `execution_address`
-- `target_address`
-- `from_address`
-- `target_type`
-- `execution_params`
-- `max_slippage_bps`
-
-A target must be whitelisted and authorized by the active merkle root before OMS execution can succeed.
-
-## Emergency Locks
-
-Emergency liquidity exits create target-scoped locks. While a lock exists for a yield source address:
-
-- User-defined strategies targeting that address cannot publish new intents.
-- Affected toggles and reorder handles are disabled in the UI.
-- Strategies on other targets remain operable.
-- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/operate/ui/pause), not the normal editor.
-
-The canvas reads `emergency_locks` from shard / vault state and displays a banner when active.
-
-## Intent History
-
-The Intent History view is the operator-facing execution ledger for strategies. It maps Strategy Engine projections to OMS events and fills.
-
-Use it to answer:
-
-- Which strategy created the intent?
-- What lifecycle state is it in?
-- Which OMS events have arrived?
-- Were fills mined?
-- What gas was used?
-- Which transaction hash settled the fill?
-
-Prefer the search endpoint for new tooling:
-
-```bash
-GET /api/v1/intents
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills
-```
-
-See [Strategy Engine API](/operate/api/strategy) and [OMS API](/operate/api/oms).
-
-## Session Key Gate
-
-Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points operators to grant or renew the key.
-
-See [OMS API](/operate/api/oms#session-keys) for the session-key endpoints.
-
-## API Reference
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/strategies` | GET | List strategies with filters |
-| `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | GET | Get strategy |
-| `/api/v1/strategies/{id}` | PUT | Update strategy with version |
-| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition lifecycle state |
-| `/api/v1/strategies/reorder` | POST | Persist lane order |
-| `/api/v1/intents` | GET | Search intent history |
-| `/api/v1/intents/facets` | GET | Intent filter facets |
-| `/api/v1/intents/{intent_id}/events` | GET | OMS event timeline |
-| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
-| `/api/v1/fills` | GET | Search fills across intents |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state and emergency locks |
+- [Strategy DSL](/operate/strategy/dsl): rule nodes, expression syntax, validation, and conviction.
+- [Action Config](/operate/strategy/action-config): input units and execution plans.
+- [Simulation](/operate/ui/simulation): supported model checks and their limits.
+- [Troubleshooting](/operate/strategy/troubleshooting): find the stage that blocked saving, publication, or execution.
 
 ---
 
-# Strategy Quickstart
+# Write and update a strategy
 
 Source: https://docs.superform.xyz/operate/strategy/quickstart
 
-This is the shortest path from no strategy to a validated deposit/withdrawal pair. You will build a reserve manager for one yield source: when idle assets are too high, it deposits; when idle assets are too low, it withdraws.
+## Start from the position
 
-## What You Are Building
+In **Strategy**, select the chain and vault, then inspect the existing strategy before changing anything. Record its ID, version, state, rule, size, and execution steps. Use a prepared vault you are authorized to manage; [setup](/operate/ui/setup-checklist) is separate from writing the rule.
 
-A drift-trigger reserve pair:
+The worked example is **superNVDA AP0**, an idle-USDC partial repayment strategy captured on **19 October 2026**. It repays when LTV is at least 52% but below 55%, sizing toward 50% and capped by available USDC. These are dated example thresholds, not a universal SuperStocks policy. Other entry/deployment definitions in that capture retained 40% gates.
 
-- A `DEPOSIT` strategy fires when `vault_free_assets` is above 10% of vault TVL.
-- A `WITHDRAWAL` strategy fires when `vault_free_assets` is below 5% of vault TVL.
-- The withdrawal half refills the reserve toward a 7.5% target.
+The surrounding carry flow supplies NVDAc collateral, borrows USDC, and deposits USDC into a yield source. This rule only spends USDC already idle at the execution strategy. It does not redeem source shares or withdraw collateral.
 
-Two strategies, one yield source, one `EXPR` rule each, no indicators.
+## Choose the variables
 
-## 1. Choose the Lane
+Open **Variables** in the rule builder. Select the debt amount, debt risk value, and collateral risk value for the **same position**, plus the execution strategy's idle USDC balance. Check their units before writing comparisons:
 
-Strategy actions group into lanes. The lane determines where the strategy appears in the canvas and how ordering works.
+| Input | Unit | Use |
+|---|---|---|
+| USDC debt amount | Raw USDC, 6 decimals | Cap repayment by debt |
+| Debt risk value | Risk value scaled by `1e18` | LTV numerator |
+| Collateral risk value | Same risk-value scale | LTV denominator |
+| Idle USDC | Raw USDC, 6 decimals | Available repayment funds |
 
-| Lane | Actions | This guide |
-|------|---------|------------|
-| Inflow | `DEPOSIT` | Deposit half |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Withdrawal half |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Not used |
+The ratio of the two risk values gives LTV. They are not token amounts. `1` raw USDC is `0.000001` USDC. Do not use `vault_free_assets` for this repayment: superNVDA's underlying is NVDAc, not USDC.
 
-See [Strategy Canvas](/operate/ui/strategy) for the UI model.
+<Accordion title="Exact AP0 identity and variable names">
 
-## 2. Pick the Action
+- Vault: `8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`.
+- AP0: `5db21999-c05c-4af3-8824-9f7ecc746576`, captured version `6`, state `RUNNING`.
+- Execution strategy: `0xef83abc641b98af01f0652e3af49a25d65c601a5`.
+- USDC debt amount: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`.
+- Debt risk value: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18`.
+- Collateral risk value: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18`.
+- Idle USDC: `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`.
 
-Each strategy has one `action_config.action`. Use `DEPOSIT` for the inflow strategy and `WITHDRAWAL` for the outflow strategy.
+These aliases identify this position and token, not arbitrary variables to rename. For another vault, select its actual position fields from **Variables** and retest the resulting expressions. Missing or stale position data is not a reason to substitute zero or remove a guard.
 
-The other `action_config` fields tell OMS how to execute:
+</Accordion>
 
-| Field | Meaning |
-|-------|---------|
-| `execution_name` | Hook identifier from the Erebor hook registry. |
-| `execution_address` | Deployed hook contract on the target chain. |
-| `target_address` | Yield source address. |
-| `from_address` | Account that executes the intent. |
-| `target_type` | Yield-source family, such as `erc4626` or `pendle_pt`. |
-| `objective` | Routing preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
+## Build the rule
 
-See [Action Config](/operate/strategy/action-config) for the full field reference.
+For a separate inactive exercise, choose **Add rebalance strategy** and name it `Partial USDC repay - inactive exercise`. Do not replace the running AP0 with this teaching definition.
 
-## 3. Write the Trigger
+In **Rule tree**, join these six conditions with an **AND** gate:
 
-The trigger is a `rules` tree. The simplest form is a single `EXPR` leaf that returns a boolean.
+1. Raw debt amount is positive.
+2. Debt risk value is positive.
+3. Collateral risk value is positive.
+4. Debt risk value is at least `0.52 × collateral risk value`.
+5. Debt risk value is below `0.55 × collateral risk value`.
+6. Idle USDC is at least one raw unit.
 
-```json
-{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }
-```
+Use the editor's **AND / OR / NOT** gates, not pasted `&&`, `||`, or `!`. For this rule, **Copy** should preserve six expressions under one AND; the saved tree is an `AND` with six `EXPR` children.
 
-`vault_free_assets` is sourced live from chain as `IERC20(asset).balanceOf(strategy)` through the EVM RPC datafeed, so the trigger reflects the strategy contract's actual idle balance. `vault_tvl` is derived from yield-source allocations on the subgraph cadence. Both are in the underlying asset's base units.
+<Accordion title="Paste the complete Rule tree expression">
 
-<Warning>
-Avoid division in trigger expressions. The validator dry-runs expressions against an empty snapshot where values can be zero. `vault_free_assets / vault_tvl > 0.10` can fail with division by zero at create/update time. Use the multiplicative form: `vault_free_assets > 0.10 * vault_tvl`.
-</Warning>
-
-See [Strategy DSL](/operate/strategy/dsl) for rule-tree syntax and variable notes.
-
-## 4. Size the Action
-
-`action_config.size_expr` is evaluated when the rule fires. It must return a positive number at runtime.
-
-For the deposit half, deploy idle assets:
+Paste this expression into **Rule tree**, not a JSON payload:
 
 ```text
-vault_free_assets
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.52 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 < 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 AND
+token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount >= 1
 ```
 
-For the withdrawal half, pull back the shortfall to the 7.5% target:
+</Accordion>
+
+## Size and configure repayment
+
+The size is the fraction of raw debt above the 50% risk-value target, capped by both idle USDC and raw debt. The simplified formula below omits AP0's production interest/dust buffer so the target calculation is visible. It is an authoring example, not a replacement production policy.
+
+<Accordion title="Paste the raw Size expression">
 
 ```text
-0.075 * vault_tvl - vault_free_assets
+min ( token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , min ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount * max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 - 0.50 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 , 0 ) / max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 , 1 ) ) )
 ```
 
-Both expressions are positive when their corresponding trigger passes. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
+Paste the whole expression into **Size expression**, then use **Copy**. The block shows the expected normalized, space-separated engine expression. It is already in raw USDC: there must be no extra multiplication by `1e6`. **Literal / Formatted** changes the value display, not the units of an existing expression. If Copy changes more than spacing, test the copied result before saving.
 
-## 5. Deposit Strategy JSON
+</Accordion>
 
-These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
+Select the registry-backed **AaveV4RepayHookV2** and confirm a single repayment step. The first input is raw USDC, not NVDAc or source shares. In this example the target type is `VAULT`, and the vault context differs from the token-holding execution strategy. Review the [captured repayment parameters](/operate/strategy/action-config#idle-usdc-repayment) against the selected position; let the editor resolve hook addresses and encoded arguments.
 
-```json
-{
-  "id": "deposit-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Deposit excess idle into Yield Source A",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets > 0.10 * vault_tvl"
-  },
-  "action_config": {
-    "action": "DEPOSIT",
-    "size_expr": "vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndDeposit4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve above 10% of TVL - deploy idle into Yield Source A"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+Under **Signal & risk**, choose **BINARY** in **Conviction** and enter **60** in **Cooldown (s)**. This saves `cooldown_ms: 60000`. The editor sets `max_concurrent: 1`; there is no editable concurrency control. The limit is per strategy, not a lock against other strategies spending the same USDC.
 
-## 6. Withdrawal Strategy JSON
+Review **Max slippage (bps)** and **Signal lifespan** for the plan. Captured AP0 used 2 bps and 60 seconds. Cooldown limits repeated publication; conviction does not count consecutive passing ticks.
 
-```json
-{
-  "id": "withdraw-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Withdraw from Yield Source A to replenish reserve",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets < 0.05 * vault_tvl"
-  },
-  "action_config": {
-    "action": "WITHDRAWAL",
-    "size_expr": "0.075 * vault_tvl - vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndWithdraw4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve below 5% of TVL - pull liquidity back toward 7.5% target"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+## Check behavior before activation
 
-## 7. POST and Run
+With collateral risk value 100, USDC valued at 1, and unchanged collateral, the simplified expression gives:
 
-Each strategy is one create request:
+| Debt / LTV | Idle USDC | Rule | Repayment, raw USDC | Modeled result |
+|---|---:|---|---:|---|
+| 51 / 51% | 10 | false | No intent | Below trigger |
+| 52 / 52% | 10 | true | `2000000` | Debt 50, LTV 50% |
+| 54 / 54% | 10 | true | `4000000` | Debt 50, LTV 50% |
+| 54 / 54% | 1 | true | `1000000` | Debt 53, target not reached |
+| 55 / 55% | 10 | false | No intent | Outside partial branch |
+| Zero debt amount, debt value, or collateral value | 10 | false | No intent | Guard blocks |
 
-```bash
-curl -X POST https://strategy.superform.xyz/api/v1/strategies \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data @deposit.json
-```
+These are evaluator cases, not transaction outcomes. Captured AP0's buffered size requests `4004001` raw USDC in the 54% case, rather than this guide's `4000000`. Keep an existing strategy's approved buffers when updating it.
 
-Repeat with the withdrawal payload. A successful response returns the persisted strategy with `state: "CREATED"`.
+Choose **Create**, reopen the saved definition, and confirm its ID, version, `CREATED` or `IDLE` state, rule, copied size, plan, and controls. Do not toggle it on to test it. There is no arbitrary-snapshot **Test** button or JSON-import step in this editor.
 
-Move each strategy to `RUNNING` when the vault has upkeep, merkle proof coverage, whitelisted yield sources, and OMS session-key readiness:
+For [Simulation](/operate/ui/simulation), select the saved inactive strategy explicitly. AP0 can be admitted, but the model does not simulate its Aave debt reduction or prove post-action LTV. Test boundary and capped-size cases separately; do not treat a successful save or model run as transaction preflight.
 
-```bash
-curl -X PATCH https://strategy.superform.xyz/api/v1/strategies/{strategy_id}/state \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data '{"target_state": "RUNNING", "version": 1}'
-```
+## Update an existing strategy safely
 
-See [Strategy Engine API](/operate/api/strategy) for endpoint details.
+1. **Read the current definition.** Reopen the intended card and record its current version and state. Compare its actual rule and size, not just its name, with the proposed change.
+2. **Control ongoing activity.** If the edit can change spending or risk, use the lifecycle toggle to stop it before editing, within the approved operating scope. Check [Intent History](/operate/ui/intent-history) for outstanding intents and competing spenders. Stopping evaluation does not cancel an intent or submitted transaction; reconcile those outcomes before introducing another spender. Reopen the definition after stopping to load its new state and version.
+3. **Make a bounded edit.** For a threshold change, review both edges of the trigger window and the separate sizing target. For a size change, preserve all three positive-value guards, the idle/debt caps, position binding, and approved interest/dust buffers. Lowering a trigger is not equivalent to changing the repayment target. Test the newly included boundary and a constrained-funds case.
+4. **Save while inactive.** Choose **Save**, then reopen and compare the new version, inactive state, rule, size, and execution steps. Verify that unrelated hook parameters, risk controls, cooldown, and slippage stayed unchanged.
+5. **Resolve conflicts without overwriting.** A `409 Conflict` means the version changed. Reload, compare the other edit or state transition, and reapply only the intended change after review. Do not just substitute a newer version and retry the old payload.
+6. **Review and deliberately activate.** Test the saved definition, check fresh position data, balances, hook authorization, session readiness, gas, and other eligible strategies. Start only the approved definition with its lifecycle toggle. One concurrent intent does not make it “run once.”
+7. **Trace the result.** In [Intent History](/operate/ui/intent-history), match the new intent to the strategy, inspect the fill and transaction, then refresh debt, collateral risk value, and idle USDC. Confirm actual repayment and residual debt before deciding whether further activity is appropriate.
 
-## What to Watch
-
-| Surface | Healthy sign |
-|---------|--------------|
-| Strategy Canvas | Both strategies appear in their lanes with server-assigned priority and `RUNNING` state. |
-| Dashboard | Idle reserve stays between the configured lower and upper bands over time. |
-| Intent History | `DEPOSIT` intents appear when reserve is high and `WITHDRAWAL` intents appear when reserve is low. |
-| Pause Operations | Emergency locks block only strategies that target the locked yield source. |
-
-If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operate/strategy/troubleshooting).
+A partial repayment can stop firing while debt remains. At 51% LTV this example is false, even if an earlier action began above the trigger. An unchanged rule name or a `COMPLETED` intent is not evidence that the 50% target was reached.
 
 ---
 
@@ -4928,100 +4763,103 @@ If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operat
 
 Source: https://docs.superform.xyz/operate/strategy/dsl
 
-The Strategy DSL has two layers:
+## Rule trees
 
-- A boolean `rules` tree that decides whether a strategy should fire.
-- Numeric expressions, such as `size_expr`, that decide how much the strategy should send to OMS.
+Each strategy has one boolean `rules` tree. Action sizing is a separate numeric expression.
 
-## Rule Nodes
+| Node | Required fields | Evaluation |
+|---|---|---|
+| `EXPR` | `expr` | Boolean expression, not numeric truthiness |
+| `AND` | `children`, at least two | All pass; short-circuits in order |
+| `OR` | `children`, at least two | Any passes; short-circuits in order |
+| `NOT` | `children`, exactly one | Negates that child |
+| `VOTE` | `children`, `threshold` | Requires `ceil(threshold × child count)` passes |
 
-| Node | Meaning | Shape |
-|------|---------|-------|
-| `EXPR` | Evaluate one boolean expression. | `{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }` |
-| `AND` | All child rules must pass. | `{ "type": "AND", "children": [...] }` |
-| `OR` | At least one child rule must pass. | `{ "type": "OR", "children": [...] }` |
-| `NOT` | Negates one child rule. | `{ "type": "NOT", "child": {...} }` |
-| `VOTE` | N-of-M child rules must pass. | `{ "type": "VOTE", "threshold": 2, "children": [...] }` |
+`VOTE.threshold` is a fraction greater than zero and at most one. The following tree requires two of three children, not one:
 
-Use shallow rule trees when possible. Deep trees are harder to review and usually indicate that two strategy lanes should be split.
-
-## Expression Guidelines
-
-Expressions are evaluated by the Strategy Engine against the current vault snapshot.
-
-| Pattern | Use |
-|---------|-----|
-| `vault_free_assets > 0.10 * vault_tvl` | Prefer multiplication over division for ratios. |
-| `ys_0xabc_alloc > 0` | Target source has deployed allocation. |
-| `tick_age_seconds > 3600` | Enough time has elapsed since the last tick context. |
-| `vault_pps_stale == 0` | Only run when PPS data is fresh. |
-
-<Warning>
-Avoid division in rule expressions unless the denominator is guaranteed non-zero. The validator dry-runs expressions against an empty snapshot to catch type and parse errors, which means division by zero can reject a strategy before it is saved.
-</Warning>
-
-## Common Variables
-
-Variable availability depends on the datafeed and vault snapshot. Common families include:
-
-| Family | Examples | Meaning |
-|--------|----------|---------|
-| Vault state | `vault_free_assets`, `vault_tvl`, `vault_total_supply` | Vault-level balances and supply. |
-| PPS and timing | `vault_pps`, `vault_pps_age_seconds`, `vault_pps_stale` | Price-per-share state and freshness. |
-| Yield source state | `ys_<address>_alloc`, `ys_<address>_apy`, `ys_<address>_tvl` | Source-specific allocation, yield, and liquidity. |
-| Tick context | `tick_age_seconds`, `tick_block_number`, `tick_timestamp` | Engine tick timing and chain context. |
-| Indicators | Custom aliases configured in `indicators` | Derived signals such as moving averages or momentum scores. |
-
-Source-specific variables normalize addresses before aliasing. When in doubt, inspect the strategy validation error and the engine snapshot shown in [Intent History](/operate/ui/intent-history).
-
-## `size_expr`
-
-`action_config.size_expr` is numeric. It should evaluate to the amount OMS should act on, in the underlying asset's base units.
-
-Rules for sizing:
-
-- It must be positive at runtime.
-- It should be bounded by available liquidity or allocation.
-- It should match the action direction. Deposit sizes should not exceed idle assets; withdrawal sizes should not exceed source allocation.
-- It should be easy to audit from dashboard numbers.
-
-Examples:
-
-```text
-vault_free_assets
+```json
+{
+  "type": "VOTE",
+  "threshold": 0.5,
+  "children": [
+    {"type": "EXPR", "expr": "true"},
+    {"type": "EXPR", "expr": "false"},
+    {"type": "EXPR", "expr": "true"}
+  ]
+}
 ```
 
-```text
-min(vault_free_assets, 0.05 * vault_tvl)
+`NOT` has no singular `child` field:
+
+```json
+{"type": "NOT", "children": [{"type": "EXPR", "expr": "false"}]}
 ```
 
+The JSON below describes saved engine rules, not an editor import format. In **Rule tree**, use **AND / OR / NOT** gates. The engine supports boolean operators inside an `EXPR`, but the editor paste path is different.
+
+## Expression grammar
+
+| Operation | Syntax |
+|---|---|
+| Arithmetic | `+`, `-`, `*`, `/`, parentheses, scientific notation such as `1e12` |
+| Comparison | `>`, `>=`, `<`, `<=`, `==`, `!=` |
+| Boolean | `&&`, `\|\|`, `!`, `true`, `false` |
+| Numeric functions | `min(a, b)`, `max(a, b)`, `abs(a)`, `clamp01(a)` |
+
+`min` and `max` take exactly two arguments. Nest them for additional caps. There is no `floor`, `pow`, ternary operator, assignment, or arbitrary JavaScript execution.
+
 ```text
-0.075 * vault_tvl - vault_free_assets
+min(3, max(1, 2))
 ```
 
-## Conviction Config
+The result is `2`. Numbers use the engine's high-precision expression VM. Positive action sizes are truncated toward zero when converted to integer intent amounts; a positive fraction below one raw unit does not create a usable amount. See [Sizing and execution plans](/operate/strategy/action-config).
 
-`conviction_config` controls how many passing ticks are required before a strategy publishes.
+## Guard runtime division
 
-| Mode | Meaning |
-|------|---------|
-| `BINARY` | One passing evaluation is enough. |
-| Scored/graded modes | Require stronger or repeated signal confidence when enabled by the engine configuration. |
+Prefer multiplication for ratio triggers:
 
-Use `BINARY` for simple operational gates. Add stronger conviction only when false positives are expensive and delayed action is acceptable.
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl"
+}
+```
 
-## Validation Timing
+If division is necessary, place its guard first:
 
-The Strategy Engine validates at create and update time:
+```json
+{
+  "type": "EXPR",
+  "expr": "vault_tvl > 0 && vault_free_assets / vault_tvl > 0.10"
+}
+```
 
-- JSON shape and required fields.
-- Known action names and lane compatibility.
-- Expression parseability.
-- Basic dry-run evaluation.
-- Address formatting.
-- Version conflicts on update.
+Both are false for an empty snapshot without dividing by zero. `AND`/`OR` tree order matters for the same reason. Do not rely on a guard in a different strategy. A `VOTE` tree is not a substitute for an outer safety guard.
 
-Runtime checks still apply after validation. A strategy can save successfully and later fail to publish if it lacks a session key, merkle proof, active yield source, or executable OMS route.
+## Validation stages
+
+1. **Editor:** quantity, token metadata, action parameters, and expression checks help construct a payload. Copy the normalized engine expression to inspect its actual units.
+2. **Save:** backend shape, identifier-policy, and static-type checks reject malformed trees, unknown aliases, and boolean/numeric type mismatches. This is not an empty-snapshot execution.
+3. **Evaluation:** the compiled expression reads a snapshot. Missing identifiers read as zero at this low-level stage; division can still fail at runtime.
+4. **Publication:** readiness, freshness, positive integer size, conviction, risk, cooldown, and occupied-slot checks can prevent an intent even when its boolean rule is true.
+5. **Execution:** authorization, available balances, venue constraints, slippage, and transaction success are separate checks.
+
+A syntactically valid dynamic identifier is not proof that a feed supplies it. Select actual fields from **Variables** and verify their units and freshness, as in [Write and update a strategy](/operate/strategy/quickstart#choose-the-variables). Do not invent aliases such as `vault_pps_stale` or `tick_age_seconds`.
+
+## Conviction
+
+```json
+{"mode": "BINARY"}
+```
+
+| Mode | Current-evaluation score |
+|---|---|
+| `BINARY` | One when the rule fires, zero otherwise |
+| `RULE_VOTE_RATIO` | Fraction of passing top-level children |
+| `INDICATOR_DISTANCE` | Absolute indicator distance divided by configured scale, clamped to the allowed range |
+| `EXPR` | Numeric expression clamped to `[0, 1]` |
+
+Minimum conviction can suppress publication. These modes do **not** count consecutive passing ticks. `RULE_VOTE_RATIO` evaluates top-level children independently, so a separate top-level guard does not protect another child's division while calculating that score. Make each child safe or use `BINARY` for a guarded trigger.
 
 ---
 
@@ -5029,74 +4867,112 @@ Runtime checks still apply after validation. A strategy can save successfully an
 
 Source: https://docs.superform.xyz/operate/strategy/action-config
 
-`action_config` tells the Strategy Engine what OMS intent to publish when a strategy's rules pass.
+`rules` decides whether to act. `action_config.size_expr` sizes the first input. `execution_params.plan.steps` specifies the ordered hooks and how amounts pass between them. Use the registry-backed editor to build the plan.
 
-## Fields
+## Action fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
-| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
-| `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `execution_name` | Yes | Hook identifier from the hook registry. |
-| `execution_address` | Yes | Hook contract address for the target chain. |
-| `target_address` | Yes | Yield source, route target, or protocol address being acted on. |
-| `from_address` | Yes | Account or executor address used for the intent. |
-| `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
-| `execution_params` | Optional | Hook-specific encoded parameters. |
-| `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
-| `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
+| Field | Meaning |
+|---|---|
+| `action` | Action enum, such as `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE` |
+| `size_expr` | Numeric expression converted to integer raw input units |
+| `objective` | `BALANCED`, `MIN_SLIPPAGE`, or `MIN_TIME` |
+| `from_address` | Vault/account context, not necessarily the token-holding strategy |
+| `target_address`, `target_type` | Target and canonical family, such as `ERC4626` or `VAULT` |
+| `execution_params.strategy_address` | Execution strategy contract |
+| `execution_params.plan.steps` | Ordered hook metadata and parameters |
+| `max_slippage_bps` | End-to-end slippage budget; positive when the plan consumes one |
+| `max_duration_seconds` | Execution deadline policy; deferred plans have additional requirements |
 
-## Target Requirements
+Legacy top-level `execution_name` and `execution_address` do not describe the current plan contract. Each step has its own hook name, address, effect metadata, arguments, and `use_prev_hook_amount` setting. Do not combine one source's encoded arguments with another source or oracle.
 
-Before an action can execute, the target must be operationally allowed:
+## Input units
 
-- The target yield source is whitelisted for the vault.
-- The source has a compatible oracle where pricing is required.
-- The hook exists in the active merkle config.
-- The active merkle tree has been generated, synced onchain when required, and published for proof consumers.
-- The vault has OMS/session-key readiness.
-- The vault is not paused, and the target is not locked by an active emergency exit.
+| First hook | Size unit |
+|---|---|
+| ERC-4626 deposit | Raw underlying assets |
+| ERC-4626 redeem | Raw source shares |
+| Aave V4 borrow or repay | Raw debt tokens |
+| Aave V4 collateral withdrawal | Raw collateral tokens |
 
-See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [OMS API](/operate/api/oms).
+The size is **not universally the SuperVault underlying**. In the [superNVDA example](/operate/strategy/quickstart), repayment consumes 6-decimal USDC; NVDAc has 8 decimals, while the Clearstar source shares have 18.
 
-## Action Notes
+The engine truncates positive sizes toward zero when constructing an integer intent amount. A positive fraction below one raw unit is not usable. Cap by the available input balance, debt or holdings as applicable, and observed exit liquidity. Test integer boundaries with the evaluated expression, not just a decimal calculator.
 
-| Action | Notes |
-|--------|-------|
-| `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
-| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
-| `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
-| `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
-| `SWAP` | Requires route/slippage constraints and target authorization. |
-| `BRIDGE` | Requires bridge route, destination-chain controls, and stricter incident monitoring. |
+## Idle-USDC repayment
 
-## Example
+The guide's AP0 example uses one `AaveV4RepayHookV2` step. Its first input is idle USDC, so `use_prev_hook_amount` is false. The captured binding is:
+
+| Parameter | Value in the 19 October 2026 example |
+|---|---|
+| Chain | Base, `8453` |
+| Supply / borrow reserves | `5` / `7` |
+| Collateral / debt asset | NVDAc / USDC |
+| Target type | `VAULT` |
+| Action | `REBALANCE` |
+| Effect | Consume debt token, decrease debt; output amount is spent amount |
+
+<Accordion title="Captured AP0 execution_params">
+
+This is a saved-plan reference, not JSON to paste into the editor. Inspect the resolved parameters and execution account when building or editing the matching position.
 
 ```json
 {
-  "action": "DEPOSIT",
-  "size_expr": "min(vault_free_assets, 0.05 * vault_tvl)",
-  "objective": "BALANCED",
-  "execution_name": "ApproveAndDeposit4626VaultHook",
-  "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-  "target_address": "0x0000000000000000000000000000000000000001",
-  "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-  "target_type": "erc4626",
-  "max_slippage_bps": 50,
-  "reason": "Deploy capped idle assets into the active ERC-4626 source"
+  "plan": {
+    "steps": [
+      {
+        "chain_id": 8453,
+        "effect_consumes": "TOKEN",
+        "effect_latency": "IMMEDIATE",
+        "effect_out_amount": "SPENT",
+        "effect_produces": "NONE",
+        "effect_reversible": "NONE",
+        "effect_schema_version": 2,
+        "encoded_args": "0x2992b81b367207a10b8afe97dace214b90892a0c17905db0e4a3514467539956c084180616ae7b8d833589fcd6edb6e08f4c7c32d4f71b54bda02913b20000000000000000000078ee7ce2fe4908108c00000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000007",
+        "family": "LOAN",
+        "hook_address": "0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF",
+        "hook_name": "AaveV4RepayHookV2",
+        "params": {
+          "borrowReserveId": "7",
+          "collateralToken": "0xb20000000000000000000078ee7ce2fe4908108c",
+          "loanToken": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "spoke": "0x17905db0e4a3514467539956c084180616ae7b8d",
+          "supplyReserveId": "5",
+          "yieldSource": "0x2992B81B367207A10b8afe97daCe214b90892a0C",
+          "yieldSourceOracleId": "0x5B79460f8e3587dF646AEc5B159EECEFA4A9d146"
+        },
+        "phase": "EXECUTE",
+        "position_effects": [
+          {
+            "change": "DECREASE",
+            "kind": "DEBT"
+          }
+        ],
+        "use_prev_hook_amount": false,
+        "vault_address": "0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc"
+      }
+    ]
+  },
+  "strategy_address": "0xef83abc641b98af01f0652e3af49a25d65c601a5"
 }
 ```
 
-## Operational Review
+</Accordion>
 
-Before switching a strategy to `RUNNING`, review:
+## Multiple execution steps
 
-- The `size_expr` cannot consume more than the vault/source can safely supply.
-- The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
-- The target has emergency exit coverage if it can hold material liquidity.
-- `max_slippage_bps` matches the liquidity profile of the action.
-- The reason is clear enough for Incident History and postmortems.
+For **borrow → deposit**, the first step sizes raw USDC to borrow. A following `ApproveAndDeposit4626VaultHook` with `use_prev_hook_amount: true` deposits the USDC actually received, not a separately assumed amount.
+
+For **redeem → repay**, `Redeem4626VaultHook` first consumes raw source shares. A following `AaveV4RepayHookV2` with `use_prev_hook_amount: true` consumes actual redeemed USDC. Do not send the share count to repayment. The size must convert the desired assets to shares through positive PPS and decimal scaling, then respect holdings and both asset/share exit liquidity.
+
+Same-chain immediate steps can execute as a bundled hook transaction. That does not make separate canvas cards a transaction sequence, or make deferred and cross-chain plans atomic. See the recorded [AP1 fill](/operate/ui/intent-history#a-recorded-superstocks-execution).
+
+## Before activation
+
+- Check the first input's token, denomination, account balance, and amount caps.
+- Verify the selected source, oracle, position binding, and active hook authorization.
+- Review slippage, deadline, session readiness, gas, and competing spenders.
+- Confirm each later step consumes the intended previous output.
+- After execution, reconcile token flows and position changes, not only the intent status.
 
 ---
 
@@ -5104,7 +4980,7 @@ Before switching a strategy to `RUNNING`, review:
 
 Source: https://docs.superform.xyz/operate/strategy/troubleshooting
 
-Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+Start at the stage that failed: save, evaluation, publication, or execution. A saved strategy is not necessarily running, and a true rule is not necessarily a published intent.
 
 ## First Checks
 
@@ -5121,11 +4997,11 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
-| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
+| `unknown identifier` | Identifier policy rejects the name. | Select actual fields from **Variables** or a configured indicator. A valid alias still needs a live feed. |
+| Rule or size type error | The rule must return boolean; size must return numeric. | Review [DSL types and grammar](/operate/strategy/dsl). Save validation is static, not an empty-snapshot run. |
 | `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
-| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+| `invalid address` | A configured address is malformed. | Re-select the registry-backed hook/source and verify its parameters. |
+| `409 Conflict` | Another edit or state transition changed the version. | Reload and compare before reapplying the intended change. Do not overwrite with a stale payload. |
 
 ## Strategy Saves but Does Not Tick
 
@@ -5141,12 +5017,14 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 
 | Cause | What to do |
 |-------|------------|
-| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
+| Rule evaluates false | Inspect current shard inputs and engine diagnostics. Intent History shows published signals, not every false tick. |
+| Runtime division by zero | Put positive-value guards before division, or compare by multiplication. |
+| Data missing or stale | Confirm the position/source feed and units. Do not delete the guard to force publication. |
 | `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
 | Missing session key | Grant or renew OMS session-key authorization. |
 | Missing merkle proof | Generate, sync, and publish the active merkle tree. |
 | Target not whitelisted | Add the yield source and oracle. |
-| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+| Cooldown or occupied slot | Check elapsed cooldown and outstanding intents. The editor fixes concurrency at one per strategy, not one per vault. |
 
 ## Intent Publishes but Does Not Fill
 
@@ -5156,7 +5034,7 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 | Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
 | Slippage too tight | Review `max_slippage_bps` against current liquidity. |
 | Gas or nonce issue | Check executor wallet state and OMS event details. |
-| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+| Source liquidity changed | Check current asset/share exit liquidity and holdings; source TVL is not withdrawal availability. |
 
 ## Useful Endpoints
 
@@ -5170,7 +5048,9 @@ GET /api/v1/intents/{intent_id}/fills
 GET /api/v1/fills?strategy_id={id}
 ```
 
-If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.
+Stop repeated failures, preserve the ID/version, error, and last intent, and reconcile outstanding execution before editing. Follow [safe updates](/operate/strategy/quickstart#update-an-existing-strategy-safely); do not automatically archive/recreate a strategy or weaken its guards.
+
+For simulation errors, see [Simulation](/operate/ui/simulation). AP1/AF2 liquidity inputs are unsupported by replay; removing those guards is not a fix.
 
 ---
 
@@ -5188,17 +5068,17 @@ Bad:
 vault_tvl
 ```
 
-For a deposit, this can exceed idle assets. For a withdrawal, it can exceed target allocation.
+For a deposit, this can exceed idle assets. For a redemption hook, it may also be in the wrong unit: the input can be source shares rather than assets.
 
 Better:
 
 ```text
-min(vault_free_assets, 0.05 * vault_tvl)
+min(vault_free_assets, 5 * vault_tvl / 100)
 ```
 
-Bound sizing to the assets actually available for the action.
+This deposit cap assumes the vault underlying matches the first hook's input asset. Bound repayment by available debt tokens and debt, and redemption by held shares and exit liquidity. See [Action Config](/operate/strategy/action-config#input-units).
 
-## Division in Triggers
+## Unguarded Division in Triggers
 
 Bad:
 
@@ -5206,13 +5086,15 @@ Bad:
 vault_free_assets / vault_tvl > 0.10
 ```
 
-This can fail validation on zero snapshots.
+Static validation can accept this expression, but evaluation fails when the denominator is zero.
 
 Better:
 
 ```text
-vault_free_assets > 0.10 * vault_tvl
+vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl
 ```
+
+This is an engine expression. In the UI, create an **AND** gate with the two comparisons instead of pasting `&&`.
 
 ## Overlapping Lane Strategies
 
@@ -5222,7 +5104,7 @@ Better:
 
 - Split targets by rule.
 - Use lane priority intentionally.
-- Add `max_concurrent: 1`.
+- Account for the editor's fixed `max_concurrent: 1` **per strategy**. It does not serialize separate cards.
 - Use mutually exclusive thresholds.
 
 ## No Cooldown on Noisy Signals
@@ -5232,8 +5114,14 @@ If a rule can oscillate around a boundary, it can create repeated small intents.
 Better:
 
 - Add a wider band between deposit and withdrawal thresholds.
-- Require repeated ticks with conviction settings where appropriate.
+- Do not use conviction as a consecutive-tick counter; it scores the current evaluation.
 - Set cooldowns for high-noise inputs.
+
+## Treating Stop or Save as Cancellation
+
+Stopping evaluation does not cancel submitted intents or unwind positions. Saving an edit does not retroactively change an intent's execution plan. Before a risk-changing edit, stop the affected strategy, reconcile outstanding work, save inactive, and read back the new version. On a conflict, compare rather than blindly retrying.
+
+See [safe updates](/operate/strategy/quickstart#update-an-existing-strategy-safely).
 
 ## Treating Emergency Exit as a Normal Strategy
 
@@ -5283,67 +5171,62 @@ Better:
 
 Source: https://docs.superform.xyz/operate/ui/simulation
 
-Simulation sits between the Strategy Canvas and Intent History. Use it after authoring or reordering strategies, but before treating the live automation loop as production-ready.
+Save the definition inactive before opening **Simulation** for the selected vault. A model run uses persisted strategies; it does not execute OMS intents or submit onchain transactions.
 
-The page is vault-scoped. Select the vault first, then choose whether to run a historical backtest or a forward-looking simulation against the current strategy set.
+## SuperStocks coverage
 
-## Simulation Modes
+| Definition | Supported check | Limit |
+|---|---|---|
+| AP0 / AF0 idle-USDC repayment | Admitted by simulation validation | No Aave repayment feedback proving debt reduction or post-action LTV |
+| AP1 / AF2 redeem-then-repay | Not admitted with their liquidity guards | Asset/share liquidity observations are unsupported by replay |
+| Source allocation deposit/withdrawal | Modeled allocation changes | Synthetic fills, not venue execution |
 
-| Mode | Endpoint | Use It For |
-|------|----------|------------|
-| Backtest | `POST /api/v1/simulations/backtest` | Replay strategy behavior over historical vault and yield-source state. |
-| Forward simulation | `POST /api/v1/simulations/ahead` | Project how the current strategy set behaves from a chosen starting state. |
+AP1/AF2 return `liquidity observations are not supported by simulation replay`. **Keep the liquidity guards.** Removing them changes the strategy, not the simulator's coverage.
 
-Backtests are best for validating trigger thresholds, action sizing, and lane ordering against known market history. Forward simulations are better for checking a proposed strategy set before the next keeper cycle.
+For the [AP0 writing example](/operate/strategy/quickstart), check the rule boundaries and raw size separately. A successful model run does not prove the position reached 50% LTV. Look Ahead seeds token balances/prices at initialization; it does not evolve a complete debt/collateral market.
 
-## Operator Flow
+## Run a supported simulation
 
-1. Open **Operate → Simulation** with the target vault selected.
-2. Choose backtest or forward simulation.
-3. Select the strategy set, time range, and run parameters.
-4. Run the simulation.
-5. Review the chart, metrics, generated command timeline, and per-strategy results.
-6. Save the run if it should become comparison evidence for future edits.
+1. Open **Simulation** with the intended vault selected.
+2. Choose **Backtest** with **From / To**, or **Look Ahead** with **Horizon (hours)** and **Seed Price (optional)**.
+3. Review the selected strategies. The UI initially selects loaded definitions; select only the saved IDs you intend to compare.
+4. Review **Execution Model**: **Fill Ratio**, **Slippage (bps)**, **Reject Prob**, **Fail Prob**, **Min Latency (ms)**, and **Max Latency (ms)**.
+5. Choose **Run Backtest** or **Run Forward Simulation** with manager authority.
+6. Inspect charts, **Simulation Outcomes**, per-strategy results, and **Commands**. Compare trigger timing and integer amounts, not just totals.
 
-Simulation does not execute OMS intents or submit onchain transactions. It is a decision-support surface for strategy changes.
+Selected `CREATED` and `IDLE` strategies are loaded as running **in the model**, without changing their production state. Do not activate a live strategy merely to make it selectable. Requests select persisted `strategy_ids`, not an arbitrary unsaved expression and snapshot.
 
-## Saved Simulations
+Backtests depend on available history and model seeding. Missing history can use PPS fallback seeding. Record the input window and assumptions; zero commands alone is not proof of correctness.
 
-Saved simulations let teams compare strategy edits over time without rerunning every scenario.
+## Save and compare results
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/saved` | GET | List saved simulations for the current vault/user scope. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Load one saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Check whether an equivalent simulation already exists. |
-| `/api/v1/simulations/saved` | POST | Save a completed simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+Choose **Save Simulation** to retain a named result or **Discard** to clear it. **Existing simulation found. Running will load cached results.** means **Load Existing Result** is loading a cache, not computing a fresh run.
 
-Use saved runs as review artifacts when changing thresholds, `size_expr` values, or lane order. They are especially useful when a strategy appears healthy in the canvas but produces too many small intents, creates oscillation, or misses a liquidity target.
+When comparing an update, retain the strategy ID/version, rule, size, selected scope, time range, model settings, and whether results were cached. A saved result describes that configuration, not the current live vault.
 
-## What to Inspect
+## What each check establishes
 
-| Surface | What to Check |
-|---------|---------------|
-| Trigger timing | Rules fire when the vault state actually crosses the intended threshold. |
-| Action size | `size_expr` produces positive, reasonable amounts and does not overshoot the intended reserve. |
-| Lane order | Higher-priority strategies win when multiple strategies are eligible. |
-| Command timeline | Generated actions match the expected deposit, withdrawal, claim, swap, bridge, or rebalance sequence. |
-| Error output | Validator, hook, merkle, or data gaps are visible before live execution. |
+| Check | Establishes |
+|---|---|
+| Editor and save validation | Expression structure, allowed identifiers, types, and plan schema |
+| Evaluator cases | Rule and size behavior on supplied snapshots, including boundaries and caps |
+| Backtest / Look Ahead | Commands and synthetic outcomes for supported inputs |
+| Transaction preflight | Feasibility under the chosen transaction state |
+| Receipt and position reconciliation | What a particular execution actually changed |
 
-After a simulation looks correct, move to [Intent History](/operate/ui/intent-history) to monitor real OMS execution.
+Before activation, test zero/missing debt and collateral, exact trigger edges, insufficient funds, and integer truncation. Check fresh data, authorization, and execution readiness separately. After deliberate activation, follow [Intent History](/operate/ui/intent-history).
 
-## API Reference
+## API reference
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation. |
-| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation. |
-| `/api/v1/simulations/saved` | GET | List saved simulations. |
-| `/api/v1/simulations/saved/{simulation_id}` | GET | Read a saved simulation. |
-| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs. |
-| `/api/v1/simulations/saved` | POST | Persist a simulation result. |
-| `/api/v1/simulations/saved/{simulation_id}` | DELETE | Delete a saved simulation. |
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/v1/simulations/backtest` | Historical simulation |
+| `POST /api/v1/simulations/ahead` | Forward simulation |
+| `GET /api/v1/simulations/saved` | List saved results |
+| `GET /api/v1/simulations/saved/{simulation_id}` | Read a saved result |
+| `POST /api/v1/simulations/saved/lookup` | Look for an equivalent result |
+| `POST /api/v1/simulations/saved` | Save a result |
+| `DELETE /api/v1/simulations/saved/{simulation_id}` | Delete a saved result |
 
 ---
 
@@ -5351,61 +5234,79 @@ After a simulation looks correct, move to [Intent History](/operate/ui/intent-hi
 
 Source: https://docs.superform.xyz/operate/ui/intent-history
 
-![SuperformOS Intent History - read-only strategy execution ledger](/operate/images/screenshots/history.jpg)
+![SuperformOS Intent History](/operate/images/screenshots/history.jpg)
 
-Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+Filter by vault and strategy, then open the intent created after your approved activation or update. Search by intent ID, execution ID, error message, or transaction hash. Expand the row to inspect lifecycle timestamps, signal context, and fills.
 
-## What it shows
+## Follow the execution
 
-| View | Use it for |
-|------|------------|
-| Intent list | Search and filter intents across vaults and strategies. |
-| Facets | Count by state, action, chain, vault, and strategy. |
-| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
-| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
-| OMS events | Audit message type, sequence, payload, and source. |
-| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+| Check | What to compare |
+|---|---|
+| Strategy | Match the ID and publication time to the definition you reviewed. The current version may differ from the historical one. |
+| Signal snapshot | Inspect the historical inputs and requested size. These are not current position values. |
+| Intent | Follow its lifecycle and error, if any. |
+| Execution and fills | Match execution ID, fill IDs, chain, amounts, gas, and transaction hash. An intent can have multiple fills. |
+| Transaction | Open the receipt and decoded logs on the fill's chain. |
+| Position | Refresh balances and risk values to check the intended outcome. |
 
-## Lifecycle states
+The lifecycle includes `RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for unnormalized rows. Intent History does not record every false rule evaluation. No new row is not, by itself, proof that the rule was false.
 
-The explorer uses the OMS lifecycle vocabulary:
+## Verify the repayment
 
-`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+For the [idle-USDC example](/operate/strategy/quickstart), confirm how much USDC the repayment spent, the actual debt reduction, remaining idle USDC, and post-action debt/collateral risk values. Recompute LTV using consistent observations. A cap can leave debt above the target; interest and price changes can move it further.
 
-## How it maps to OMS
+A `COMPLETED` row describes execution status, not a guaranteed target LTV. If the strategy was stopped or edited, earlier intents can still settle. Reconcile them before starting a replacement or retrying the same spend.
 
-The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+## A recorded SuperStocks execution
 
-- `intent_id`, `execution_id`, `correlation_id`
-- strategy and vault IDs
-- last event sequence and message type
-- ack/executing/completed/terminal timestamps
-- error code and message
-- total amount in/out
-- total gas used
-- fills count
-- signal snapshot and summary
-- source: `engine`, `nats`, or `backfill`
+The [public superNVDA AP1 history](https://os.superform.xyz/supervaults/base/0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc?istr=a8d25935-9f6d-4046-a87a-82048af0cc1c&tab=intent-history) provides a **redeem-then-repay** example from 19 October 2026. Search for intent `99a5081e-9975-4cc9-82ec-fac97f355bc5`.
+
+AP1 differs from AP0: its first hook redeems Clearstar shares, then the repayment hook consumes the USDC actually received. Its input amount is therefore raw source shares, not raw USDC.
+
+<Accordion title="Recorded intent, fill, and receipt">
+
+| Field | Recorded value |
+|---|---|
+| Strategy | `a8d25935-9f6d-4046-a87a-82048af0cc1c` |
+| Execution | `967eb2f7-f8f9-4eff-82cc-a933e9bb3f95` |
+| Action / state | `WITHDRAWAL` / `COMPLETED` |
+| Created | `2026-10-19T09:51:30.023762Z` |
+| Completed | `2026-10-19T09:51:35.164241Z` |
+| Fill | `ea9eb763-469d-5a10-a6d7-11f50e665079`, venue `hook_tx`, chain `8453` |
+| Transaction | [Base receipt](https://basescan.org/tx/0x100e0ae81927d2141d2a9d65b342c8e900fedd37e8c32eea195117e2681a8a2f) |
+| Receipt | Success, block `52807073`, gas used `844495` |
+
+The record returned one fill, matching `fills_count: 1`. Receipt logs show `10794509528234745284889` raw Clearstar shares burned, `11124399402` raw USDC received by the execution strategy, and that same USDC amount transferred into the lending repayment path.
+
+The share burn matches raw `amount_in`. The fill projection's zero-address token placeholders and `amount_out: "0"` do not mean zero economic output. Decode the receipt before labeling amounts.
+
+</Accordion>
+
+This record establishes redemption and token flow, **not** the resulting LTV or zero debt. Before/after loan balances, interest, collateral valuation, and residual balances were not fully reconciled. To finish that check, compare the same position immediately before and after execution and account for other transactions in the interval.
+
+## Diagnose by stage
+
+| Symptom | Check |
+|---|---|
+| No intent | State, rule inputs, integer size, freshness, conviction, cooldown, occupied slot, and locks |
+| Intent still executing | OMS status, error, gas, permissions, and submitted transaction before retrying |
+| Failed or rejected intent | Error and receipt, then current balances and configuration before a new attempt |
+| Completed but target unmet | Actual asset flows, loan balance, interest, price observations, and size caps |
+
+Use [Strategy Troubleshooting](/operate/strategy/troubleshooting) to isolate the failure. Public detail and fills can be available without a session; the full OMS event timeline requires authorized access.
 
 ## API mapping
 
 | Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/intents` | Global intent search. |
-| `GET /api/v1/intents/facets` | Facet counts for filters. |
-| `GET /api/v1/intents/{intent_id}` | Intent detail. |
-| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
-| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
-| `GET /api/v1/fills` | Global fill search. |
+|---|---|
+| `GET /api/v1/intents` | Search intents with vault and strategy filters |
+| `GET /api/v1/intents/facets` | Filter counts |
+| `GET /api/v1/intents/{intent_id}` | Intent detail |
+| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent |
+| `GET /api/v1/intents/{intent_id}/events` | Authorized OMS event timeline |
+| `GET /api/v1/fills` | Search fills |
 
-## Common reads
-
-| Symptom | Check |
-|---------|-------|
-| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
-| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
-| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
-| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |
+These are upstream engine routes. On the SuperformOS host, the browser-facing prefix is `/api/strategy/api/v1`. See [Strategy Engine API](/operate/api/strategy) for the API reference.
 
 ---
 

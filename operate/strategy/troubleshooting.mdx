@@ -3,7 +3,7 @@ title: "Strategy Troubleshooting"
 description: "Diagnose why a strategy is not saving, ticking, publishing, or filling."
 ---
 
-Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+Start at the stage that failed: save, evaluation, publication, or execution. A saved strategy is not necessarily running, and a true rule is not necessarily a published intent.
 
 ## First Checks
 
@@ -20,11 +20,11 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
-| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
+| `unknown identifier` | Identifier policy rejects the name. | Select actual fields from **Variables** or a configured indicator. A valid alias still needs a live feed. |
+| Rule or size type error | The rule must return boolean; size must return numeric. | Review [DSL types and grammar](/operate/strategy/dsl). Save validation is static, not an empty-snapshot run. |
 | `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
-| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+| `invalid address` | A configured address is malformed. | Re-select the registry-backed hook/source and verify its parameters. |
+| `409 Conflict` | Another edit or state transition changed the version. | Reload and compare before reapplying the intended change. Do not overwrite with a stale payload. |
 
 ## Strategy Saves but Does Not Tick
 
@@ -40,12 +40,14 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 
 | Cause | What to do |
 |-------|------------|
-| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
+| Rule evaluates false | Inspect current shard inputs and engine diagnostics. Intent History shows published signals, not every false tick. |
+| Runtime division by zero | Put positive-value guards before division, or compare by multiplication. |
+| Data missing or stale | Confirm the position/source feed and units. Do not delete the guard to force publication. |
 | `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
 | Missing session key | Grant or renew OMS session-key authorization. |
 | Missing merkle proof | Generate, sync, and publish the active merkle tree. |
 | Target not whitelisted | Add the yield source and oracle. |
-| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+| Cooldown or occupied slot | Check elapsed cooldown and outstanding intents. The editor fixes concurrency at one per strategy, not one per vault. |
 
 ## Intent Publishes but Does Not Fill
 
@@ -55,7 +57,7 @@ Use this page when the Strategy Canvas shows an error, a strategy stays idle une
 | Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
 | Slippage too tight | Review `max_slippage_bps` against current liquidity. |
 | Gas or nonce issue | Check executor wallet state and OMS event details. |
-| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+| Source liquidity changed | Check current asset/share exit liquidity and holdings; source TVL is not withdrawal availability. |
 
 ## Useful Endpoints
 
@@ -69,4 +71,6 @@ GET /api/v1/intents/{intent_id}/fills
 GET /api/v1/fills?strategy_id={id}
 ```
 
-If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.
+Stop repeated failures, preserve the ID/version, error, and last intent, and reconcile outstanding execution before editing. Follow [safe updates](/operate/strategy/quickstart#update-an-existing-strategy-safely); do not automatically archive/recreate a strategy or weaken its guards.
+
+For simulation errors, see [Simulation](/operate/ui/simulation). AP1/AF2 liquidity inputs are unsupported by replay; removing those guards is not a fix.

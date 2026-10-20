@@ -67,7 +67,14 @@
 - [Quickstart](https://docs.superform.xyz/operate/quickstart): End-to-end vault launch — create, upkeep, yield sources, hooks, strategy, distribute.
 - [Create Vault](https://docs.superform.xyz/operate/ui/create-vault): Vault wizard walkthrough.
 - [Setup Checklist](https://docs.superform.xyz/operate/ui/setup-checklist): Canonical go-live readiness checklist.
-- [Strategy DSL](https://docs.superform.xyz/operate/strategy/dsl): Strategy definition language — conditions, actions, ordering.
+- [Strategy Canvas](https://docs.superform.xyz/operate/ui/strategy): Inspect strategies and open the editor.
+- [Write and update a strategy](https://docs.superform.xyz/operate/strategy/quickstart): SuperStocks repayment example, inactive checks and safe changes.
+- [Intent History](https://docs.superform.xyz/operate/ui/intent-history): Follow an intent to its transaction and reconcile the result.
+- [Strategy DSL](https://docs.superform.xyz/operate/strategy/dsl): Conditions, sizing expressions and conviction reference.
+- [Action Configuration](https://docs.superform.xyz/operate/strategy/action-config): Execution steps, hook input units and repayment parameters.
+- [Troubleshooting](https://docs.superform.xyz/operate/strategy/troubleshooting): Save errors, version conflicts and execution gates.
+- [Anti-patterns](https://docs.superform.xyz/operate/strategy/anti-patterns): Unsafe sizing, unguarded division and lifecycle assumptions.
+- [Simulation](https://docs.superform.xyz/operate/ui/simulation): Replay controls and modeling limits. Numerical replay is not transaction preflight.
 - [Merkle Trees](https://docs.superform.xyz/operate/ui/merkle-trees): Hook authorization, root generation, proof publishing.
 - [Yield Sources](https://docs.superform.xyz/operate/ui/yield-sources): Whitelist management, oracle pairing, emergency exit.
 - [Pause Operations](https://docs.superform.xyz/operate/ui/pause): Vault pause, keeper pause, emergency exit.

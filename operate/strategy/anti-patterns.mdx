@@ -13,17 +13,17 @@ Bad:
 vault_tvl
 ```
 
-For a deposit, this can exceed idle assets. For a withdrawal, it can exceed target allocation.
+For a deposit, this can exceed idle assets. For a redemption hook, it may also be in the wrong unit: the input can be source shares rather than assets.
 
 Better:
 
 ```text
-min(vault_free_assets, 0.05 * vault_tvl)
+min(vault_free_assets, 5 * vault_tvl / 100)
 ```
 
-Bound sizing to the assets actually available for the action.
+This deposit cap assumes the vault underlying matches the first hook's input asset. Bound repayment by available debt tokens and debt, and redemption by held shares and exit liquidity. See [Action Config](/operate/strategy/action-config#input-units).
 
-## Division in Triggers
+## Unguarded Division in Triggers
 
 Bad:
 
@@ -31,13 +31,15 @@ Bad:
 vault_free_assets / vault_tvl > 0.10
 ```
 
-This can fail validation on zero snapshots.
+Static validation can accept this expression, but evaluation fails when the denominator is zero.
 
 Better:
 
 ```text
-vault_free_assets > 0.10 * vault_tvl
+vault_tvl > 0 && vault_free_assets > 0.10 * vault_tvl
 ```
+
+This is an engine expression. In the UI, create an **AND** gate with the two comparisons instead of pasting `&&`.
 
 ## Overlapping Lane Strategies
 
@@ -47,7 +49,7 @@ Better:
 
 - Split targets by rule.
 - Use lane priority intentionally.
-- Add `max_concurrent: 1`.
+- Account for the editor's fixed `max_concurrent: 1` **per strategy**. It does not serialize separate cards.
 - Use mutually exclusive thresholds.
 
 ## No Cooldown on Noisy Signals
@@ -57,8 +59,14 @@ If a rule can oscillate around a boundary, it can create repeated small intents.
 Better:
 
 - Add a wider band between deposit and withdrawal thresholds.
-- Require repeated ticks with conviction settings where appropriate.
+- Do not use conviction as a consecutive-tick counter; it scores the current evaluation.
 - Set cooldowns for high-noise inputs.
+
+## Treating Stop or Save as Cancellation
+
+Stopping evaluation does not cancel submitted intents or unwind positions. Saving an edit does not retroactively change an intent's execution plan. Before a risk-changing edit, stop the affected strategy, reconcile outstanding work, save inactive, and read back the new version. On a conflict, compare rather than blindly retrying.
+
+See [safe updates](/operate/strategy/quickstart#update-an-existing-strategy-safely).
 
 ## Treating Emergency Exit as a Normal Strategy
 

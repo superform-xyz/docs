@@ -1,179 +1,120 @@
 ---
-title: "Strategy Quickstart"
-description: "Author and POST your first SuperformOS strategy pair."
-agent_intent: "Use this page as the canonical first-pass template for a single-source reserve strategy. The examples are adapted from CI-validated drift-rebalance cookbook payloads and can be used with POST /api/v1/strategies after replacing vault, hook, target, and executor addresses."
-strategy_json:
-  - "superman-strategy/testdata/cookbook/drift_rebalance_deposit.json"
-  - "superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json"
-applicability: "Single yield source, no indicators, no advanced conviction tuning. Triggers on a vault-state ratio and is best used as a first deposit/withdrawal pair before adding more sophisticated strategies."
+title: "Write and update a strategy"
+description: "Build an idle-USDC repayment rule, review its size, and change a saved strategy safely."
 ---
 
-This is the shortest path from no strategy to a validated deposit/withdrawal pair. You will build a reserve manager for one yield source: when idle assets are too high, it deposits; when idle assets are too low, it withdraws.
+## Start from the position
 
-## What You Are Building
+In **Strategy**, select the chain and vault, then inspect the existing strategy before changing anything. Record its ID, version, state, rule, size, and execution steps. Use a prepared vault you are authorized to manage; [setup](/operate/ui/setup-checklist) is separate from writing the rule.
 
-A drift-trigger reserve pair:
+The worked example is **superNVDA AP0**, an idle-USDC partial repayment strategy captured on **19 October 2026**. It repays when LTV is at least 52% but below 55%, sizing toward 50% and capped by available USDC. These are dated example thresholds, not a universal SuperStocks policy. Other entry/deployment definitions in that capture retained 40% gates.
 
-- A `DEPOSIT` strategy fires when `vault_free_assets` is above 10% of vault TVL.
-- A `WITHDRAWAL` strategy fires when `vault_free_assets` is below 5% of vault TVL.
-- The withdrawal half refills the reserve toward a 7.5% target.
+The surrounding carry flow supplies NVDAc collateral, borrows USDC, and deposits USDC into a yield source. This rule only spends USDC already idle at the execution strategy. It does not redeem source shares or withdraw collateral.
 
-Two strategies, one yield source, one `EXPR` rule each, no indicators.
+## Choose the variables
 
-## 1. Choose the Lane
+Open **Variables** in the rule builder. Select the debt amount, debt risk value, and collateral risk value for the **same position**, plus the execution strategy's idle USDC balance. Check their units before writing comparisons:
 
-Strategy actions group into lanes. The lane determines where the strategy appears in the canvas and how ordering works.
+| Input | Unit | Use |
+|---|---|---|
+| USDC debt amount | Raw USDC, 6 decimals | Cap repayment by debt |
+| Debt risk value | Risk value scaled by `1e18` | LTV numerator |
+| Collateral risk value | Same risk-value scale | LTV denominator |
+| Idle USDC | Raw USDC, 6 decimals | Available repayment funds |
 
-| Lane | Actions | This guide |
-|------|---------|------------|
-| Inflow | `DEPOSIT` | Deposit half |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Withdrawal half |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Not used |
+The ratio of the two risk values gives LTV. They are not token amounts. `1` raw USDC is `0.000001` USDC. Do not use `vault_free_assets` for this repayment: superNVDA's underlying is NVDAc, not USDC.
 
-See [Strategy Canvas](/operate/ui/strategy) for the UI model.
+<Accordion title="Exact AP0 identity and variable names">
 
-## 2. Pick the Action
+- Vault: `8453_0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`.
+- AP0: `5db21999-c05c-4af3-8824-9f7ecc746576`, captured version `6`, state `RUNNING`.
+- Execution strategy: `0xef83abc641b98af01f0652e3af49a25d65c601a5`.
+- USDC debt amount: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`.
+- Debt risk value: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18`.
+- Collateral risk value: `position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18`.
+- Idle USDC: `token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount`.
 
-Each strategy has one `action_config.action`. Use `DEPOSIT` for the inflow strategy and `WITHDRAWAL` for the outflow strategy.
+These aliases identify this position and token, not arbitrary variables to rename. For another vault, select its actual position fields from **Variables** and retest the resulting expressions. Missing or stale position data is not a reason to substitute zero or remove a guard.
 
-The other `action_config` fields tell OMS how to execute:
+</Accordion>
 
-| Field | Meaning |
-|-------|---------|
-| `execution_name` | Hook identifier from the Erebor hook registry. |
-| `execution_address` | Deployed hook contract on the target chain. |
-| `target_address` | Yield source address. |
-| `from_address` | Account that executes the intent. |
-| `target_type` | Yield-source family, such as `erc4626` or `pendle_pt`. |
-| `objective` | Routing preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
+## Build the rule
 
-See [Action Config](/operate/strategy/action-config) for the full field reference.
+For a separate inactive exercise, choose **Add rebalance strategy** and name it `Partial USDC repay - inactive exercise`. Do not replace the running AP0 with this teaching definition.
 
-## 3. Write the Trigger
+In **Rule tree**, join these six conditions with an **AND** gate:
 
-The trigger is a `rules` tree. The simplest form is a single `EXPR` leaf that returns a boolean.
+1. Raw debt amount is positive.
+2. Debt risk value is positive.
+3. Collateral risk value is positive.
+4. Debt risk value is at least `0.52 × collateral risk value`.
+5. Debt risk value is below `0.55 × collateral risk value`.
+6. Idle USDC is at least one raw unit.
 
-```json
-{ "type": "EXPR", "expr": "vault_free_assets > 0.10 * vault_tvl" }
-```
+Use the editor's **AND / OR / NOT** gates, not pasted `&&`, `||`, or `!`. For this rule, **Copy** should preserve six expressions under one AND; the saved tree is an `AND` with six `EXPR` children.
 
-`vault_free_assets` is sourced live from chain as `IERC20(asset).balanceOf(strategy)` through the EVM RPC datafeed, so the trigger reflects the strategy contract's actual idle balance. `vault_tvl` is derived from yield-source allocations on the subgraph cadence. Both are in the underlying asset's base units.
+<Accordion title="Paste the complete Rule tree expression">
 
-<Warning>
-Avoid division in trigger expressions. The validator dry-runs expressions against an empty snapshot where values can be zero. `vault_free_assets / vault_tvl > 0.10` can fail with division by zero at create/update time. Use the multiplicative form: `vault_free_assets > 0.10 * vault_tvl`.
-</Warning>
-
-See [Strategy DSL](/operate/strategy/dsl) for rule-tree syntax and variable notes.
-
-## 4. Size the Action
-
-`action_config.size_expr` is evaluated when the rule fires. It must return a positive number at runtime.
-
-For the deposit half, deploy idle assets:
+Paste this expression into **Rule tree**, not a JSON payload:
 
 ```text
-vault_free_assets
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 > 0 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 >= 0.52 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 AND
+position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 < 0.55 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 AND
+token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount >= 1
 ```
 
-For the withdrawal half, pull back the shortfall to the 7.5% target:
+</Accordion>
+
+## Size and configure repayment
+
+The size is the fraction of raw debt above the 50% risk-value target, capped by both idle USDC and raw debt. The simplified formula below omits AP0's production interest/dust buffer so the target calculation is visible. It is an authoring example, not a replacement production policy.
+
+<Accordion title="Paste the raw Size expression">
 
 ```text
-0.075 * vault_tvl - vault_free_assets
+min ( token_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , min ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount , position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_debt_0x833589fcd6edb6e08f4c7c32d4f71b54bda02913_amount * max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 - 0.50 * position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_collateral_value_e18 , 0 ) / max ( position_0xacaa6ee9de7631b927242d42fb8c256860545fa457560f550b653a925bc6cb3b_risk_debt_value_e18 , 1 ) ) )
 ```
 
-Both expressions are positive when their corresponding trigger passes. A `size_expr` that evaluates to `0` or less is dropped before it reaches OMS.
+Paste the whole expression into **Size expression**, then use **Copy**. The block shows the expected normalized, space-separated engine expression. It is already in raw USDC: there must be no extra multiplication by `1e6`. **Literal / Formatted** changes the value display, not the units of an existing expression. If Copy changes more than spacing, test the copied result before saving.
 
-## 5. Deposit Strategy JSON
+</Accordion>
 
-These examples are adapted from `superman-strategy/testdata/cookbook/drift_rebalance_deposit.json` and `superman-strategy/testdata/cookbook/drift_rebalance_withdraw.json`, which are validated against `StrategyValidator` in the strategy test suite. Replace the vault ID, yield-source address, hook address, and executor address before sending.
+Select the registry-backed **AaveV4RepayHookV2** and confirm a single repayment step. The first input is raw USDC, not NVDAc or source shares. In this example the target type is `VAULT`, and the vault context differs from the token-holding execution strategy. Review the [captured repayment parameters](/operate/strategy/action-config#idle-usdc-repayment) against the selected position; let the editor resolve hook addresses and encoded arguments.
 
-```json
-{
-  "id": "deposit-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Deposit excess idle into Yield Source A",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets > 0.10 * vault_tvl"
-  },
-  "action_config": {
-    "action": "DEPOSIT",
-    "size_expr": "vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndDeposit4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve above 10% of TVL - deploy idle into Yield Source A"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+Under **Signal & risk**, choose **BINARY** in **Conviction** and enter **60** in **Cooldown (s)**. This saves `cooldown_ms: 60000`. The editor sets `max_concurrent: 1`; there is no editable concurrency control. The limit is per strategy, not a lock against other strategies spending the same USDC.
 
-## 6. Withdrawal Strategy JSON
+Review **Max slippage (bps)** and **Signal lifespan** for the plan. Captured AP0 used 2 bps and 60 seconds. Cooldown limits repeated publication; conviction does not count consecutive passing ticks.
 
-```json
-{
-  "id": "withdraw-8453-0xdef0000000000000000000000000000000000000-yield-source-a",
-  "vault_id": "8453:0xdef0000000000000000000000000000000000000",
-  "name": "Withdraw from Yield Source A to replenish reserve",
-  "indicators": [],
-  "rules": {
-    "type": "EXPR",
-    "expr": "vault_free_assets < 0.05 * vault_tvl"
-  },
-  "action_config": {
-    "action": "WITHDRAWAL",
-    "size_expr": "0.075 * vault_tvl - vault_free_assets",
-    "objective": "BALANCED",
-    "execution_name": "ApproveAndWithdraw4626VaultHook",
-    "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-    "target_address": "0x0000000000000000000000000000000000000001",
-    "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-    "target_type": "erc4626",
-    "reason": "Free reserve below 5% of TVL - pull liquidity back toward 7.5% target"
-  },
-  "conviction_config": { "mode": "BINARY" },
-  "risk_params": {},
-  "max_concurrent": 1
-}
-```
+## Check behavior before activation
 
-## 7. POST and Run
+With collateral risk value 100, USDC valued at 1, and unchanged collateral, the simplified expression gives:
 
-Each strategy is one create request:
+| Debt / LTV | Idle USDC | Rule | Repayment, raw USDC | Modeled result |
+|---|---:|---|---:|---|
+| 51 / 51% | 10 | false | No intent | Below trigger |
+| 52 / 52% | 10 | true | `2000000` | Debt 50, LTV 50% |
+| 54 / 54% | 10 | true | `4000000` | Debt 50, LTV 50% |
+| 54 / 54% | 1 | true | `1000000` | Debt 53, target not reached |
+| 55 / 55% | 10 | false | No intent | Outside partial branch |
+| Zero debt amount, debt value, or collateral value | 10 | false | No intent | Guard blocks |
 
-```bash
-curl -X POST https://strategy.superform.xyz/api/v1/strategies \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data @deposit.json
-```
+These are evaluator cases, not transaction outcomes. Captured AP0's buffered size requests `4004001` raw USDC in the 54% case, rather than this guide's `4000000`. Keep an existing strategy's approved buffers when updating it.
 
-Repeat with the withdrawal payload. A successful response returns the persisted strategy with `state: "CREATED"`.
+Choose **Create**, reopen the saved definition, and confirm its ID, version, `CREATED` or `IDLE` state, rule, copied size, plan, and controls. Do not toggle it on to test it. There is no arbitrary-snapshot **Test** button or JSON-import step in this editor.
 
-Move each strategy to `RUNNING` when the vault has upkeep, merkle proof coverage, whitelisted yield sources, and OMS session-key readiness:
+For [Simulation](/operate/ui/simulation), select the saved inactive strategy explicitly. AP0 can be admitted, but the model does not simulate its Aave debt reduction or prove post-action LTV. Test boundary and capped-size cases separately; do not treat a successful save or model run as transaction preflight.
 
-```bash
-curl -X PATCH https://strategy.superform.xyz/api/v1/strategies/{strategy_id}/state \
-  -H "Authorization: Bearer $SUPERFORM_JWT" \
-  -H "Content-Type: application/json" \
-  --data '{"target_state": "RUNNING", "version": 1}'
-```
+## Update an existing strategy safely
 
-See [Strategy Engine API](/operate/api/strategy) for endpoint details.
+1. **Read the current definition.** Reopen the intended card and record its current version and state. Compare its actual rule and size, not just its name, with the proposed change.
+2. **Control ongoing activity.** If the edit can change spending or risk, use the lifecycle toggle to stop it before editing, within the approved operating scope. Check [Intent History](/operate/ui/intent-history) for outstanding intents and competing spenders. Stopping evaluation does not cancel an intent or submitted transaction; reconcile those outcomes before introducing another spender. Reopen the definition after stopping to load its new state and version.
+3. **Make a bounded edit.** For a threshold change, review both edges of the trigger window and the separate sizing target. For a size change, preserve all three positive-value guards, the idle/debt caps, position binding, and approved interest/dust buffers. Lowering a trigger is not equivalent to changing the repayment target. Test the newly included boundary and a constrained-funds case.
+4. **Save while inactive.** Choose **Save**, then reopen and compare the new version, inactive state, rule, size, and execution steps. Verify that unrelated hook parameters, risk controls, cooldown, and slippage stayed unchanged.
+5. **Resolve conflicts without overwriting.** A `409 Conflict` means the version changed. Reload, compare the other edit or state transition, and reapply only the intended change after review. Do not just substitute a newer version and retry the old payload.
+6. **Review and deliberately activate.** Test the saved definition, check fresh position data, balances, hook authorization, session readiness, gas, and other eligible strategies. Start only the approved definition with its lifecycle toggle. One concurrent intent does not make it “run once.”
+7. **Trace the result.** In [Intent History](/operate/ui/intent-history), match the new intent to the strategy, inspect the fill and transaction, then refresh debt, collateral risk value, and idle USDC. Confirm actual repayment and residual debt before deciding whether further activity is appropriate.
 
-## What to Watch
-
-| Surface | Healthy sign |
-|---------|--------------|
-| Strategy Canvas | Both strategies appear in their lanes with server-assigned priority and `RUNNING` state. |
-| Dashboard | Idle reserve stays between the configured lower and upper bands over time. |
-| Intent History | `DEPOSIT` intents appear when reserve is high and `WITHDRAWAL` intents appear when reserve is low. |
-| Pause Operations | Emergency locks block only strategies that target the locked yield source. |
-
-If creation, ticking, or execution fails, use [Strategy Troubleshooting](/operate/strategy/troubleshooting).
+A partial repayment can stop firing while debt remains. At 51% LTV this example is false, even if an earlier action began above the trigger. An unchanged rule name or a `COMPLETED` intent is not evidence that the 50% target was reached.

@@ -1,60 +1,78 @@
 ---
 title: "Intent History"
-description: "Trace Strategy Engine intents through OMS events, fills, gas, and execution status."
+description: "Follow a strategy from publication to fill, then check what changed in the position."
 ---
 
-![SuperformOS Intent History - read-only strategy execution ledger](/operate/images/screenshots/history.jpg)
+![SuperformOS Intent History](/operate/images/screenshots/history.jpg)
 
-Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+Filter by vault and strategy, then open the intent created after your approved activation or update. Search by intent ID, execution ID, error message, or transaction hash. Expand the row to inspect lifecycle timestamps, signal context, and fills.
 
-## What it shows
+## Follow the execution
 
-| View | Use it for |
-|------|------------|
-| Intent list | Search and filter intents across vaults and strategies. |
-| Facets | Count by state, action, chain, vault, and strategy. |
-| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
-| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
-| OMS events | Audit message type, sequence, payload, and source. |
-| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+| Check | What to compare |
+|---|---|
+| Strategy | Match the ID and publication time to the definition you reviewed. The current version may differ from the historical one. |
+| Signal snapshot | Inspect the historical inputs and requested size. These are not current position values. |
+| Intent | Follow its lifecycle and error, if any. |
+| Execution and fills | Match execution ID, fill IDs, chain, amounts, gas, and transaction hash. An intent can have multiple fills. |
+| Transaction | Open the receipt and decoded logs on the fill's chain. |
+| Position | Refresh balances and risk values to check the intended outcome. |
 
-## Lifecycle states
+The lifecycle includes `RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for unnormalized rows. Intent History does not record every false rule evaluation. No new row is not, by itself, proof that the rule was false.
 
-The explorer uses the OMS lifecycle vocabulary:
+## Verify the repayment
 
-`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+For the [idle-USDC example](/operate/strategy/quickstart), confirm how much USDC the repayment spent, the actual debt reduction, remaining idle USDC, and post-action debt/collateral risk values. Recompute LTV using consistent observations. A cap can leave debt above the target; interest and price changes can move it further.
 
-## How it maps to OMS
+A `COMPLETED` row describes execution status, not a guaranteed target LTV. If the strategy was stopped or edited, earlier intents can still settle. Reconcile them before starting a replacement or retrying the same spend.
 
-The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+## A recorded SuperStocks execution
 
-- `intent_id`, `execution_id`, `correlation_id`
-- strategy and vault IDs
-- last event sequence and message type
-- ack/executing/completed/terminal timestamps
-- error code and message
-- total amount in/out
-- total gas used
-- fills count
-- signal snapshot and summary
-- source: `engine`, `nats`, or `backfill`
+The [public superNVDA AP1 history](https://os.superform.xyz/supervaults/base/0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc?istr=a8d25935-9f6d-4046-a87a-82048af0cc1c&tab=intent-history) provides a **redeem-then-repay** example from 19 October 2026. Search for intent `99a5081e-9975-4cc9-82ec-fac97f355bc5`.
+
+AP1 differs from AP0: its first hook redeems Clearstar shares, then the repayment hook consumes the USDC actually received. Its input amount is therefore raw source shares, not raw USDC.
+
+<Accordion title="Recorded intent, fill, and receipt">
+
+| Field | Recorded value |
+|---|---|
+| Strategy | `a8d25935-9f6d-4046-a87a-82048af0cc1c` |
+| Execution | `967eb2f7-f8f9-4eff-82cc-a933e9bb3f95` |
+| Action / state | `WITHDRAWAL` / `COMPLETED` |
+| Created | `2026-10-19T09:51:30.023762Z` |
+| Completed | `2026-10-19T09:51:35.164241Z` |
+| Fill | `ea9eb763-469d-5a10-a6d7-11f50e665079`, venue `hook_tx`, chain `8453` |
+| Transaction | [Base receipt](https://basescan.org/tx/0x100e0ae81927d2141d2a9d65b342c8e900fedd37e8c32eea195117e2681a8a2f) |
+| Receipt | Success, block `52807073`, gas used `844495` |
+
+The record returned one fill, matching `fills_count: 1`. Receipt logs show `10794509528234745284889` raw Clearstar shares burned, `11124399402` raw USDC received by the execution strategy, and that same USDC amount transferred into the lending repayment path.
+
+The share burn matches raw `amount_in`. The fill projection's zero-address token placeholders and `amount_out: "0"` do not mean zero economic output. Decode the receipt before labeling amounts.
+
+</Accordion>
+
+This record establishes redemption and token flow, **not** the resulting LTV or zero debt. Before/after loan balances, interest, collateral valuation, and residual balances were not fully reconciled. To finish that check, compare the same position immediately before and after execution and account for other transactions in the interval.
+
+## Diagnose by stage
+
+| Symptom | Check |
+|---|---|
+| No intent | State, rule inputs, integer size, freshness, conviction, cooldown, occupied slot, and locks |
+| Intent still executing | OMS status, error, gas, permissions, and submitted transaction before retrying |
+| Failed or rejected intent | Error and receipt, then current balances and configuration before a new attempt |
+| Completed but target unmet | Actual asset flows, loan balance, interest, price observations, and size caps |
+
+Use [Strategy Troubleshooting](/operate/strategy/troubleshooting) to isolate the failure. Public detail and fills can be available without a session; the full OMS event timeline requires authorized access.
 
 ## API mapping
 
 | Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/intents` | Global intent search. |
-| `GET /api/v1/intents/facets` | Facet counts for filters. |
-| `GET /api/v1/intents/{intent_id}` | Intent detail. |
-| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
-| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
-| `GET /api/v1/fills` | Global fill search. |
+|---|---|
+| `GET /api/v1/intents` | Search intents with vault and strategy filters |
+| `GET /api/v1/intents/facets` | Filter counts |
+| `GET /api/v1/intents/{intent_id}` | Intent detail |
+| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent |
+| `GET /api/v1/intents/{intent_id}/events` | Authorized OMS event timeline |
+| `GET /api/v1/fills` | Search fills |
 
-## Common reads
-
-| Symptom | Check |
-|---------|-------|
-| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
-| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
-| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
-| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |
+These are upstream engine routes. On the SuperformOS host, the browser-facing prefix is `/api/strategy/api/v1`. See [Strategy Engine API](/operate/api/strategy) for the API reference.

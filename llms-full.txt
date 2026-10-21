@@ -3528,7 +3528,7 @@ SuperformOS is the operating system for programmable vaults. It lets operators l
 
 Most vaults call themselves non-custodial, but their strategy logic still lives in private workflows: manual rebalances, internal scripts, multisig decisions, or trusted operator processes. SuperformOS moves that logic into a visible operating surface.
 
-Operators define what a vault is allowed to do. Users and partners can inspect the mandate, eligible actions, yield sources, pricing controls, and operating history. Execution stays inside the rules the vault has disclosed.
+Operators define strategy policy and authorized actions. Users and partners can inspect the mandate, eligible actions, yield sources, pricing controls, and operating history. Engine rules govern offchain intent publication; registered hooks, Merkle proofs, and contract checks constrain onchain execution.
 
 ## What SuperformOS Does
 
@@ -3598,7 +3598,7 @@ The goal is simple: a vault should not be a black box. Users and partners should
 
 SuperformOS is not an offchain vault wrapper. It is an operating system around onchain [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) SuperVaults.
 
-The vault contract holds depositor assets, issues shares, and enforces the core request and fulfillment flow. SuperformOS sits around that onchain vault: it helps operators define strategy rules, authorize executable actions, coordinate automation, maintain price attestations, and inspect operating history.
+The vault contract issues shares and enforces the core request and fulfillment flow. Assets can be idle in the vault or deployed into external positions. SuperformOS sits around that onchain vault: it helps operators define strategy rules, authorize executable actions, coordinate automation, maintain price attestations, and inspect operating history.
 
 SuperformOS is an operating layer around onchain vault contracts. It does not replace those contracts as the source of custody or protocol enforcement.
 
@@ -3626,7 +3626,7 @@ Operators use SuperformOS to turn a vault mandate into explicit operating rules:
 - when services should pause, resume, or drain risk
 - how the vault appears in Superform distribution surfaces
 
-Those choices are not just UI settings. The parts that change protocol behavior are prepared as calldata, signed by the authorized wallet, and enforced by the relevant onchain contracts.
+Strategy-rule edits and service controls are offchain configuration. Engine rules govern intent publication; registered hooks, Merkle proofs, and contract checks constrain execution. Changes to onchain authorization require signed transactions.
 
 <Note>
 SuperformOS never takes custody of vault assets or private keys. It prepares transactions, displays operational state, and coordinates automation. Onchain state changes still require authorized signatures.
@@ -3638,9 +3638,9 @@ SuperformOS is useful because the operating layer maps to protocol-enforced cons
 
 | Constraint | Enforcement model |
 |------------|-------------------|
-| Custody | Depositor funds stay in the SuperVault contract. |
+| Custody | Assets can be idle in the vault or deployed into external positions; managers do not take personal custody. |
 | Execution permissions | Hooks must match authorized merkle leaves before execution. |
-| Strategy changes | Hook-root updates follow proposal and timelock flows. |
+| Hook authorization changes | Hook-root updates follow proposal, configured timelock, and onchain execution flows; strategy-rule edits are offchain. |
 | Pricing | PPS updates require validator-signed attestations and staleness checks. |
 | Fees | Fee bounds and fee accrual are enforced by SuperVault contracts and SuperGovernor constraints. |
 | Emergency response | Operators can pause services, pause vault operations, or arm target-specific emergency exits. |
@@ -3654,7 +3654,7 @@ This is the difference between a private operating process and a verifiable stra
     The operator creates or imports a SuperVault, assigns operators, configures fees, funds upkeep, and prepares the vault for listing.
   </Step>
   <Step title="Authorize actions">
-    The operator configures allowed hooks and parameters. SuperformOS generates merkle roots and proof artifacts, then the authorized wallet proposes and publishes them onchain.
+    The operator configures allowed hooks and parameters and generates a Merkle tree. The Primary Manager proposes its root onchain; after the configured timelock, the proposal is executed. Proof-artifact publication is a separate offchain step.
   </Step>
   <Step title="Create strategies">
     The operator defines rule-based strategies for deposits, withdrawals, claims, swaps, bridges, or rebalances.
@@ -3712,14 +3712,14 @@ Source: https://docs.superform.xyz/operate/prerequisites
 
 ## Wallet Requirements
 
-SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+SuperformOS uses [Dynamic.xyz](https://dynamic.xyz) for wallet/account sign-in. Follow [Authentication](/operate/authentication) to establish your browser session.
 
 - **EVM-compatible wallet** (MetaMask, Rabby, Frame, or any WalletConnect-compatible wallet)
 - **Native gas token** for each chain where you operate vaults
 - **Operator access** assigned on at least one vault before SuperformOS features are accessible
 
 <Note>
-View-only users are added offchain and do not require a wallet connection. All write operations require at minimum a secondary manager role.
+View-only access is assigned offchain; private vault and rule inspection still requires an authenticated account with access to that vault. Writes require the role authorized for that operation.
 </Note>
 
 ## Supported Chains
@@ -3741,7 +3741,7 @@ The SuperVault contract architecture supports additional chains. Contact the Sup
 
 ## API Base URLs
 
-Each backend service exposes its own base URL. Use these when building automation:
+These are upstream service base URLs. Browser operations use the session-mediated BFF; headless integrations require an approved endpoint, identity, and scope. See [Authentication](/operate/authentication).
 
 | Service | Base URL | OpenAPI Spec |
 |---------|----------|-------------|
@@ -3751,27 +3751,27 @@ Each backend service exposes its own base URL. Use these when building automatio
 
 ## Role Requirements by Page
 
-| Page | Minimum Role |
+| Page | Access |
 |------|-------------|
 | Home | Public (no auth) |
 | Dashboard | Operator |
 | Strategy | Operator |
 | Yield Sources | Operator |
 | Merkle Trees | Operator |
-| User Management | Primary Manager |
-| Vault Settings | Primary Manager |
+| User Management | Either manager for view-only users and their names; Primary Manager for Secondary Manager assignment and manager names |
+| Vault Settings | Role depends on the setting; see [Permissions](/operate/permissions) |
 | Pause | Operator |
 | Create Vault | Operator (you become primary manager of the new vault) |
 | Alerts | Operator |
 
 ## Getting Access
 
-**Joining an existing vault:** The primary manager adds you via [User Management](/operate/ui/user-management) as a secondary manager (onchain transaction) or view-only user (offchain).
+**Joining an existing vault:** The Primary Manager assigns Secondary Managers through an onchain transaction. Either manager can add or remove view-only collaborators and update their display names offchain through [User Management](/operate/ui/user-management).
 
 **Creating a new vault:** Any wallet with operator access can create a vault and automatically becomes its primary manager.
 
 <Card title="Authentication" icon="key" href="/operate/authentication">
-  JWT auth flow, token storage, and programmatic access.
+  Browser sign-in, public reads, and approved automation access.
 </Card>
 
 ---
@@ -3837,7 +3837,9 @@ The SuperVaults system separates protocol governance, vault accounting, and day-
 
 ## Primary Manager
 
-The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets remain in vault contracts and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
+The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets can be idle in the vault or deployed into external positions, and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
+
+Primary Manager replacement uses `SUPER_GOVERNOR` or a Secondary-initiated timelocked recovery proposal, not an ordinary user-management edit.
 
 Primary manager responsibilities:
 
@@ -3846,7 +3848,7 @@ Primary manager responsibilities:
 - Session-key grant and revoke flows.
 - Upkeep funding and withdrawal control.
 - Pause, unpause, and emergency operations.
-- Merkle root proposal / publish workflows.
+- Merkle root proposals, onchain synchronization, and separate proof-artifact publication.
 
 <Warning>
 Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker may be able to exercise the role's authorized operating powers, subject to protocol checks, timelocks, Merkle allowlists, and accounting constraints.
@@ -3862,7 +3864,7 @@ They can typically:
 - Configure yield sources.
 - Work with merkle tree configuration.
 - Pause/unpause operational services.
-- Add view-only collaborators.
+- Add/remove view-only collaborators and update display names.
 
 They cannot unilaterally bypass primary-only settings, timelocks, Merkle validation, PPS checks, fee limits, or vault accounting.
 
@@ -3873,7 +3875,7 @@ Manager roles are operational roles, not custody of depositor wallets or unrestr
 - Withdraw depositor assets to arbitrary wallets outside vault redemption, strategy, or emergency flows enforced by the contracts.
 - Execute arbitrary calldata against yield sources; hook execution must match pre-authorized Merkle leaves and protocol validation.
 - Bypass ERC-7540 redemption accounting, PPS-based calculations, slippage expectations, or share/accounting updates when fulfilling redemptions.
-- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, primary-manager changes, and hook-root updates.
+- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, Secondary-initiated Primary Manager recovery, and hook-root updates.
 - Override global protocol constraints such as banned leaves, pause state, validator-secured PPS requirements, or governance-maintained limits.
 
 ## View-Only Users
@@ -3904,7 +3906,7 @@ Session keys are delegated execution keys used by automation. A session key does
 
 Keepers and OMS execution still depend on:
 
-- Active upkeep funding.
+- Effective activation through upkeep funding or an applicable exemption.
 - Valid session key readiness.
 - Active merkle root and proofs.
 - Non-paused vault / services.
@@ -3924,14 +3926,18 @@ If any of those gates fail, automation should stop even when a session key exist
 | Reorder strategies | ✅ | ✅ | ❌ | — | — |
 | Manage yield sources | ✅ | ✅ | ❌ | — | — |
 | Configure hooks / merkle roots | ✅ | ✅ | ❌ | — | — |
-| Propose or publish merkle root | ✅ | Permissioned | ❌ | — | — |
+| Propose strategy hook root | ✅ | ❌ | ❌ | — | — |
 | Grant / revoke session key | ✅ | Usually ❌ | ❌ | — | — |
 | Pause vault | ✅ | ✅ | ❌ | — | — |
 | Arm emergency exit | ✅ | ✅ | ❌ | — | — |
 | Add/remove secondary managers | ✅ | ❌ | ❌ | — | — |
-| Add/remove view-only users | ✅ | ✅ | ❌ | — | — |
+| Add/remove view-only users or update display names | ✅ | ✅ | ❌ | — | — |
 | Registry CRUD | — | — | — | ✅ | — |
 | Execute authorized hooks | — | — | — | — | ✅ |
+
+Matured hook-root proposals can be executed onchain by anyone after the configured timelock; publishing the downloadable proof artifact is a separate operation.
+
+Erebor permits either manager to update display names; the UI restricts Primary and Secondary Manager name edits to the Primary Manager.
 
 ## API Patterns
 
@@ -3980,13 +3986,13 @@ After review, the modal moves through transaction signing, indexing, optional yi
 <Step title="Work through the setup checklist">
 Open **Setup**. Treat it as the canonical go-live checklist. It coordinates the required rows for creation, upkeep, hook authorization, yield sources, strategy coverage, and Superform availability.
 
-Do not maintain a second checklist from this page. If the Setup page disagrees with another surface, Setup wins. See [Setup Checklist](/operate/ui/setup-checklist).
+Use [Setup Checklist](/operate/ui/setup-checklist) for configuration progress and its separate execution-readiness checks; green rows alone do not establish readiness.
 </Step>
 
 <Step title="Fund upkeep and activate automation">
-Open **Vault Settings → Upkeep**. Fund the required upkeep balance. Erebor marks the vault active and discoverable once the funding gate is satisfied.
+Open **Vault Settings → Upkeep**. Read the required balance, shortfall, and activation status. Erebor marks the vault active and discoverable when the funding threshold is satisfied or an exemption applies.
 
-Without upkeep, operator pages can still show the vault by direct link, but keeper automation and public discoverability remain gated. Ethereum L1 vaults currently require at least `100,000 $UP`; non-L1 vaults require at least `1,000 $UP`.
+For a non-exempt vault, fund the returned shortfall and read back activation. Direct-link visibility alone does not establish activation.
 </Step>
 
 <Step title="Whitelist yield sources">
@@ -4001,7 +4007,9 @@ Open **Merkle Trees** and follow the manager-root flow:
 1. Draft a root config.
 2. Activate the config.
 3. Generate the merkle tree.
-4. Have the primary manager propose and publish the root onchain.
+4. Have the Primary Manager propose the root onchain.
+5. After the configured timelock, execute the root update onchain.
+6. Publish the proof artifact and verify its root against the onchain root.
 
 Keepers and OMS intents need active merkle proofs for each hook/parameter combination they execute.
 </Step>
@@ -4305,7 +4313,7 @@ The Setup page turns a newly-created SuperVault into an operational and discover
 
 ![SuperformOS Setup Checklist - post-create readiness rows](/operate/images/screenshots/setup-checklist.jpg)
 
-Use this page to move from created to available: fund upkeep, configure hooks, add yield sources, create strategies, and confirm Superform availability.
+Use this page to move from created to available: fund upkeep, add yield sources, configure hooks, create strategies, and confirm Superform availability.
 
 If no vault is selected, the page asks the operator to select one from the Operate sidebar. The checklist is vault-scoped: every row is calculated from the selected chain and vault address.
 
@@ -4314,7 +4322,7 @@ If no vault is selected, the page asks the operator to select one from the Opera
 | Row | Complete when | Primary action |
 |-----|---------------|----------------|
 | **Vault is created** | Vault exists onchain and is readable in dashboard data. | Create Vault |
-| **Upkeep is staked** | Vault is active and can run operational automation. | Fund Upkeep |
+| **Upkeep is staked** | Vault meets the activation policy through funding or an exemption. | Fund Upkeep |
 | **Hooks are set up** | At least one hook is configured in the active root config. | Configure Hooks |
 | **Yield sources are set up** | At least one yield source is whitelisted for this vault. | Configure Yield Sources |
 | **Strategy is set up** | At least one strategy exists for this vault. | Open Strategy |
@@ -4324,7 +4332,7 @@ Statuses are `complete`, `in_progress`, `needs_setup`, or `blocked`.
 
 ## Activation gate
 
-Upkeep is the activation gate. Fund upkeep from **Vault Settings → Upkeep** to enable automation and discovery. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
+Upkeep funding or an applicable exemption satisfies the activation gate. Fund upkeep from **Vault Settings → Upkeep** and read back activation. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
 
 Current Erebor-facing activation fields used by the UI include:
 
@@ -4338,18 +4346,20 @@ Current Erebor-facing activation fields used by the UI include:
 | `upkeep_info.threshold.required_balance` | Required balance for activation, in raw token units. |
 | `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. `0` means the threshold is satisfied. |
 
-Current minimum upkeep thresholds:
-
-| Vault Chain | Minimum Upkeep for Activation |
-|-------------|-------------------------------|
-| Ethereum L1 | `100,000 $UP` |
-| Non-L1 chains | `1,000 $UP` |
+Use the returned `required_balance`, `shortfall`, and effective `activation` for the selected vault rather than a fixed chain-wide funding assumption.
 
 ## Distribution Evidence
 
 The live-on-Superform row compares the managed vault against distribution data. Evidence includes `visibility` and `availability`, for example `listed` and `available`. If no matching distribution entry exists, the vault is onchain and manager-visible but not available in Superform allocator-facing surfaces.
 
 ## Troubleshooting
+
+Green setup rows summarize configuration, not executable readiness. Before starting, check separately:
+
+- **Funding:** UP upkeep pays for automation; native tokens pay execution gas; strategy assets fund the action. One balance does not fund the others.
+- **Authority:** Browser login is not an execution-session grant. Verify the manager role and [session-key readiness](/operate/ui/vault-settings#session-keys).
+- **Authorization:** Every plan step needs an authorized hook and matching proofs against the active onchain root.
+- **Data and controls:** Required inputs must be present and fresh, with sufficient action liquidity and no blocking pause, lock, cooldown, or concurrency gate.
 
 | Symptom | Likely cause | Next step |
 |---------|--------------|-----------|
@@ -4361,7 +4371,7 @@ The live-on-Superform row compares the managed vault against distribution data. 
 
 ## Operator rule
 
-Route deposits only after the checklist shows that upkeep, hooks, yield sources, strategies, and distribution availability are all complete.
+Route deposits only after the checklist is complete and the separate execution-readiness checks pass.
 
 ---
 
@@ -4519,6 +4529,8 @@ For an existing strategy, record its ID, version, target, and state before editi
 
 Drag within a lane to change order. Priority is server-managed, not a create/update field. Ordering and per-strategy concurrency do not reserve a shared token balance across strategies.
 
+Card order does not sequence transactions or create execution dependencies between strategies.
+
 A session-key gate, vault kill switch, or target emergency lock can block execution. Resolve the cause; do not bypass it by creating another strategy. Emergency exits are managed in [Pause Operations](/operate/ui/pause), not the normal editor.
 
 After an approved start, open [Intent History](/operate/ui/intent-history) to follow a real intent through its fill and transaction. For the expression and generated plan, use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config).
@@ -4561,6 +4573,8 @@ max(vault_free_assets - 75 * vault_tvl / 1000, 0)
 This deposits only the excess above the reserve. Use **Copy** to check the normalized expression: `max ( vault_free_assets - 75 * vault_tvl / 1000 , 0 )`. Whitespace may change; an extra decimals multiplier must not appear. Human-amount chips and full-expression paste are different input paths.
 
 Under **Signal & risk**, choose **BINARY** conviction and enter **60** in **Cooldown (s)**. Set **Max slippage (bps)** and **Signal lifespan** to the approved values for your source. The editor sets per-strategy concurrency to one; there is no editable concurrency control.
+
+Cooldown starts after successful intent publication, not after the fill.
 
 ## Review before creating
 
@@ -5052,8 +5066,9 @@ The operational flow is:
 1. Draft a root configuration.
 2. Activate the configuration version.
 3. Generate a merkle tree from the active config.
-4. Primary manager proposes / publishes the root onchain.
-5. Publish the proof artifact for consumers.
+4. The Primary Manager proposes the root onchain.
+5. After the configured timelock, execute the proposal to update the onchain root.
+6. Publish the proof artifact for consumers and verify that its root matches the onchain root.
 
 ## Hook Configs
 
@@ -5181,7 +5196,7 @@ Prepare endpoints return transaction data. They do not mutate protocol state by 
 
 ## Access Model
 
-Primary managers own sensitive vault settings. Secondary managers can operate the vault but do not control primary-only settings such as manager assignment and some security parameters.
+Primary Managers control sensitive vault settings and Secondary Manager assignment. Minimum PPS update interval proposals and cancellations are Primary-only; either manager can prepare execution through Erebor, and anyone can execute the matured proposal onchain.
 
 See [Permissions Model](/operate/permissions) for the full matrix.
 
@@ -5205,7 +5220,7 @@ These settings are read from vault detail data and changed through signed transa
 
 ## Redeem Timelock
 
-Redeem timelock adds a delay between redemption request and fulfillment eligibility.
+Redeem timelock is an offchain keeper timing setting, not an onchain transaction. The keeper applies the current vault delay to pending requests when checking fulfillment eligibility.
 
 Use it for:
 
@@ -5218,12 +5233,12 @@ Relevant APIs:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/redeem-timelocks` | GET | List configured timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Set or update multiple vault delays |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's timelock |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare timelock update transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain delay |
 
 <Warning>
-Changing a redeem timelock affects future redemption requests. Existing requests are not retroactively changed.
+Changing the delay also changes eligibility for already-pending requests. Review pending requests before updating it, then read back the saved setting.
 </Warning>
 
 ## Banned Hook Leaves
@@ -5245,7 +5260,7 @@ The Upkeep panel shows:
 - Whether the vault is active for keeper operations and discoverable in public listing surfaces.
 - Pending upkeep withdrawal proposal, if any.
 
-A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable. Erebor returns this as `upkeep_info` plus `activation`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
+Erebor marks a vault active and discoverable when its upkeep threshold is satisfied or an exemption applies. Read the returned threshold, shortfall, and `activation` rather than inferring activation from balance alone. Upkeep data is returned as `upkeep_info`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
 
 ### Deposit Upkeep
 
@@ -5344,14 +5359,14 @@ Troubleshooting:
 | `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
 | `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
 | `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
-| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain keeper delay |
 | `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
 | `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
 | `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep balance and pending withdrawal state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
@@ -5364,7 +5379,7 @@ Source: https://docs.superform.xyz/operate/ui/user-management
 
 ![SuperformOS User Management — primary, secondary, and view-only access controls](/operate/images/screenshots/user-management.jpg)
 
-This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (onchain delegates), and view-only users (offchain read access). Primary manager access required.
+This page controls vault access. Three tiers are managed here: Primary Manager (display only), Secondary Managers (onchain delegates), and view-only users (offchain read access). Secondary Manager assignment requires the Primary Manager; either manager can manage view-only access.
 
 The public SuperVault detail page exposes roles as read-only context. Adding or removing users requires the authenticated Operate surface and the appropriate manager role.
 
@@ -5372,11 +5387,11 @@ The full manager list is fetched from `GET /api/v1/users?vault_address={}&chain_
 
 ## Tab 1: Primary Manager
 
-Displays the primary manager's wallet address and display name. Set at vault creation, immutable without governance-level contract interaction. This key is the root of trust for the vault.
+Displays the Primary Manager's wallet address and display name. Set at vault creation, the Primary Manager can be replaced through `SUPER_GOVERNOR` or a Secondary Manager's timelocked recovery proposal, not through this tab.
 
 ## Tab 2: Secondary Managers
 
-On-chain delegates with full operational access (except vault settings and user management).
+Onchain delegates with role-limited operational access, including view-only user management and display-name updates. Only the Primary Manager can add or remove Secondary Managers.
 
 ### Adding
 
@@ -5392,7 +5407,7 @@ On-chain delegates with full operational access (except vault settings and user 
 
 ### Updating Display Names
 
-Click the pencil icon to update any user's display name (offchain, no gas):
+Either manager can update display names through Erebor (offchain, no gas). In the UI, either manager can edit view-only names; editing Primary or Secondary Manager names requires the Primary Manager. Use the pencil icon where available:
 
 ```bash
 PATCH /api/v1/users/{wallet_address}/display-name
@@ -5528,7 +5543,7 @@ Use the narrowest control that solves the problem. A vault pause, keeper pause, 
 
 ## Pause Vault
 
-Vault pause is an onchain control. It halts protocol-level vault operations until a manager signs an unpause transaction.
+Vault pause blocks pause-gated operations, including redemption fulfillment, until unpaused. It does not unwind debt or reverse settled transactions; an exit requiring a paused operation remains blocked.
 
 ```bash
 GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr}
@@ -5561,11 +5576,11 @@ When armed for a source:
 - The Strategy Engine records an emergency lock keyed by that source's `target_address`.
 - User-defined strategies targeting the same address are blocked from publishing intents.
 - Strategies targeting other yield sources continue normally unless they have their own lock.
-- The emergency strategy emits withdrawal intents on every tick until stopped.
+- The emergency strategy attempts withdrawal publication on eligible ticks, subject to nonzero size, fresh required data, cooldown, concurrency, and risk gates.
 - In-flight OMS transactions continue to settle even after the operator stops the drain.
 
 <Warning>
-Emergency Exit is not a replacement for vault pause. If the entire vault is unsafe, pause the vault. If one source is unsafe and the vault can keep operating elsewhere, arm an exit for that source.
+Emergency Exit does not bypass contract pause, authorization, or execution constraints. Check those controls before relying on an armed exit to withdraw liquidity.
 </Warning>
 
 ### Prerequisites
@@ -5596,7 +5611,7 @@ If manager permission is revoked while arming, the in-flight request is not auto
 
 ### Stop an Emergency Exit
 
-Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source are eligible again on the next tick.
+Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source must still pass their state, rule, freshness, cooldown, and concurrency gates before publishing.
 
 ```bash
 PATCH /api/v1/strategies/{strategy_id}/state
@@ -5668,185 +5683,47 @@ Emergency Exit is tied to yield-source whitelist state.
 
 Source: https://docs.superform.xyz/operate/automation/overview
 
-Automated operators monitor vault state 24/7, define rule-based strategies via the Strategy Canvas, pause services on anomaly detection, and execute operations without human latency. SuperVaults supports full programmatic control via the Erebor management API and the Strategy Engine.
+Use the Strategy Canvas to configure rule-based operations and approved read integrations to monitor their outcomes.
 
 ## Authentication for Automation
 
-Generate a JWT without the browser:
-
-1. Sign an EIP-712 auth message with your wallet's private key
-2. Submit the signature to Dynamic.xyz to receive a JWT
-3. Pass the JWT as `Authorization: Bearer <jwt>` on all requests
-
-Verify against Erebor:
-
-<CodeGroup>
-
-```python Python
-import requests
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-
-headers = {"Authorization": f"Bearer {JWT}"}
-
-resp = requests.get(f"{EREBOR_URL}/api/v1/auth/me", headers=headers)
-resp.raise_for_status()
-user = resp.json()
-
-print(f"Authenticated as: {user['wallet_address']}")
-print(f"Vaults: {[v['vault_address'] for v in user['vaults']]}")
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-
-const headers = { Authorization: `Bearer ${JWT}` };
-
-const resp = await fetch(`${EREBOR_URL}/api/v1/auth/me`, { headers });
-if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
-
-const user = await resp.json();
-console.log(`Authenticated as: ${user.wallet_address}`);
-console.log(`Vaults: ${user.vaults.map((v: any) => v.vault_address)}`);
-```
-
-</CodeGroup>
+SuperformOS uses a browser session through its backend-for-frontend (BFF). Headless access requires an approved endpoint, identity, vault scope, credential lifecycle, and rate policy from the Superform team. Upstream service credentials are not self-service curator keys. See [Authentication](/operate/authentication).
 
 ## Safety Principles
 
-<Warning>
-Automated scripts have full manager-level access. A bug can modify live vault configuration. Apply these safeguards before deploying.
-</Warning>
+Automation can change live vault configuration within its granted permissions. Keep monitoring separate from remediation and authorize each write workflow explicitly.
 
-### Test on Base First
+### Test in an Isolated Environment
 
-Base (chain ID: 8453) has lower gas costs and faster confirmation times. Validate all automation against Base vaults before Ethereum mainnet.
+Use a separately authorized test environment. Base is mainnet, not a sandbox.
 
 ### Rate Limit Polling
 
-| Data | Recommended Interval |
-|------|---------------------|
-| Vault state | 15s |
-| Analytics overview | 60s |
-| Service health | 30s |
+Agree polling limits with the integration owner. Use request timeouts, bounded backoff, and non-overlapping polls; faster collection does not make upstream observations fresher.
 
 ### Circuit Breakers
 
-Stop automation on consecutive API failures:
-
-```python
-MAX_CONSECUTIVE_ERRORS = 5
-consecutive_errors = 0
-
-def safe_api_call(fn):
-    global consecutive_errors
-    try:
-        result = fn()
-        consecutive_errors = 0
-        return result
-    except Exception as e:
-        consecutive_errors += 1
-        if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-            alert_and_stop(f"Circuit breaker: {consecutive_errors} consecutive errors")
-        raise
-```
+Stop automated writes when required reads fail or telemetry becomes unknown. Alert on the collection failure rather than substituting healthy values.
 
 ### Validate Before Writing
 
 Before pushing strategy or configuration changes:
-1. Fetch current state
-2. Validate the proposed change is meaningful
-3. Confirm yield sources are all still whitelisted
-4. Apply change
-5. Re-fetch and verify the change was applied
+1. Fetch current state and version.
+2. Validate the proposed change, permissions, and execution prerequisites.
+3. Confirm yield-source whitelisting and hook authorization.
+4. Apply only the approved change.
+5. Re-fetch the exact target; for onchain changes, also verify the receipt and resulting contract state.
+
+A timed-out write may have applied. Inspect current state before retrying.
 
 ## Example: Strategy-Driven Vault Monitoring
 
-Fetches vault state from Erebor and checks key health indicators:
+1. Read the vault and service state through the approved integration.
+2. Validate response shape, units, and observation age before evaluating PPS, pause status, or service health.
+3. Report missing, stale, or invalid telemetry as **UNKNOWN**, not healthy.
+4. Investigate alerts against [Intent History](/operate/ui/intent-history) before taking a separately authorized action.
 
-<CodeGroup>
-
-```python Python
-import requests
-import time
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-CHAIN_ID = 8453
-VAULT_ADDRESS = "0xYourVault..."
-
-headers = {"Authorization": f"Bearer {JWT}"}
-
-def get_vault_state():
-    resp = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT_ADDRESS}",
-        headers=headers
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-def check_vault_health():
-    vault = get_vault_state()
-
-    # Check PPS staleness
-    remaining = vault.get("remaining_staleness_time", 9999)
-    if remaining < 3600:
-        print(f"WARNING: PPS expires in {remaining // 60} minutes")
-
-    # Check pause status
-    if vault.get("is_paused"):
-        print("CRITICAL: Vault is paused onchain")
-
-    # Check TVL
-    tvl = vault.get("tvl_usd", 0)
-    print(f"TVL: ${tvl:,.0f} | PPS staleness: {remaining}s")
-
-if __name__ == "__main__":
-    while True:
-        try:
-            check_vault_health()
-        except Exception as e:
-            print(f"Error: {e}")
-        time.sleep(60)
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-const CHAIN_ID = 8453;
-const VAULT_ADDRESS = "0xYourVault...";
-const headers = { Authorization: `Bearer ${JWT}` };
-
-async function getVaultState() {
-  const resp = await fetch(
-    `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT_ADDRESS}`,
-    { headers }
-  );
-  if (!resp.ok) throw new Error(`Vault fetch failed: ${resp.status}`);
-  return resp.json();
-}
-
-async function checkVaultHealth() {
-  const vault = await getVaultState();
-
-  const remaining = vault.remaining_staleness_time ?? 9999;
-  if (remaining < 3600) {
-    console.warn(`WARNING: PPS expires in ${Math.floor(remaining / 60)} minutes`);
-  }
-
-  if (vault.is_paused) {
-    console.error("CRITICAL: Vault is paused onchain");
-  }
-
-  console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
-}
-
-setInterval(checkVaultHealth, 60_000);
-```
-
-</CodeGroup>
+See [Monitoring](/operate/automation/monitoring) for the fields and checks.
 
 ## Next Steps
 
@@ -5855,7 +5732,7 @@ setInterval(checkVaultHealth, 60_000);
     Poll vault state and build alert conditions.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/operate/automation/webhooks">
-    Audit logs as interim event stream.
+    Notification delivery and audit collection.
   </Card>
 </CardGroup>
 
@@ -5865,218 +5742,49 @@ setInterval(checkVaultHealth, 60_000);
 
 Source: https://docs.superform.xyz/operate/automation/monitoring
 
-SuperVaults uses a polling-first monitoring model. No webhook system is implemented yet. Use these intervals as a baseline:
+Combine state polling with [notification channels](/operate/automation/webhooks). Notifications deliver alerts; they are not a complete execution ledger. These upstream paths require the applicable [access permissions](/operate/authentication); agree polling intervals with the integration owner.
 
-| Data | Endpoint | Interval |
-|------|----------|----------|
-| Vault state (PPS, pause, supply) | `GET /api/v1/vaults/{chain_id}/{address}` | 15s |
-| Analytics overview (APY, TVL) | `GET .../analytics/overview` | 60s |
-| Risk metrics | `GET .../analytics/risk` | 120s |
-| Service health | `GET /api/v1/vaults/{chain_id}/{vault}/services` | 30s |
-| Infrastructure health | `GET /health` | 30s |
+| Data | Endpoint |
+|------|----------|
+| Vault state | `GET /api/v1/vaults/{chain_id}/{vault_address}` |
+| Analytics overview | `GET /api/v1/vaults/{chain_id}/{vault_address}/analytics/overview` |
+| Risk metrics | `GET /api/v1/vaults/{chain_id}/{vault_address}/analytics/risk` |
+| Service controls | `GET /api/v1/vaults/{chain_id}/{vault_address}/services` |
+| Infrastructure liveness | `GET /health` |
 
 ## Key Metrics
 
 ### PPS Staleness
 
-```python
-def check_pps_staleness(vault):
-    remaining = vault.get("remaining_staleness_time", 0)
-    if remaining < 3600:  # <1 hour
-        alert("WARNING: PPS staleness — less than 1 hour remaining")
-    if remaining < 600:   # <10 minutes
-        alert("CRITICAL: PPS about to expire")
-```
+Vault detail exposes `pps_info.last_pps_update_timestamp` (Unix seconds) and `pps_info.max_pps_update_interval` (seconds). Compare their sum with current time to determine remaining PPS lifetime. Alert as PPS approaches or reaches expiry using the vault's operating policy. A missing value, invalid timestamp, or unavailable observation freshness is **UNKNOWN**, not extra lifetime. Check `strategy_is_paused` separately; an absent value does not mean unpaused.
 
 ### Service Success Rate
 
-```python
-def check_service_health(services):
-    for svc in services:
-        rate = svc["success_rate"]
-        if rate < 0.80:
-            alert(f"CRITICAL: {svc['name']} success rate {rate:.0%}")
-        elif rate < 0.95:
-            alert(f"WARNING: {svc['name']} success rate {rate:.0%}")
-```
+The services endpoint returns control records such as `service_name`, `is_paused`, `run_interval_seconds`, `last_run_at`, and `next_run_at`, not a `success_rate`. Inspect pause state and run timing. Calculate a success rate only from a verified run-history source with a defined window and sample count; no samples means **UNKNOWN**, not 100% success.
 
 ### Redemption Queue Depth
 
-```python
-def check_redemption_queue(executions):
-    pending = [e for e in executions if e["status"] == "pending"]
-    if len(pending) > 10:
-        alert(f"WARNING: {len(pending)} pending redemptions in queue")
-```
+Track pending request count, value, and age from redemption data. Do not count generic pending executions as redemption requests. Reconcile fulfillment and claimable assets separately; see [Redemption](/build/earn/redemption).
 
 ## Full Monitoring Loop
 
-<CodeGroup>
-
-```python Python
-import requests
-import time
-import logging
-
-EREBOR_URL = "https://erebor.superform.xyz"
-JWT = "<your-jwt>"
-CHAIN_ID = 8453
-VAULT = "0xYourVault..."
-
-headers = {"Authorization": f"Bearer {JWT}"}
-log = logging.getLogger(__name__)
-
-def fetch_vault_state():
-    r = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}",
-        headers=headers, timeout=10
-    )
-    r.raise_for_status()
-    return r.json()
-
-def fetch_service_health():
-    r = requests.get(
-        f"{EREBOR_URL}/api/v1/vaults/{CHAIN_ID}/{VAULT}/services",
-        headers=headers, timeout=10
-    )
-    r.raise_for_status()
-    return r.json()
-
-def alert(severity: str, message: str):
-    """Replace with Slack/PagerDuty integration."""
-    log.warning(f"[{severity}] {message}")
-
-def run_checks():
-    # Vault state
-    try:
-        vault = fetch_vault_state()
-
-        if vault.get("is_paused"):
-            alert("CRITICAL", f"Vault {VAULT} is paused onchain")
-
-        remaining = vault.get("remaining_staleness_time", 9999)
-        if remaining < 600:
-            alert("CRITICAL", f"PPS expires in {remaining}s")
-        elif remaining < 3600:
-            alert("WARNING", f"PPS expires in {remaining // 60}min")
-
-        tvl = vault.get("tvl_usd", 0)
-        log.info(f"TVL: ${tvl:,.0f} | PPS: {vault.get('current_pps')} | Staleness: {remaining}s")
-
-    except Exception as e:
-        alert("ERROR", f"Failed to fetch vault state: {e}")
-
-    # Services
-    try:
-        services = fetch_service_health()
-        for svc in services:
-            rate = svc.get("success_rate", 1.0)
-            if rate < 0.80:
-                alert("CRITICAL", f"Service {svc['name']}: {rate:.0%} success rate")
-            elif rate < 0.95:
-                alert("WARNING", f"Service {svc['name']}: {rate:.0%} success rate")
-    except Exception as e:
-        alert("ERROR", f"Failed to fetch service health: {e}")
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    while True:
-        run_checks()
-        time.sleep(30)
-```
-
-```typescript TypeScript
-const EREBOR_URL = "https://erebor.superform.xyz";
-const JWT = process.env.SUPERFORMOS_JWT!;
-const CHAIN_ID = 8453;
-const VAULT = "0xYourVault...";
-const headers = { Authorization: `Bearer ${JWT}` };
-
-async function fetchWithTimeout(url: string, timeoutMs = 10000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const resp = await fetch(url, { headers, signal: controller.signal });
-    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
-    return resp.json();
-  } finally {
-    clearTimeout(id);
-  }
-}
-
-function alert(severity: string, message: string) {
-  console.warn(`[${severity}] ${message}`);
-}
-
-async function runChecks() {
-  try {
-    const vault = await fetchWithTimeout(
-      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}`
-    );
-    if (vault.is_paused) alert("CRITICAL", `Vault ${VAULT} is paused`);
-
-    const remaining = vault.remaining_staleness_time ?? 9999;
-    if (remaining < 600) alert("CRITICAL", `PPS expires in ${remaining}s`);
-    else if (remaining < 3600) alert("WARNING", `PPS expires in ${Math.floor(remaining / 60)}min`);
-
-    console.log(`TVL: $${vault.tvl_usd?.toLocaleString()} | Staleness: ${remaining}s`);
-  } catch (e) {
-    alert("ERROR", `Vault state fetch failed: ${e}`);
-  }
-
-  try {
-    const services = await fetchWithTimeout(
-      `${EREBOR_URL}/api/v1/vaults/${CHAIN_ID}/${VAULT}/services`
-    );
-    for (const svc of services) {
-      if (svc.success_rate < 0.80) alert("CRITICAL", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
-      else if (svc.success_rate < 0.95) alert("WARNING", `${svc.name}: ${(svc.success_rate * 100).toFixed(0)}% success`);
-    }
-  } catch (e) {
-    alert("ERROR", `Service health fetch failed: ${e}`);
-  }
-}
-
-setInterval(runChecks, 30_000);
-```
-
-</CodeGroup>
+1. Fetch through an approved integration with timeouts, bounded backoff, and no overlapping polls.
+2. Validate the response envelope and required fields. Retain collection time separately from producer observation time.
+3. Classify missing, stale, malformed, or non-finite values and missing or future observation times as **UNKNOWN**. A successful HTTP response alone does not establish freshness or health.
+4. Apply thresholds only to valid, sufficiently fresh observations. Persist the result and alert on both degraded and unknown conditions.
+5. Investigate the affected vault, service, or intent before any separately authorized remediation.
 
 ## Alert Integrations
 
-Replace the `alert()` stub with your notification system:
+Route alerts through configured [notification channels](/operate/automation/webhooks) or your approved incident integration. Include vault identity, condition, observation time, and relevant intent or transaction IDs. Deduplicate repeated alerts and keep destination secrets server-side.
 
 ### Slack
 
-```python
-import httpx
-
-def send_slack(message: str):
-    httpx.post(
-        os.environ["SLACK_WEBHOOK_URL"],
-        json={"text": message}
-    )
-```
+Use the approved channel destination and include a link to the affected vault or intent for investigation.
 
 ### PagerDuty
 
-```python
-import httpx
-
-def pagerduty_alert(summary: str, severity: str = "warning"):
-    httpx.post(
-        "https://events.pagerduty.com/v2/enqueue",
-        json={
-            "routing_key": os.environ["PAGERDUTY_ROUTING_KEY"],
-            "event_action": "trigger",
-            "payload": {
-                "summary": summary,
-                "severity": severity,
-                "source": "supervaults-monitor"
-            }
-        }
-    )
-```
+Map conditions to your incident policy, keep a stable incident key, and resolve only after a valid recovery observation.
 
 ---
 
@@ -6087,15 +5795,15 @@ Source: https://docs.superform.xyz/operate/automation/webhooks
 Operate exposes two event surfaces for operators:
 
 1. **Notification channels** for routed operational alerts.
-2. **Audit logs and polling** for integration-grade event reconstruction.
+2. **Audit logs and polling** for investigating operations and reconciling state.
 
-Use notification channels for humans and incident destinations. Use audit logs / state polling for deterministic integrations.
+Use notification channels for incident delivery and audit records for investigation. Neither guarantees a complete execution ledger.
 
 ## Notification Channels
 
-Create a channel, then bind it to the vaults that should send alerts.
+Create a channel, then bind it to the vaults that should send alerts through [Vault Settings](/operate/ui/vault-settings#alert-delivery). These are upstream route references, not self-service automation requests; see [Authentication](/operate/authentication).
 
-```bash
+```text
 # List or create channels
 GET /api/v1/notification-channels
 POST /api/v1/notification-channels
@@ -6108,7 +5816,7 @@ POST /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id
 DELETE /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
 ```
 
-Recommended alert categories:
+Confirm which alert categories your configured channel delivers:
 
 - Upkeep shortfall or activation loss.
 - PPS staleness.
@@ -6123,87 +5831,33 @@ See [Vault Settings](/operate/ui/vault-settings#alert-delivery) for the operator
 
 ## Audit Logs as an Event Stream
 
-The audit log endpoint records vault operations and manager actions:
+The authenticated audit endpoints record manager and configuration actions:
 
-```bash
+```text
 GET /api/v1/audit/logs
-Authorization: Bearer <jwt>
-
-# Query params:
-# ?vault_address={addr}&chain_id={id}
-# &limit=100&offset=0
-# &action_type={type}
-# &from_timestamp={iso}&to_timestamp={iso}
-```
-
-```json
-{
-  "logs": [
-    {
-      "id": "uuid",
-      "timestamp": "2026-05-09T10:00:00Z",
-      "action_type": "yield_source_add",
-      "vault_address": "0x...",
-      "chain_id": 8453,
-      "actor_wallet": "0xManager...",
-      "details": {
-        "yield_source": "0xMorphoVault...",
-        "oracle": "0xOracle..."
-      }
-    }
-  ],
-  "total": 48,
-  "has_more": false
-}
-```
-
-Export when you need a point-in-time compliance artifact:
-
-```bash
 GET /api/v1/audit/export
-Authorization: Bearer <jwt>
 ```
+
+| List query | Meaning |
+|---|---|
+| `start_time`, `end_time` | Inclusive event-time bounds, formatted as RFC 3339 timestamps |
+| `limit`, `offset` | Page size and offset |
+| `action`, `status` | Operation and outcome filters |
+| `resource_type`, `resource_id` | Resource filters; not a universal vault filter |
+| `actor`, `correlation_id` | Actor and request-correlation filters |
+
+Rows use `id`, `created_at`, `action`, `resource_type`, `actor`, and `status`, with optional `resource_id`, `details`, and `correlation_id`. Validate the deployed response envelope in your approved integration before reading rows or pagination metadata.
+
+Use export for a point-in-time audit artifact, not as proof of transaction settlement.
 
 ## Polling Pattern
 
-```python
-import requests
-import time
-from datetime import datetime, timezone
+1. Fix `start_time` and `end_time` for the scan, with an overlap for delayed arrivals.
+2. Traverse all pages with `limit` and `offset` within a bounded request budget. On any error, invalid response, or budget exhaustion, retain the previous checkpoint.
+3. Deduplicate by event `id` and process the complete window durably before advancing the watermark to the greatest observed `created_at`. An empty window leaves it unchanged; never advance to local wall-clock time after one page.
+4. Periodically replay a wider window and reconcile against exports and current state.
 
-EREBOR_URL = "https://erebor.superform.xyz"
-headers = {"Authorization": "Bearer <jwt>"}
-CHAIN_ID = 8453
-VAULT = "0xYourVault..."
-
-def poll_audit_logs(since: datetime):
-    resp = requests.get(
-        f"{EREBOR_URL}/api/v1/audit/logs",
-        headers=headers,
-        params={
-            "vault_address": VAULT,
-            "chain_id": CHAIN_ID,
-            "from_timestamp": since.isoformat(),
-            "limit": 100,
-        },
-        timeout=15,
-    )
-    resp.raise_for_status()
-    return resp.json().get("logs", [])
-
-last_check = datetime.now(timezone.utc)
-
-while True:
-    new_events = poll_audit_logs(since=last_check)
-    for event in new_events:
-        print(f"New event: {event['action_type']} by {event['actor_wallet']}")
-        # Process event...
-
-    if new_events:
-        last_check = datetime.now(timezone.utc)
-
-    time.sleep(60)
-```
+Results are ordered by `created_at DESC`, without a stable timestamp-plus-ID cursor or cross-page snapshot. Concurrent inserts, equal timestamps, and arrivals outside the overlap can still cause omissions; offset polling is not lossless ingestion.
 
 ## State Polling Map
 
@@ -6212,11 +5866,11 @@ while True:
 | Vault state changes | `GET /api/v1/vaults/{chain_id}/{address}` |
 | Service degradation | `GET /api/v1/vaults/{chain_id}/{vault}/services` |
 | Operation events | `GET /api/v1/audit/logs` |
-| PPS staleness | Vault detail PPS timestamps and remaining staleness |
+| PPS staleness | Vault detail `pps_info` timestamps and configured interval |
 | Intent execution | `GET /api/v1/intents` and OMS event/fill endpoints |
 | Emergency locks | `GET /api/v1/engine/shards/{vault_id}/state` |
 
-See [Monitoring Vault State](/operate/automation/monitoring) for production-ready polling examples.
+See [Monitoring Vault State](/operate/automation/monitoring) for field checks and unknown-state handling.
 
 ---
 
@@ -6236,23 +5890,19 @@ Operate is the operator control plane for SuperVaults. Its APIs split by operati
 
 ## Auth
 
-Authenticated endpoints use Dynamic-issued bearer JWTs:
+SuperformOS uses same-origin BFF routes with browser-session and vault-role checks. The server supplies the appropriate upstream authentication; a single curator JWT is not a credential for every service. The reference pages list **upstream paths**, not self-service headless access.
 
-```bash
-Authorization: Bearer <jwt>
-```
-
-Public endpoints, such as published merkle artifacts and public vault listings, do not require an operator JWT.
+Public reads are route-specific. For authenticated automation, agree the endpoint, identity, scope, and rate policy with the Superform team. See [Authentication](/operate/authentication).
 
 ## Prepare, Sign, Confirm
 
-Most protocol mutations follow this model:
+Onchain configuration changes use this model:
 
 1. API prepares calldata.
 2. Wallet signs and submits the transaction.
 3. API / indexer reads resulting state or confirms a transaction hash.
 
-Do not treat a successful prepare request as a completed setting change.
+Do not treat a successful prepare request as a completed setting change. Offchain strategy saves and service settings can apply without a wallet signature; read back their state separately.
 
 ## Vault Identity and Listing State
 
@@ -6260,15 +5910,15 @@ A vault can be:
 
 - Created onchain.
 - Indexed in Erebor.
-- Active / discoverable after upkeep is funded.
+- Active / discoverable under the current upkeep and exemption policy.
 - Visible and available in Superform distribution surfaces.
 
 Those are related but separate states. The dashboard setup flow tracks them together so operators do not route users into a half-configured vault.
 
 ## Strategy Execution Flow
 
-1. Operator configures hooks and publishes merkle authorization.
-2. Operator whitelists yield sources and pairs oracles.
+1. Operator whitelists yield sources and pairs oracles.
+2. Operator configures hooks, executes the authorized root update after its timelock, and publishes the proof artifacts.
 3. Operator creates and orders strategies.
 4. Strategy Engine evaluates rules and submits DeFiX intents.
 5. OMS validates authorization and executes hook transactions.
@@ -6290,7 +5940,7 @@ Erebor is the SuperVaults management API. It powers vault reads, settings prepar
 
 **Base URL:** `https://erebor.superform.xyz`
 
-**Auth:** `Authorization: Bearer <jwt>` except public endpoints
+**Access:** These are upstream service paths. Browser requests use the session-mediated BFF; programmatic access requires an approved endpoint, identity, and scope. See [Authentication](/operate/authentication).
 
 <Note>
 For onchain changes, Erebor prepares calldata and the manager wallet signs the transaction. The REST request is not the state change; the signed transaction is.
@@ -6340,22 +5990,24 @@ Distribution metadata is handled by the dashboard/listing layer after vault addr
 | `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
 | `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
 | `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
-| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain keeper delay |
 | `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
 | `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
 | `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep balance and pending withdrawal state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
 | `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Set or update multiple vault delays |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
 
-Upkeep data drives activation and discoverability in the dashboard. Operators should treat insufficient upkeep as a launch blocker.
+Redeem timing is offchain keeper policy: the current delay applies to pending requests, including requests submitted before the setting changed.
+
+Upkeep data drives activation and discoverability in the dashboard. Read the returned threshold, shortfall, and effective activation status; exemptions can activate a vault below the funding threshold.
 
 Current upkeep responses use:
 
@@ -6403,7 +6055,7 @@ Current upkeep responses use:
 | `/api/v1/registry/token-assets` | GET | Browse token metadata |
 | `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
-Yield source registry entries include active/inactive state and can carry external provider metadata. Registry create, update, delete, and sync endpoints are registry-maintainer surfaces, not normal third-party operator flows.
+Yield source registry entries include active/inactive state and can carry external provider metadata. Yield-source creation permits vault managers; other registry mutations have endpoint-specific maintainer policies. Upstream yield-source and oracle reads are public, which does not imply anonymous access through every BFF route.
 
 ## Yield Source Whitelist
 
@@ -6460,7 +6112,8 @@ Providers include Slack, webhook, and websocket channels.
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable services |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/interval` | PATCH | Update service run interval |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/run` | POST | Schedule an expedited keeper visit |
 | `/api/v1/services/bulk` | PUT | Bulk service update |
 
 ## Analytics and Audit
@@ -6573,7 +6226,7 @@ The OMS implements the DeFiX intent execution path. The Strategy Engine publishe
 
 **Base URL:** `https://oms.superform.xyz`
 
-**Auth:** `Authorization: Bearer <jwt>`
+**Access:** The paths below are an upstream service inventory. SuperformOS reaches OMS through its session- and role-checked BFF, which supplies server-side service authentication. Direct integrations require explicit onboarding; these are not curator bearer-JWT endpoints. See [Authentication](/operate/authentication).
 
 In normal dashboard operations, managers do not submit intents directly. They configure strategies and monitor the resulting intent history.
 

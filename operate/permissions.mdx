@@ -23,7 +23,9 @@ The SuperVaults system separates protocol governance, vault accounting, and day-
 
 ## Primary Manager
 
-The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets remain in vault contracts and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
+The primary manager is set at vault creation and is the highest-authority vault operator. This role does not take custody of depositor assets: assets can be idle in the vault or deployed into external positions, and manager actions are constrained by protocol logic, active Merkle roots, PPS/accounting checks, fee limits, and timelocks for sensitive changes.
+
+Primary Manager replacement uses `SUPER_GOVERNOR` or a Secondary-initiated timelocked recovery proposal, not an ordinary user-management edit.
 
 Primary manager responsibilities:
 
@@ -32,7 +34,7 @@ Primary manager responsibilities:
 - Session-key grant and revoke flows.
 - Upkeep funding and withdrawal control.
 - Pause, unpause, and emergency operations.
-- Merkle root proposal / publish workflows.
+- Merkle root proposals, onchain synchronization, and separate proof-artifact publication.
 
 <Warning>
 Treat the primary manager as production infrastructure. Use a multisig or hardware-backed wallet. If the primary manager key is compromised, the attacker may be able to exercise the role's authorized operating powers, subject to protocol checks, timelocks, Merkle allowlists, and accounting constraints.
@@ -48,7 +50,7 @@ They can typically:
 - Configure yield sources.
 - Work with merkle tree configuration.
 - Pause/unpause operational services.
-- Add view-only collaborators.
+- Add/remove view-only collaborators and update display names.
 
 They cannot unilaterally bypass primary-only settings, timelocks, Merkle validation, PPS checks, fee limits, or vault accounting.
 
@@ -59,7 +61,7 @@ Manager roles are operational roles, not custody of depositor wallets or unrestr
 - Withdraw depositor assets to arbitrary wallets outside vault redemption, strategy, or emergency flows enforced by the contracts.
 - Execute arbitrary calldata against yield sources; hook execution must match pre-authorized Merkle leaves and protocol validation.
 - Bypass ERC-7540 redemption accounting, PPS-based calculations, slippage expectations, or share/accounting updates when fulfilling redemptions.
-- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, primary-manager changes, and hook-root updates.
+- Instantly apply sensitive changes that are timelocked and visible onchain, such as fee updates, certain PPS parameter changes, upkeep withdrawals, Secondary-initiated Primary Manager recovery, and hook-root updates.
 - Override global protocol constraints such as banned leaves, pause state, validator-secured PPS requirements, or governance-maintained limits.
 
 ## View-Only Users
@@ -90,7 +92,7 @@ Session keys are delegated execution keys used by automation. A session key does
 
 Keepers and OMS execution still depend on:
 
-- Active upkeep funding.
+- Effective activation through upkeep funding or an applicable exemption.
 - Valid session key readiness.
 - Active merkle root and proofs.
 - Non-paused vault / services.
@@ -110,14 +112,18 @@ If any of those gates fail, automation should stop even when a session key exist
 | Reorder strategies | ✅ | ✅ | ❌ | — | — |
 | Manage yield sources | ✅ | ✅ | ❌ | — | — |
 | Configure hooks / merkle roots | ✅ | ✅ | ❌ | — | — |
-| Propose or publish merkle root | ✅ | Permissioned | ❌ | — | — |
+| Propose strategy hook root | ✅ | ❌ | ❌ | — | — |
 | Grant / revoke session key | ✅ | Usually ❌ | ❌ | — | — |
 | Pause vault | ✅ | ✅ | ❌ | — | — |
 | Arm emergency exit | ✅ | ✅ | ❌ | — | — |
 | Add/remove secondary managers | ✅ | ❌ | ❌ | — | — |
-| Add/remove view-only users | ✅ | ✅ | ❌ | — | — |
+| Add/remove view-only users or update display names | ✅ | ✅ | ❌ | — | — |
 | Registry CRUD | — | — | — | ✅ | — |
 | Execute authorized hooks | — | — | — | — | ✅ |
+
+Matured hook-root proposals can be executed onchain by anyone after the configured timelock; publishing the downloadable proof artifact is a separate operation.
+
+Erebor permits either manager to update display names; the UI restricts Primary and Secondary Manager name edits to the Primary Manager.
 
 ## API Patterns
 

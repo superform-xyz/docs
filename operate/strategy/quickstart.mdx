@@ -36,6 +36,8 @@ This deposits only the excess above the reserve. Use **Copy** to check the norma
 
 Under **Signal & risk**, choose **BINARY** conviction and enter **60** in **Cooldown (s)**. Set **Max slippage (bps)** and **Signal lifespan** to the approved values for your source. The editor sets per-strategy concurrency to one; there is no editable concurrency control.
 
+Cooldown starts after successful intent publication, not after the fill.
+
 ## Review before creating
 
 For a six-decimal underlying, these are evaluator expectations, **not measured UI or transaction results**:

@@ -7,7 +7,7 @@ The Setup page turns a newly-created SuperVault into an operational and discover
 
 ![SuperformOS Setup Checklist - post-create readiness rows](/operate/images/screenshots/setup-checklist.jpg)
 
-Use this page to move from created to available: fund upkeep, configure hooks, add yield sources, create strategies, and confirm Superform availability.
+Use this page to move from created to available: fund upkeep, add yield sources, configure hooks, create strategies, and confirm Superform availability.
 
 If no vault is selected, the page asks the operator to select one from the Operate sidebar. The checklist is vault-scoped: every row is calculated from the selected chain and vault address.
 
@@ -16,7 +16,7 @@ If no vault is selected, the page asks the operator to select one from the Opera
 | Row | Complete when | Primary action |
 |-----|---------------|----------------|
 | **Vault is created** | Vault exists onchain and is readable in dashboard data. | Create Vault |
-| **Upkeep is staked** | Vault is active and can run operational automation. | Fund Upkeep |
+| **Upkeep is staked** | Vault meets the activation policy through funding or an exemption. | Fund Upkeep |
 | **Hooks are set up** | At least one hook is configured in the active root config. | Configure Hooks |
 | **Yield sources are set up** | At least one yield source is whitelisted for this vault. | Configure Yield Sources |
 | **Strategy is set up** | At least one strategy exists for this vault. | Open Strategy |
@@ -26,7 +26,7 @@ Statuses are `complete`, `in_progress`, `needs_setup`, or `blocked`.
 
 ## Activation gate
 
-Upkeep is the activation gate. Fund upkeep from **Vault Settings → Upkeep** to enable automation and discovery. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
+Upkeep funding or an applicable exemption satisfies the activation gate. Fund upkeep from **Vault Settings → Upkeep** and read back activation. The activation route can deep-link with `panel=upkeep&activateVault=1` so the primary manager lands on the funding action.
 
 Current Erebor-facing activation fields used by the UI include:
 
@@ -40,18 +40,20 @@ Current Erebor-facing activation fields used by the UI include:
 | `upkeep_info.threshold.required_balance` | Required balance for activation, in raw token units. |
 | `upkeep_info.threshold.shortfall` | Amount still needed to clear the gate. `0` means the threshold is satisfied. |
 
-Current minimum upkeep thresholds:
-
-| Vault Chain | Minimum Upkeep for Activation |
-|-------------|-------------------------------|
-| Ethereum L1 | `100,000 $UP` |
-| Non-L1 chains | `1,000 $UP` |
+Use the returned `required_balance`, `shortfall`, and effective `activation` for the selected vault rather than a fixed chain-wide funding assumption.
 
 ## Distribution Evidence
 
 The live-on-Superform row compares the managed vault against distribution data. Evidence includes `visibility` and `availability`, for example `listed` and `available`. If no matching distribution entry exists, the vault is onchain and manager-visible but not available in Superform allocator-facing surfaces.
 
 ## Troubleshooting
+
+Green setup rows summarize configuration, not executable readiness. Before starting, check separately:
+
+- **Funding:** UP upkeep pays for automation; native tokens pay execution gas; strategy assets fund the action. One balance does not fund the others.
+- **Authority:** Browser login is not an execution-session grant. Verify the manager role and [session-key readiness](/operate/ui/vault-settings#session-keys).
+- **Authorization:** Every plan step needs an authorized hook and matching proofs against the active onchain root.
+- **Data and controls:** Required inputs must be present and fresh, with sufficient action liquidity and no blocking pause, lock, cooldown, or concurrency gate.
 
 | Symptom | Likely cause | Next step |
 |---------|--------------|-----------|
@@ -63,4 +65,4 @@ The live-on-Superform row compares the managed vault against distribution data. 
 
 ## Operator rule
 
-Route deposits only after the checklist shows that upkeep, hooks, yield sources, strategies, and distribution availability are all complete.
+Route deposits only after the checklist is complete and the separate execution-readiness checks pass.

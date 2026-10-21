@@ -34,6 +34,8 @@ For an existing strategy, record its ID, version, target, and state before editi
 
 Drag within a lane to change order. Priority is server-managed, not a create/update field. Ordering and per-strategy concurrency do not reserve a shared token balance across strategies.
 
+Card order does not sequence transactions or create execution dependencies between strategies.
+
 A session-key gate, vault kill switch, or target emergency lock can block execution. Resolve the cause; do not bypass it by creating another strategy. Emergency exits are managed in [Pause Operations](/operate/ui/pause), not the normal editor.
 
 After an approved start, open [Intent History](/operate/ui/intent-history) to follow a real intent through its fill and transaction. For the expression and generated plan, use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config).

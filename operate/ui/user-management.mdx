@@ -5,7 +5,7 @@ description: "Add and remove secondary managers and view-only users for your vau
 
 ![SuperformOS User Management — primary, secondary, and view-only access controls](/operate/images/screenshots/user-management.jpg)
 
-This page controls vault access. Three tiers are managed here: primary manager (display only), secondary managers (onchain delegates), and view-only users (offchain read access). Primary manager access required.
+This page controls vault access. Three tiers are managed here: Primary Manager (display only), Secondary Managers (onchain delegates), and view-only users (offchain read access). Secondary Manager assignment requires the Primary Manager; either manager can manage view-only access.
 
 The public SuperVault detail page exposes roles as read-only context. Adding or removing users requires the authenticated Operate surface and the appropriate manager role.
 
@@ -13,11 +13,11 @@ The full manager list is fetched from `GET /api/v1/users?vault_address={}&chain_
 
 ## Tab 1: Primary Manager
 
-Displays the primary manager's wallet address and display name. Set at vault creation, immutable without governance-level contract interaction. This key is the root of trust for the vault.
+Displays the Primary Manager's wallet address and display name. Set at vault creation, the Primary Manager can be replaced through `SUPER_GOVERNOR` or a Secondary Manager's timelocked recovery proposal, not through this tab.
 
 ## Tab 2: Secondary Managers
 
-On-chain delegates with full operational access (except vault settings and user management).
+Onchain delegates with role-limited operational access, including view-only user management and display-name updates. Only the Primary Manager can add or remove Secondary Managers.
 
 ### Adding
 
@@ -33,7 +33,7 @@ On-chain delegates with full operational access (except vault settings and user 
 
 ### Updating Display Names
 
-Click the pencil icon to update any user's display name (offchain, no gas):
+Either manager can update display names through Erebor (offchain, no gas). In the UI, either manager can edit view-only names; editing Primary or Secondary Manager names requires the Primary Manager. Use the pencil icon where available:
 
 ```bash
 PATCH /api/v1/users/{wallet_address}/display-name

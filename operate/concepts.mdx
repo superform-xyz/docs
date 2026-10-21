@@ -11,7 +11,7 @@ The goal is simple: a vault should not be a black box. Users and partners should
 
 SuperformOS is not an offchain vault wrapper. It is an operating system around onchain [ERC-7540](https://eips.ethereum.org/EIPS/eip-7540) SuperVaults.
 
-The vault contract holds depositor assets, issues shares, and enforces the core request and fulfillment flow. SuperformOS sits around that onchain vault: it helps operators define strategy rules, authorize executable actions, coordinate automation, maintain price attestations, and inspect operating history.
+The vault contract issues shares and enforces the core request and fulfillment flow. Assets can be idle in the vault or deployed into external positions. SuperformOS sits around that onchain vault: it helps operators define strategy rules, authorize executable actions, coordinate automation, maintain price attestations, and inspect operating history.
 
 SuperformOS is an operating layer around onchain vault contracts. It does not replace those contracts as the source of custody or protocol enforcement.
 
@@ -39,7 +39,7 @@ Operators use SuperformOS to turn a vault mandate into explicit operating rules:
 - when services should pause, resume, or drain risk
 - how the vault appears in Superform distribution surfaces
 
-Those choices are not just UI settings. The parts that change protocol behavior are prepared as calldata, signed by the authorized wallet, and enforced by the relevant onchain contracts.
+Strategy-rule edits and service controls are offchain configuration. Engine rules govern intent publication; registered hooks, Merkle proofs, and contract checks constrain execution. Changes to onchain authorization require signed transactions.
 
 <Note>
 SuperformOS never takes custody of vault assets or private keys. It prepares transactions, displays operational state, and coordinates automation. Onchain state changes still require authorized signatures.
@@ -51,9 +51,9 @@ SuperformOS is useful because the operating layer maps to protocol-enforced cons
 
 | Constraint | Enforcement model |
 |------------|-------------------|
-| Custody | Depositor funds stay in the SuperVault contract. |
+| Custody | Assets can be idle in the vault or deployed into external positions; managers do not take personal custody. |
 | Execution permissions | Hooks must match authorized merkle leaves before execution. |
-| Strategy changes | Hook-root updates follow proposal and timelock flows. |
+| Hook authorization changes | Hook-root updates follow proposal, configured timelock, and onchain execution flows; strategy-rule edits are offchain. |
 | Pricing | PPS updates require validator-signed attestations and staleness checks. |
 | Fees | Fee bounds and fee accrual are enforced by SuperVault contracts and SuperGovernor constraints. |
 | Emergency response | Operators can pause services, pause vault operations, or arm target-specific emergency exits. |
@@ -67,7 +67,7 @@ This is the difference between a private operating process and a verifiable stra
     The operator creates or imports a SuperVault, assigns operators, configures fees, funds upkeep, and prepares the vault for listing.
   </Step>
   <Step title="Authorize actions">
-    The operator configures allowed hooks and parameters. SuperformOS generates merkle roots and proof artifacts, then the authorized wallet proposes and publishes them onchain.
+    The operator configures allowed hooks and parameters and generates a Merkle tree. The Primary Manager proposes its root onchain; after the configured timelock, the proposal is executed. Proof-artifact publication is a separate offchain step.
   </Step>
   <Step title="Create strategies">
     The operator defines rule-based strategies for deposits, withdrawals, claims, swaps, bridges, or rebalances.

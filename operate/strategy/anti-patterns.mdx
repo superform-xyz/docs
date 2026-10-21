@@ -1,103 +1,42 @@
 ---
 title: "Strategy Anti-Patterns"
-description: "Strategy designs that look reasonable but create operational risk."
+description: "Avoid sizing, concurrency, and update mistakes that validation cannot prevent."
 ---
 
-These patterns can pass validation but still create poor operator outcomes.
+## Depositing the whole idle balance
 
-## Unbounded Sizing
+Using `vault_free_assets` as a deposit size consumes the reserve. Using `vault_tvl` can request more than is idle. The [reserve-deposit exercise](/operate/strategy/quickstart) instead sizes only the excess above its target, with a zero floor.
 
-Bad:
+A reserve percentage is not a complete liquidity policy. Pending redemptions, other strategies, and source capacity may require additional caps and guards.
 
-```text
-vault_tvl
-```
+## Mixing assets, shares, and USD
 
-For a deposit, this can exceed idle assets. For a withdrawal, it can exceed target allocation.
+`vault_tvl` is raw underlying-asset units, not a dollar value. A deposit hook can consume assets while a redemption hook consumes shares. Check **Size expression** denomination and the first step's input; do not copy a formula across those paths unchanged.
 
-Better:
+Changing **Literal / Formatted** display does not rescale the saved expression. Check the normalized copy and readback instead.
 
-```text
-min(vault_free_assets, 0.05 * vault_tvl)
-```
+## Treating save validation as runtime proof
 
-Bound sizing to the assets actually available for the action.
+An expression can parse and type-check but divide by zero on a live snapshot. Prefer multiplication for ratio triggers; when division is needed, put the nonzero guard first in the same rule. Missing low-level values can read as zero, which does not establish feed readiness.
 
-## Division in Triggers
+## Assuming conviction counts consecutive ticks
 
-Bad:
+Conviction scores the current evaluation. **BINARY** does not wait for repeated passing ticks, and the other modes do not provide that guarantee either. Use a suitable trigger/target gap and cooldown rather than inventing persistence behavior.
 
-```text
-vault_free_assets / vault_tvl > 0.10
-```
+## Assuming priority locks shared balances
 
-This can fail validation on zero snapshots.
+The editor sets `max_concurrent` to one **per strategy**. Two strategies can still compete for the same idle assets. Lane order is not a portfolio-wide balance lock. Review overlapping targets, mutually exclusive rules, and combined sizing.
 
-Better:
+## Editing a running definition and blindly retrying
 
-```text
-vault_free_assets > 0.10 * vault_tvl
-```
+Stop new activity before a risk-changing update, reconcile in-flight work, then reload the latest version. Save inactive, reopen, and compare. A `409 Conflict` requires reconciliation, not substituting the newest version number into an old payload.
 
-## Overlapping Lane Strategies
+Neither **Save** nor stopping cancels an already submitted OMS transaction. Follow the [safe-update sequence](/operate/strategy/quickstart#update-an-existing-strategy).
 
-Two `DEPOSIT` strategies targeting the same source can both pass on the same tick and compete for idle assets.
+## Weakening protection to make a test pass
 
-Better:
+Do not remove liquidity guards for simulation, increase slippage solely to clear an error, or disable an emergency lock to exercise a strategy. Fix the cause or document the coverage gap. A synthetic simulation fill is not a real transaction.
 
-- Split targets by rule.
-- Use lane priority intentionally.
-- Add `max_concurrent: 1`.
-- Use mutually exclusive thresholds.
+## Treating read access as write permission
 
-## No Cooldown on Noisy Signals
-
-If a rule can oscillate around a boundary, it can create repeated small intents.
-
-Better:
-
-- Add a wider band between deposit and withdrawal thresholds.
-- Require repeated ticks with conviction settings where appropriate.
-- Set cooldowns for high-noise inputs.
-
-## Treating Emergency Exit as a Normal Strategy
-
-Emergency exits are incident controls. They create target-scoped locks and are operated from [Pause Operations](/operate/ui/pause).
-
-Better:
-
-- Keep normal withdrawal strategies focused on routine liquidity management.
-- Use emergency exit only when source-level risk justifies a drain.
-- Stop the emergency exit when the incident is resolved.
-
-## Authorizing a Target After the Strategy
-
-A strategy can save before the target is actually executable. It will not publish successfully without whitelist, oracle, merkle proof, and session-key readiness.
-
-Better:
-
-1. Whitelist the yield source.
-2. Pair the oracle.
-3. Generate, sync, and publish merkle proof coverage.
-4. Confirm OMS/session-key readiness.
-5. Move the strategy to `RUNNING`.
-
-## Stale Priority Assumptions
-
-Create and update requests do not own priority. Priority is server-managed through reorder.
-
-Better:
-
-- Create or update strategy content first.
-- Use canvas drag-to-reorder or `POST /api/v1/strategies/reorder`.
-- Always include every non-archived strategy in the lane when calling reorder.
-
-## Manager-Only Assumptions in Public Docs
-
-Public SuperVault detail pages are read-only. Do not document a public tab as though it can sign transactions.
-
-Better:
-
-- Use public detail pages for allocator inspection.
-- Send operator actions to the authenticated Operate surface.
-- Keep screenshots cropped so wallet state is not part of the documentation contract.
+Use public history for inspection. Manager actions belong in the authenticated Operate surface or a separately approved integration. Never export browser credentials to turn a read example into an automation script.

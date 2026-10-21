@@ -15,7 +15,7 @@ Use the narrowest control that solves the problem. A vault pause, keeper pause, 
 
 ## Pause Vault
 
-Vault pause is an onchain control. It halts protocol-level vault operations until a manager signs an unpause transaction.
+Vault pause blocks pause-gated operations, including redemption fulfillment, until unpaused. It does not unwind debt or reverse settled transactions; an exit requiring a paused operation remains blocked.
 
 ```bash
 GET /api/v1/vaults/pause-status?vaults={chainId}:{vaultAddr}
@@ -48,11 +48,11 @@ When armed for a source:
 - The Strategy Engine records an emergency lock keyed by that source's `target_address`.
 - User-defined strategies targeting the same address are blocked from publishing intents.
 - Strategies targeting other yield sources continue normally unless they have their own lock.
-- The emergency strategy emits withdrawal intents on every tick until stopped.
+- The emergency strategy attempts withdrawal publication on eligible ticks, subject to nonzero size, fresh required data, cooldown, concurrency, and risk gates.
 - In-flight OMS transactions continue to settle even after the operator stops the drain.
 
 <Warning>
-Emergency Exit is not a replacement for vault pause. If the entire vault is unsafe, pause the vault. If one source is unsafe and the vault can keep operating elsewhere, arm an exit for that source.
+Emergency Exit does not bypass contract pause, authorization, or execution constraints. Check those controls before relying on an armed exit to withdraw liquidity.
 </Warning>
 
 ### Prerequisites
@@ -83,7 +83,7 @@ If manager permission is revoked while arming, the in-flight request is not auto
 
 ### Stop an Emergency Exit
 
-Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source are eligible again on the next tick.
+Stopping transitions the paired strategy back to `IDLE` and releases the emergency lock. User-defined strategies targeting that source must still pass their state, rule, freshness, cooldown, and concurrency gates before publishing.
 
 ```bash
 PATCH /api/v1/strategies/{strategy_id}/state

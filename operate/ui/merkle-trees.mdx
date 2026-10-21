@@ -14,8 +14,9 @@ The operational flow is:
 1. Draft a root configuration.
 2. Activate the configuration version.
 3. Generate a merkle tree from the active config.
-4. Primary manager proposes / publishes the root onchain.
-5. Publish the proof artifact for consumers.
+4. The Primary Manager proposes the root onchain.
+5. After the configured timelock, execute the proposal to update the onchain root.
+6. Publish the proof artifact for consumers and verify that its root matches the onchain root.
 
 ## Hook Configs
 

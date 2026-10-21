@@ -5,14 +5,14 @@ description: "What you need before you can operate a SuperVault: wallet, role, a
 
 ## Wallet Requirements
 
-SuperVaults uses [Dynamic.xyz](https://dynamic.xyz) for wallet connection and JWT issuance.
+SuperformOS uses [Dynamic.xyz](https://dynamic.xyz) for wallet/account sign-in. Follow [Authentication](/operate/authentication) to establish your browser session.
 
 - **EVM-compatible wallet** (MetaMask, Rabby, Frame, or any WalletConnect-compatible wallet)
 - **Native gas token** for each chain where you operate vaults
 - **Operator access** assigned on at least one vault before SuperformOS features are accessible
 
 <Note>
-View-only users are added offchain and do not require a wallet connection. All write operations require at minimum a secondary manager role.
+View-only access is assigned offchain; private vault and rule inspection still requires an authenticated account with access to that vault. Writes require the role authorized for that operation.
 </Note>
 
 ## Supported Chains
@@ -34,7 +34,7 @@ The SuperVault contract architecture supports additional chains. Contact the Sup
 
 ## API Base URLs
 
-Each backend service exposes its own base URL. Use these when building automation:
+These are upstream service base URLs. Browser operations use the session-mediated BFF; headless integrations require an approved endpoint, identity, and scope. See [Authentication](/operate/authentication).
 
 | Service | Base URL | OpenAPI Spec |
 |---------|----------|-------------|
@@ -44,25 +44,25 @@ Each backend service exposes its own base URL. Use these when building automatio
 
 ## Role Requirements by Page
 
-| Page | Minimum Role |
+| Page | Access |
 |------|-------------|
 | Home | Public (no auth) |
 | Dashboard | Operator |
 | Strategy | Operator |
 | Yield Sources | Operator |
 | Merkle Trees | Operator |
-| User Management | Primary Manager |
-| Vault Settings | Primary Manager |
+| User Management | Either manager for view-only users and their names; Primary Manager for Secondary Manager assignment and manager names |
+| Vault Settings | Role depends on the setting; see [Permissions](/operate/permissions) |
 | Pause | Operator |
 | Create Vault | Operator (you become primary manager of the new vault) |
 | Alerts | Operator |
 
 ## Getting Access
 
-**Joining an existing vault:** The primary manager adds you via [User Management](/operate/ui/user-management) as a secondary manager (onchain transaction) or view-only user (offchain).
+**Joining an existing vault:** The Primary Manager assigns Secondary Managers through an onchain transaction. Either manager can add or remove view-only collaborators and update their display names offchain through [User Management](/operate/ui/user-management).
 
 **Creating a new vault:** Any wallet with operator access can create a vault and automatically becomes its primary manager.
 
 <Card title="Authentication" icon="key" href="/operate/authentication">
-  JWT auth flow, token storage, and programmatic access.
+  Browser sign-in, public reads, and approved automation access.
 </Card>

@@ -1,72 +1,48 @@
 ---
 title: "Strategy Troubleshooting"
-description: "Diagnose why a strategy is not saving, ticking, publishing, or filling."
+description: "Find the blocked stage before changing a rule or retrying an execution."
 ---
 
-Use this page when the Strategy Canvas shows an error, a strategy stays idle unexpectedly, or Intent History does not show the expected OMS execution.
+## Cannot create or save
 
-## First Checks
+| Symptom | Check and action |
+|---|---|
+| No manager controls | Use the authenticated Operate surface with the required vault role; a public canvas is read-only |
+| Unknown identifier or type error | Choose a supported variable and keep boolean rules separate from numeric sizing |
+| Missing hook parameter or unknown size unit | Resolve the source, token decimals, hook, and required parameters before saving |
+| Invalid plan | Review the generated `execution_params.plan.steps`, not a legacy single-hook body |
+| `409 Conflict` | Reload and compare the latest version; reconcile changes before saving again |
 
-| Question | Where to check |
-|----------|----------------|
-| Is the strategy `RUNNING`? | [Strategy Canvas](/operate/ui/strategy) or `GET /api/v1/strategies/{id}`. |
-| Is the vault active? | [Setup Checklist](/operate/ui/setup-checklist) and [Vault Settings](/operate/ui/vault-settings). |
-| Does OMS have a valid session key? | Strategy Canvas gate and [OMS API](/operate/api/oms#session-keys). |
-| Is the target whitelisted? | [Yield Source Management](/operate/ui/yield-sources). |
-| Is the hook authorized? | [Merkle Trees](/operate/ui/merkle-trees). |
-| Is an emergency lock active? | [Pause Operations](/operate/ui/pause) and engine shard state. |
+Backend save validation checks shape and types. It does not execute the rule against an empty snapshot or prove the action can settle. Division by zero can still occur at runtime; guard the denominator first.
 
-## Create or Update Rejected
+## No intent appears
 
-| Symptom | Likely cause | Fix |
-|---------|--------------|-----|
-| `unknown identifier` | Expression references a variable absent from the snapshot. | Use known vault/source variables or add the indicator alias. |
-| `division by zero` | Rule dry-run evaluated a zero denominator. | Rewrite ratios as multiplication comparisons. |
-| `missing objective` | `action_config.objective` is absent. | Add `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `invalid address` | Address is not hex/checksummed enough for the validator. | Replace placeholder or malformed addresses. |
-| `409 Conflict` | Update used a stale `version`. | Refetch the strategy and retry with the current version. |
+Check these in order:
 
-## Strategy Saves but Does Not Tick
+1. **Lifecycle:** is the intended strategy `RUNNING`, not just saved? Do not start an inactive exercise merely to investigate.
+2. **Vault and target:** check kill switch, pause, emergency locks, upkeep, and execution readiness. Do not clear an incident lock to force a test.
+3. **Inputs and rule:** inspect the current supported fields and their freshness. For the reserve example, idle exactly at the 10% trigger should not publish.
+4. **Size:** check the first hook's units and positive integer amount. A sub-unit positive value truncates to zero.
+5. **Publication gates:** check conviction, cooldown, rate limits, and an occupied per-strategy concurrency slot.
 
-| Cause | What to do |
-|-------|------------|
-| State is `CREATED` or `IDLE` | Transition to `RUNNING` after readiness checks. |
-| Vault activation incomplete | Fund upkeep and clear setup checklist blockers. |
-| Kill switch or vault pause active | Review Pause Operations and vault pause status. |
-| Target emergency lock active | Stop the emergency exit only after the incident is resolved. |
-| No shard state | Check Strategy Engine health and shard assignment for the vault. |
+Intent History records submitted intents, not every false rule evaluation. If no row exists, use the editor's available state or authorized engine diagnostics; missing observations are not proof of a zero balance.
 
-## Strategy Ticks but Does Not Publish
+## An intent failed or is still executing
 
-| Cause | What to do |
-|-------|------------|
-| Rule evaluates false | Inspect the signal snapshot in Intent History or engine logs. |
-| `size_expr` is zero/negative | Rework sizing so it is positive when the trigger passes. |
-| Missing session key | Grant or renew OMS session-key authorization. |
-| Missing merkle proof | Generate, sync, and publish the active merkle tree. |
-| Target not whitelisted | Add the yield source and oracle. |
-| Max concurrency reached | Wait for in-flight intent completion or lower the strategy's overlap. |
+Open the exact intent and inspect state, error, execution ID, and fills before considering another submission.
 
-## Intent Publishes but Does Not Fill
+| Evidence | Decision |
+|---|---|
+| `RECEIVED` through `EXECUTING` | Check timestamps and in-flight work; do not create a duplicate to get a faster result |
+| Pricing timeout | Check service/feed recovery and whether another attempt is already active; keep price protections |
+| Slippage or liquidity rejection | Review the quote, configured budget, and source capacity; do not automatically loosen limits |
+| Hook transaction reverted | Inspect the transaction and authorization/proof path |
+| `COMPLETED` but balance is unexpected | Match the fill to the receipt and check token/share units before inferring the result |
 
-| Cause | What to do |
-|-------|------------|
-| OMS route failure | Inspect OMS events for planning or execution errors. |
-| Hook transaction failed | Open the hook transaction in the explorer and compare calldata/proof. |
-| Slippage too tight | Review `max_slippage_bps` against current liquidity. |
-| Gas or nonce issue | Check executor wallet state and OMS event details. |
-| Source liquidity changed | Confirm allocation, TVL, and withdrawal availability on the source. |
+The [public deposit investigation](/operate/ui/intent-history#inspect-a-failed-deposit) includes a real pricing-timeout row and its empty fills response.
 
-## Useful Endpoints
+## Simulation does not answer the question
 
-```bash
-GET /api/v1/strategies/{id}
-PATCH /api/v1/strategies/{id}/state
-GET /api/v1/engine/shards/{vault_id}/state
-GET /api/v1/intents?strategy_id={id}
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills?strategy_id={id}
-```
+Check selected saved IDs, model inputs, and whether a result was loaded from cache. Unsupported inputs are a coverage limit, not a reason to remove a live safety condition. Follow the [run and review flow](/operate/ui/simulation#run-and-review).
 
-If the same strategy repeatedly fails after these checks, archive it, clone the payload into a new draft, simplify the rule tree, and reintroduce complexity one condition at a time.
+For persistent failures, retain the exact ID/version, input context, error, and transaction evidence. Stop new risk-taking activity where appropriate and escalate. Archiving and cloning a failing strategy loses continuity and does not resolve the cause.

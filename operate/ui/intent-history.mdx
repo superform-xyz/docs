@@ -1,60 +1,87 @@
 ---
 title: "Intent History"
-description: "Trace Strategy Engine intents through OMS events, fills, gas, and execution status."
+description: "Follow a real deposit from its intent row to a fill and transaction, or diagnose a failure."
 ---
 
-![SuperformOS Intent History - read-only strategy execution ledger](/operate/images/screenshots/history.jpg)
+## Trace a deposit
 
-Intent History is the operator-facing execution explorer for Strategy and OMS activity. Use it to answer: what strategy fired, where the intent is in the lifecycle, what filled, what transaction mined, and why execution failed.
+Open the [Flagship USDC vault's deposit history on Base](https://os.superform.xyz/supervaults/base/0x11820afe50ea96851ee2bdbae329d97771e41ec6?istr=356a84b9-436c-4825-88e5-d41b44c240c0&tab=intent-history). Search for intent `45cd8617-8e56-4891-8129-75592b4fdb26` and expand its row.
 
-## What it shows
+This is a real same-asset deposit from **Deposit CBAssets (3a3c)**. The production strategy has its own allocation and redemption-buffer policy. It is **not** an execution of the teaching 10%/7.5% reserve strategy.
 
-| View | Use it for |
-|------|------------|
-| Intent list | Search and filter intents across vaults and strategies. |
-| Facets | Count by state, action, chain, vault, and strategy. |
-| Lifecycle strip | See the current OMS lifecycle state and timestamps. |
-| Fills table | Inspect per-fill venue, token in/out, amounts, gas, fees, and fill time. |
-| OMS events | Audit message type, sequence, payload, and source. |
-| Signal snapshot | See the Strategy Engine signal context that produced the intent. |
+1. **Row:** confirm action **DEPOSIT**, state **COMPLETED**, and the intended strategy.
 
-## Lifecycle states
+   ![Public Base USDC history searched for intent 45cd8617-8e56-4891-8129-75592b4fdb26, showing one completed Deposit CBAssets row.](/operate/images/walkthrough/base-usdc-history-search.png)
 
-The explorer uses the OMS lifecycle vocabulary:
+2. **Detail:** compare the execution ID and lifecycle timestamps. This intent was created at `2026-10-20T18:50:30.029113Z` and completed at `2026-10-20T18:50:35.135081Z`.
 
-`RECEIVED`, `ACKED`, `STAGED`, `PLANNED`, `EXECUTING`, `COMPLETED`, `ABORTED`, `EXPIRED`, `FAILED`, `CANCELED`, and `UNKNOWN` for rows that cannot be normalized.
+   ![Expanded Base deposit with completed lifecycle, matching intent and strategy identifiers, and execution 46bf87f4-cd8e-469a-8d7e-55caf27f7d06. UI times are localized.](/operate/images/walkthrough/base-usdc-history-detail.png)
 
-## How it maps to OMS
+3. **Fill:** expand the fills section. One fill links to execution `46bf87f4-cd8e-469a-8d7e-55caf27f7d06` on chain `8453`.
 
-The Strategy Engine projects OMS events and backfills into `strategy_intent_log`. Each row can include:
+   ![The same deposit's single Base onchain fill, transaction link, raw amounts and gas used of 610847. This panel is not a transaction receipt.](/operate/images/walkthrough/base-usdc-history-fill.png)
 
-- `intent_id`, `execution_id`, `correlation_id`
-- strategy and vault IDs
-- last event sequence and message type
-- ack/executing/completed/terminal timestamps
-- error code and message
-- total amount in/out
-- total gas used
-- fills count
-- signal snapshot and summary
-- source: `engine`, `nats`, or `backfill`
+4. **Transaction:** open the [Base transaction](https://basescan.org/tx/0xa232bef3669a714174ac9896809b6ef8ce02ae483c74fefb08a8412b01c81783). Its successful receipt and source Deposit event confirm the transaction-local deposit.
 
-## API mapping
+| Check | Observed on 20 October 2026 |
+|---|---|
+| Fill count | `fills_count: 1`, and one returned fill |
+| Gas | `610847` in both fill and receipt |
+| Assets deposited | `8028286428` raw USDC, or `8028.286428` USDC |
+| Source shares minted | `7789013823154140267606` raw shares |
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v1/intents` | Global intent search. |
-| `GET /api/v1/intents/facets` | Facet counts for filters. |
-| `GET /api/v1/intents/{intent_id}` | Intent detail. |
-| `GET /api/v1/intents/{intent_id}/fills` | Fills for one intent. |
-| `GET /api/v1/intents/{intent_id}/events` | OMS event audit rows. |
-| `GET /api/v1/fills` | Global fill search. |
+The fill's `token_in` is a zero-address placeholder; token identity here comes from the receipt's USDC transfer and Deposit event, not that placeholder. Completion establishes this execution, not the current idle reserve or the behavior of a different strategy version.
 
-## Common reads
+## Read the same record with public GET
 
-| Symptom | Check |
-|---------|-------|
-| Intent never mined | Look at `EXECUTING` events, hook transaction fields, and gas budget. |
-| Intent completed with no visible position change | Check fills and amount out fields; some fields can be `null` until OMS hydration completes. |
-| Strategy appears blocked | Check emergency locks, kill switch, session-key readiness, and merkle proof availability. |
-| Duplicate-looking rows | Compare `intent_id`, `execution_id`, and `correlation_id`; retries and backfills can share context. |
+No account, signature, or token is needed for these scoped reads:
+
+```bash
+curl --fail-with-body --get \
+  'https://os.superform.xyz/api/strategy/api/v1/intents' \
+  --data-urlencode 'vault_id=8453_0x11820afe50ea96851ee2bdbae329d97771e41ec6' \
+  --data-urlencode 'strategy_id=356a84b9-436c-4825-88e5-d41b44c240c0' \
+  --data-urlencode 'limit=50' --data-urlencode 'offset=0' \
+  --data-urlencode 'sort=created_at' --data-urlencode 'order=desc'
+```
+
+This returns an `intents` array. Newer activity can move the example off the first page; use the exact detail and fills reads to locate it directly:
+
+```bash
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/45cd8617-8e56-4891-8129-75592b4fdb26'
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/45cd8617-8e56-4891-8129-75592b4fdb26/fills'
+```
+
+Search, detail, and fills returned HTTP 200 during verification. Detail identifies the strategy, execution, state, and fill count; the `fills` array contains the transaction hash above. Match IDs rather than assuming the first row is your execution.
+
+The host prefix is `/api/strategy/api/v1`, not bare `/api/v1`. The corresponding `/events` request returned HTTP 401 with `no_session`: full events are not an anonymous read. Use authorized access where needed; do not extract browser credentials.
+
+## Inspect a failed deposit
+
+Search the same strategy for `69eb0ad1-f269-46e2-bf0b-a81db27da275`, created on 16 October 2026. Its detail returned **FAILED**, `FAIR_PRICE_TIMEOUT`, and:
+
+> The price check timed out while assessing the whole plan. Try again.
+
+![Failed Base deposit 69eb0ad1-f269-46e2-bf0b-a81db27da275 showing FAIR PRICE TIMEOUT, the exact error message, matching strategy and zero fills.](/operate/images/walkthrough/base-usdc-history-failed.png)
+
+Its `fills_count` is zero and its fills response is empty. Read it directly:
+
+```bash
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/69eb0ad1-f269-46e2-bf0b-a81db27da275'
+curl --fail-with-body \
+  'https://os.superform.xyz/api/strategy/api/v1/intents/69eb0ad1-f269-46e2-bf0b-a81db27da275/fills'
+```
+
+Before another attempt, check pricing-service recovery and whether another intent is already in flight. Do not remove price checks or increase slippage to clear a timeout.
+
+## Decide by stage
+
+- **No intent:** inspect lifecycle, input freshness, rule, size, cooldown, and locks. History does not record every false evaluation.
+- **Intent still in progress:** compare timestamps and execution status before retrying.
+- **Failed:** retain the exact error and check fills before taking recovery action.
+- **Completed:** follow the fill to the transaction and verify the intended balance change.
+
+See [Strategy Troubleshooting](/operate/strategy/troubleshooting) for the blocked-stage checklist.

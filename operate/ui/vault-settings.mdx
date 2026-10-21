@@ -15,7 +15,7 @@ Prepare endpoints return transaction data. They do not mutate protocol state by 
 
 ## Access Model
 
-Primary managers own sensitive vault settings. Secondary managers can operate the vault but do not control primary-only settings such as manager assignment and some security parameters.
+Primary Managers control sensitive vault settings and Secondary Manager assignment. Minimum PPS update interval proposals and cancellations are Primary-only; either manager can prepare execution through Erebor, and anyone can execute the matured proposal onchain.
 
 See [Permissions Model](/operate/permissions) for the full matrix.
 
@@ -39,7 +39,7 @@ These settings are read from vault detail data and changed through signed transa
 
 ## Redeem Timelock
 
-Redeem timelock adds a delay between redemption request and fulfillment eligibility.
+Redeem timelock is an offchain keeper timing setting, not an onchain transaction. The keeper applies the current vault delay to pending requests when checking fulfillment eligibility.
 
 Use it for:
 
@@ -52,12 +52,12 @@ Relevant APIs:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/redeem-timelocks` | GET | List configured timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Set or update multiple vault delays |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's timelock |
-| `/api/v1/settings/redeem-timelock` | POST | Prepare timelock update transaction |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain delay |
 
 <Warning>
-Changing a redeem timelock affects future redemption requests. Existing requests are not retroactively changed.
+Changing the delay also changes eligibility for already-pending requests. Review pending requests before updating it, then read back the saved setting.
 </Warning>
 
 ## Banned Hook Leaves
@@ -79,7 +79,7 @@ The Upkeep panel shows:
 - Whether the vault is active for keeper operations and discoverable in public listing surfaces.
 - Pending upkeep withdrawal proposal, if any.
 
-A vault below its required upkeep threshold is not considered active. Once the required balance is in place, Erebor marks it active and discoverable. Erebor returns this as `upkeep_info` plus `activation`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
+Erebor marks a vault active and discoverable when its upkeep threshold is satisfied or an exemption applies. Read the returned threshold, shortfall, and `activation` rather than inferring activation from balance alone. Upkeep data is returned as `upkeep_info`; upkeep withdrawal lifecycle is returned separately as `withdrawal_status`.
 
 ### Deposit Upkeep
 
@@ -178,14 +178,14 @@ Troubleshooting:
 | `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
 | `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
 | `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
-| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain keeper delay |
 | `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
 | `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
 | `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep balance and pending withdrawal state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |

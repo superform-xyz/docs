@@ -1,73 +1,38 @@
 ---
 title: "Action Config"
-description: "Reference for the action_config block that dispatches strategy results into OMS intents."
+description: "Select a deposit action, check its generated parameters, and confirm input units."
 ---
 
-`action_config` tells the Strategy Engine what OMS intent to publish when a strategy's rules pass.
+## Choose the action
 
-## Fields
+For the [reserve-deposit exercise](/operate/strategy/quickstart), use one same-asset source and one deposit step. Configure it in the editor rather than copying another vault's encoded parameters.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `action` | Yes | Strategy action, such as `DEPOSIT`, `WITHDRAWAL`, `CLAIM`, `REBALANCE`, `SWAP`, or `BRIDGE`. |
-| `size_expr` | Yes | Numeric expression for the amount to execute, in underlying asset base units. |
-| `objective` | Yes | Execution preference: `MIN_SLIPPAGE`, `MIN_TIME`, or `BALANCED`. |
-| `execution_name` | Yes | Hook identifier from the hook registry. |
-| `execution_address` | Yes | Hook contract address for the target chain. |
-| `target_address` | Yes | Yield source, route target, or protocol address being acted on. |
-| `from_address` | Yes | Account or executor address used for the intent. |
-| `target_type` | Yes | Source family, such as `erc4626` or `pendle_pt`. |
-| `execution_params` | Optional | Hook-specific encoded parameters. |
-| `max_slippage_bps` | Optional | Maximum allowed slippage in basis points. |
-| `reason` | Optional | Human-readable explanation shown in operator and audit surfaces. |
+| Your selection or input | What the application builds | Review before saving |
+|---|---|---|
+| **Yield source**: select the prepared source | Target address and source metadata | Correct chain, source, and underlying token |
+| **Action**: choose the supported asset-consuming deposit hook | Ordered action step and its deployed hook | Assets go into the source; shares come back |
+| Required hook parameters | Source, token, oracle, and encoded arguments | Resolved values match this vault; no missing-parameter error |
+| **Size expression**: the reserve formula | Raw input amount expression | Denomination is the underlying asset, not shares |
+| **Execution optimization**, **Max slippage (bps)**, **Signal lifespan** | Routing preference, slippage budget, and duration | Values match the approved venue policy |
 
-## Target Requirements
+For a supported ERC-4626 source, the action may be **ApproveAndDeposit4626VaultHook**. Let the registry determine the deployed hook and required parameters. Do not substitute an address from this guide or another chain.
 
-Before an action can execute, the target must be operationally allowed:
+If token metadata or required parameters have not resolved, do not create the strategy. A visible one-step deposit is the expected route for this exercise; an unexpected swap, redemption, or extra step requires review.
 
-- The target yield source is whitelisted for the vault.
-- The source has a compatible oracle where pricing is required.
-- The hook exists in the active merkle config.
-- The active merkle tree has been generated, synced onchain when required, and published for proof consumers.
-- The vault has OMS/session-key readiness.
-- The vault is not paused, and the target is not locked by an active emergency exit.
+## Check what is saved
 
-See [Yield Source Management](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [OMS API](/operate/api/oms).
+The generated execution plan is stored at `action_config.execution_params.plan.steps`, with the strategy execution account at `execution_params.strategy_address`. Each step records its hook, chain, target, arguments, and input/output effects. It is generated configuration to inspect, **not JSON to paste into the rule editor**.
 
-## Action Notes
+The current plan cannot be replaced with a legacy body containing only `execution_name` and `execution_address`. After **Create / Save**, reopen the definition and verify the selected source and action survived the round trip.
 
-| Action | Notes |
-|--------|-------|
-| `DEPOSIT` | Usually targets a whitelisted yield source and sizes from idle assets. |
-| `WITHDRAWAL` | Usually targets a source allocation and needs withdrawal hook proof coverage. |
-| `CLAIM` | Claims rewards or proceeds when the protocol/source supports it. |
-| `REBALANCE` | Moves allocation between sources; model the route and source authorization carefully. |
-| `SWAP` | Requires route/slippage constraints and target authorization. |
-| `BRIDGE` | Requires bridge route, destination-chain controls, and stricter incident monitoring. |
+## Keep the size in the first step's units
 
-## Example
+The reserve formula returns raw underlying assets because the chosen deposit hook consumes those assets. A redemption hook can instead consume raw source shares; a token action can consume a different token. The action label alone does not determine units.
 
-```json
-{
-  "action": "DEPOSIT",
-  "size_expr": "min(vault_free_assets, 0.05 * vault_tvl)",
-  "objective": "BALANCED",
-  "execution_name": "ApproveAndDeposit4626VaultHook",
-  "execution_address": "0xdcAfC76B2f777bBA2d1e6C535F73AcA3dBe558F4",
-  "target_address": "0x0000000000000000000000000000000000000001",
-  "from_address": "0x41B8E24c97c64c1CC06c46f22DBa119f65603278",
-  "target_type": "erc4626",
-  "max_slippage_bps": 50,
-  "reason": "Deploy capped idle assets into the active ERC-4626 source"
-}
-```
+Positive fractional sizes are truncated toward zero before intent publication. Use the tested integer-ratio reserve formula from the writing guide and check one-raw-unit boundaries. A zero amount is not an executable deposit.
 
-## Operational Review
+For a multi-step plan, later steps may use the preceding hook's reported amount through `use_prev_hook_amount`. Do not independently size each step as though the first amount had the same denomination throughout.
 
-Before switching a strategy to `RUNNING`, review:
+## Keep execution checks separate
 
-- The `size_expr` cannot consume more than the vault/source can safely supply.
-- The action does not overlap with another strategy in the same lane unless the priority ordering is intentional.
-- The target has emergency exit coverage if it can hold material liquidity.
-- `max_slippage_bps` matches the liquidity profile of the action.
-- The reason is clear enough for Incident History and postmortems.
+A valid saved plan does not prove balances, liquidity, hook authorization, pricing, session-key readiness, or transaction success. Resolve blockers through [Yield Sources](/operate/ui/yield-sources), [Merkle Trees](/operate/ui/merkle-trees), and [Pause Operations](/operate/ui/pause). Verify actual execution in [Intent History](/operate/ui/intent-history).

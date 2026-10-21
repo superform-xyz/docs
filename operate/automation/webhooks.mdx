@@ -6,15 +6,15 @@ description: "Use notification channels, audit logs, and polling to stream Super
 Operate exposes two event surfaces for operators:
 
 1. **Notification channels** for routed operational alerts.
-2. **Audit logs and polling** for integration-grade event reconstruction.
+2. **Audit logs and polling** for investigating operations and reconciling state.
 
-Use notification channels for humans and incident destinations. Use audit logs / state polling for deterministic integrations.
+Use notification channels for incident delivery and audit records for investigation. Neither guarantees a complete execution ledger.
 
 ## Notification Channels
 
-Create a channel, then bind it to the vaults that should send alerts.
+Create a channel, then bind it to the vaults that should send alerts through [Vault Settings](/operate/ui/vault-settings#alert-delivery). These are upstream route references, not self-service automation requests; see [Authentication](/operate/authentication).
 
-```bash
+```text
 # List or create channels
 GET /api/v1/notification-channels
 POST /api/v1/notification-channels
@@ -27,7 +27,7 @@ POST /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id
 DELETE /api/v1/vaults/{chain_id}/{vault_address}/notification-channels/{channel_id}
 ```
 
-Recommended alert categories:
+Confirm which alert categories your configured channel delivers:
 
 - Upkeep shortfall or activation loss.
 - PPS staleness.
@@ -42,87 +42,33 @@ See [Vault Settings](/operate/ui/vault-settings#alert-delivery) for the operator
 
 ## Audit Logs as an Event Stream
 
-The audit log endpoint records vault operations and manager actions:
+The authenticated audit endpoints record manager and configuration actions:
 
-```bash
+```text
 GET /api/v1/audit/logs
-Authorization: Bearer <jwt>
-
-# Query params:
-# ?vault_address={addr}&chain_id={id}
-# &limit=100&offset=0
-# &action_type={type}
-# &from_timestamp={iso}&to_timestamp={iso}
-```
-
-```json
-{
-  "logs": [
-    {
-      "id": "uuid",
-      "timestamp": "2026-05-09T10:00:00Z",
-      "action_type": "yield_source_add",
-      "vault_address": "0x...",
-      "chain_id": 8453,
-      "actor_wallet": "0xManager...",
-      "details": {
-        "yield_source": "0xMorphoVault...",
-        "oracle": "0xOracle..."
-      }
-    }
-  ],
-  "total": 48,
-  "has_more": false
-}
-```
-
-Export when you need a point-in-time compliance artifact:
-
-```bash
 GET /api/v1/audit/export
-Authorization: Bearer <jwt>
 ```
+
+| List query | Meaning |
+|---|---|
+| `start_time`, `end_time` | Inclusive event-time bounds, formatted as RFC 3339 timestamps |
+| `limit`, `offset` | Page size and offset |
+| `action`, `status` | Operation and outcome filters |
+| `resource_type`, `resource_id` | Resource filters; not a universal vault filter |
+| `actor`, `correlation_id` | Actor and request-correlation filters |
+
+Rows use `id`, `created_at`, `action`, `resource_type`, `actor`, and `status`, with optional `resource_id`, `details`, and `correlation_id`. Validate the deployed response envelope in your approved integration before reading rows or pagination metadata.
+
+Use export for a point-in-time audit artifact, not as proof of transaction settlement.
 
 ## Polling Pattern
 
-```python
-import requests
-import time
-from datetime import datetime, timezone
+1. Fix `start_time` and `end_time` for the scan, with an overlap for delayed arrivals.
+2. Traverse all pages with `limit` and `offset` within a bounded request budget. On any error, invalid response, or budget exhaustion, retain the previous checkpoint.
+3. Deduplicate by event `id` and process the complete window durably before advancing the watermark to the greatest observed `created_at`. An empty window leaves it unchanged; never advance to local wall-clock time after one page.
+4. Periodically replay a wider window and reconcile against exports and current state.
 
-EREBOR_URL = "https://erebor.superform.xyz"
-headers = {"Authorization": "Bearer <jwt>"}
-CHAIN_ID = 8453
-VAULT = "0xYourVault..."
-
-def poll_audit_logs(since: datetime):
-    resp = requests.get(
-        f"{EREBOR_URL}/api/v1/audit/logs",
-        headers=headers,
-        params={
-            "vault_address": VAULT,
-            "chain_id": CHAIN_ID,
-            "from_timestamp": since.isoformat(),
-            "limit": 100,
-        },
-        timeout=15,
-    )
-    resp.raise_for_status()
-    return resp.json().get("logs", [])
-
-last_check = datetime.now(timezone.utc)
-
-while True:
-    new_events = poll_audit_logs(since=last_check)
-    for event in new_events:
-        print(f"New event: {event['action_type']} by {event['actor_wallet']}")
-        # Process event...
-
-    if new_events:
-        last_check = datetime.now(timezone.utc)
-
-    time.sleep(60)
-```
+Results are ordered by `created_at DESC`, without a stable timestamp-plus-ID cursor or cross-page snapshot. Concurrent inserts, equal timestamps, and arrivals outside the overlap can still cause omissions; offset polling is not lossless ingestion.
 
 ## State Polling Map
 
@@ -131,8 +77,8 @@ while True:
 | Vault state changes | `GET /api/v1/vaults/{chain_id}/{address}` |
 | Service degradation | `GET /api/v1/vaults/{chain_id}/{vault}/services` |
 | Operation events | `GET /api/v1/audit/logs` |
-| PPS staleness | Vault detail PPS timestamps and remaining staleness |
+| PPS staleness | Vault detail `pps_info` timestamps and configured interval |
 | Intent execution | `GET /api/v1/intents` and OMS event/fill endpoints |
 | Emergency locks | `GET /api/v1/engine/shards/{vault_id}/state` |
 
-See [Monitoring Vault State](/operate/automation/monitoring) for production-ready polling examples.
+See [Monitoring Vault State](/operate/automation/monitoring) for field checks and unknown-state handling.

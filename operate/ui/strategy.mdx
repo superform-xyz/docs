@@ -1,166 +1,41 @@
 ---
 title: "Strategy Canvas"
-description: "Build, order, run, and monitor automated SuperVault strategies."
+description: "Find a strategy, review its action, and distinguish saving from starting."
 ---
 
-![SuperformOS Strategy Canvas — automated vault strategy lanes and controls](/operate/images/screenshots/strategy.jpg)
+## Read the canvas
 
-<Note>
-New to strategy authoring? Start with [Strategy Quickstart](/operate/strategy/quickstart), then use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config) as field references.
-</Note>
+![Existing superWETH canvas with redemption strategies on the left, the vault asset pool in the center, and deposit strategies on the right](/operate/images/screenshots/strategy.jpg)
 
-The Strategy Canvas is where operators define automated vault behavior. Strategies evaluate rules on ticks and dispatch DeFiX intents to the OMS when conditions pass.
+The screenshot shows an existing superWETH configuration, not the reserve exercise below. Read the canvas from the central **Vault Asset Pool**:
 
-Public SuperVault detail pages expose the canvas as a read-only tab. Manager actions such as create, update, reorder, run, stop, and archive are available only in the authenticated Operate surface.
+- **Deposit strategies** deploy idle assets into a yield source.
+- **Redemption strategies** return assets from a source to idle.
+- **Rebalance strategies** configure other supported routes.
 
-The canvas is organized by action lane:
+Choose a strategy card to inspect its definition where your role permits it. Public vault pages are read-only; access to a public canvas does not grant access to the manager editor.
 
-| Lane | Actions | Purpose |
-|------|---------|---------|
-| Inflow | `DEPOSIT` | Deploy idle assets into yield sources |
-| Outflow | `WITHDRAWAL`, `CLAIM` | Source liquidity and claim proceeds |
-| Rebalance | `REBALANCE`, `SWAP`, `BRIDGE` | Move capital between sources or routes |
+## Create or change a strategy
 
-## Strategy Lifecycle
+In the authenticated **Strategy** view, use **Add deposit strategy** for the [reserve-deposit exercise](/operate/strategy/quickstart). It uses one source, two rule conditions, and one size expression. Keep the exercise inactive.
 
-| State | Meaning |
-|-------|---------|
-| `CREATED` | Drafted but not active |
-| `IDLE` | Ready but not ticking |
-| `RUNNING` | Evaluating rules and eligible to publish intents |
-| `ERROR` | Runtime error; inspect logs/events |
-| `ARCHIVED` | Soft-deleted |
+For an existing strategy, record its ID, version, target, and state before editing. Follow the [safe-update sequence](/operate/strategy/quickstart#update-an-existing-strategy), rather than saving over a running definition.
 
-The Strategy Engine API currently models these states directly. Vault-level kill switches and emergency locks can still prevent a strategy from publishing even when the stored state is `RUNNING`.
+| State | What to do |
+|---|---|
+| `CREATED` or `IDLE` | Review the saved definition; it is not running |
+| `RUNNING` | Check the rule and execution readiness; running does not guarantee an intent |
+| `ERROR` | Inspect the error before restarting |
+| `ARCHIVED` | Treat as historical, not an active strategy |
 
-## Create or Update a Strategy
+**Create / Save** persists configuration. Starting is a separate lifecycle action. Stopping prevents new strategy activity but does not cancel an intent already submitted to OMS.
 
-A strategy contains:
+## Review order and blockers
 
-- Name.
-- Indicators.
-- Rule tree.
-- Action config.
-- Conviction config.
-- Risk parameters.
-- Cooldown and concurrency controls.
+Drag within a lane to change order. Priority is server-managed, not a create/update field. Ordering and per-strategy concurrency do not reserve a shared token balance across strategies.
 
-Create and update calls do **not** carry priority. Ordering is handled by the dedicated reorder endpoint.
+Card order does not sequence transactions or create execution dependencies between strategies.
 
-Updates require a `version` for optimistic concurrency. A stale version returns `409 Conflict`.
+A session-key gate, vault kill switch, or target emergency lock can block execution. Resolve the cause; do not bypass it by creating another strategy. Emergency exits are managed in [Pause Operations](/operate/ui/pause), not the normal editor.
 
-## Authoring References
-
-Strategy authoring is split into focused references:
-
-| Page | Use it for |
-|------|------------|
-| [Strategy Quickstart](/operate/strategy/quickstart) | Build and POST a first deposit/withdrawal reserve manager. |
-| [Strategy DSL](/operate/strategy/dsl) | Rule tree syntax, expressions, variables, and validation behavior. |
-| [Action Config](/operate/strategy/action-config) | OMS dispatch fields and yield-source execution requirements. |
-| [Strategy Troubleshooting](/operate/strategy/troubleshooting) | Diagnose strategies that do not tick, publish, or fill. |
-| [Strategy Anti-Patterns](/operate/strategy/anti-patterns) | Avoid designs that pass validation but fail operationally. |
-
-## Reorder Strategies
-
-Drag within a lane to change priority. The UI persists order through:
-
-```bash
-POST /api/v1/strategies/reorder
-```
-
-The request includes `vault_id`, `lane`, and the complete ordered list of non-archived strategy IDs for that lane. The backend atomically assigns priorities `1..N` from list position.
-
-<Note>
-The ordered list must include every non-archived strategy in the lane exactly once. Priority is server-managed; create and update requests no longer set it.
-</Note>
-
-## Rule Trees
-
-Rules are boolean trees:
-
-| Node | Meaning |
-|------|---------|
-| `EXPR` | Evaluate one expression |
-| `AND` | All children pass |
-| `OR` | At least one child passes |
-| `NOT` | Negate one child |
-| `VOTE` | N-of-M children pass |
-
-Conviction config can require repeated passing ticks before publishing an intent.
-
-## Action Config
-
-Action config tells the engine what to do after rules pass. Common fields include:
-
-- `action`
-- `size_expr`
-- `objective`
-- `execution_name`
-- `execution_address`
-- `target_address`
-- `from_address`
-- `target_type`
-- `execution_params`
-- `max_slippage_bps`
-
-A target must be whitelisted and authorized by the active merkle root before OMS execution can succeed.
-
-## Emergency Locks
-
-Emergency liquidity exits create target-scoped locks. While a lock exists for a yield source address:
-
-- User-defined strategies targeting that address cannot publish new intents.
-- Affected toggles and reorder handles are disabled in the UI.
-- Strategies on other targets remain operable.
-- The paired `EMERGENCY_EXIT` strategy is controlled from [Pause Operations](/operate/ui/pause), not the normal editor.
-
-The canvas reads `emergency_locks` from shard / vault state and displays a banner when active.
-
-## Intent History
-
-The Intent History view is the operator-facing execution ledger for strategies. It maps Strategy Engine projections to OMS events and fills.
-
-Use it to answer:
-
-- Which strategy created the intent?
-- What lifecycle state is it in?
-- Which OMS events have arrived?
-- Were fills mined?
-- What gas was used?
-- Which transaction hash settled the fill?
-
-Prefer the search endpoint for new tooling:
-
-```bash
-GET /api/v1/intents
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills
-```
-
-See [Strategy Engine API](/operate/api/strategy) and [OMS API](/operate/api/oms).
-
-## Session Key Gate
-
-Strategies need OMS execution readiness. If a vault lacks a valid session key, the canvas blocks automation and points operators to grant or renew the key.
-
-See [OMS API](/operate/api/oms#session-keys) for the session-key endpoints.
-
-## API Reference
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/strategies` | GET | List strategies with filters |
-| `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | GET | Get strategy |
-| `/api/v1/strategies/{id}` | PUT | Update strategy with version |
-| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition lifecycle state |
-| `/api/v1/strategies/reorder` | POST | Persist lane order |
-| `/api/v1/intents` | GET | Search intent history |
-| `/api/v1/intents/facets` | GET | Intent filter facets |
-| `/api/v1/intents/{intent_id}/events` | GET | OMS event timeline |
-| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
-| `/api/v1/fills` | GET | Search fills across intents |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state and emergency locks |
+After an approved start, open [Intent History](/operate/ui/intent-history) to follow a real intent through its fill and transaction. For the expression and generated plan, use [Strategy DSL](/operate/strategy/dsl) and [Action Config](/operate/strategy/action-config).

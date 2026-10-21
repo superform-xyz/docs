@@ -7,7 +7,7 @@ Erebor is the SuperVaults management API. It powers vault reads, settings prepar
 
 **Base URL:** `https://erebor.superform.xyz`
 
-**Auth:** `Authorization: Bearer <jwt>` except public endpoints
+**Access:** These are upstream service paths. Browser requests use the session-mediated BFF; programmatic access requires an approved endpoint, identity, and scope. See [Authentication](/operate/authentication).
 
 <Note>
 For onchain changes, Erebor prepares calldata and the manager wallet signs the transaction. The REST request is not the state change; the signed transaction is.
@@ -57,22 +57,24 @@ Distribution metadata is handled by the dashboard/listing layer after vault addr
 | `/api/v1/settings/pps-expiration/propose` | POST | Prepare PPS-expiration proposal transaction |
 | `/api/v1/settings/pps-expiration/execute` | POST | Prepare PPS-expiration execution transaction |
 | `/api/v1/settings/pps-expiration/cancel` | POST | Prepare PPS-expiration cancellation transaction |
-| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove redeem timelock |
+| `/api/v1/settings/redeem-timelock` | GET/PUT/DELETE | Read, update, or remove the offchain keeper delay |
 | `/api/v1/settings/banned-hook-leaves` | GET | Read banned hook leaves |
 | `/api/v1/settings/banned-hook-leaves/update` | POST | Prepare banned-hook-leaf update transaction |
 | `/api/v1/settings/min-update-interval` | GET | Read minimum PPS update interval |
 | `/api/v1/settings/min-update-interval/propose` | POST | Prepare min-update-interval proposal transaction |
 | `/api/v1/settings/min-update-interval/execute` | POST | Prepare min-update-interval execution transaction |
 | `/api/v1/settings/min-update-interval/cancel` | POST | Prepare min-update-interval cancellation transaction |
-| `/api/v1/settings/upkeep` | GET/POST | Read or prepare upkeep settings update |
+| `/api/v1/settings/upkeep` | GET | Read upkeep balance and pending withdrawal state |
 | `/api/v1/settings/upkeep/deposit` | POST | Prepare upkeep deposit |
 | `/api/v1/settings/upkeep/withdraw/propose` | POST | Prepare upkeep withdrawal proposal |
 | `/api/v1/settings/upkeep/withdraw/execute` | POST | Prepare upkeep withdrawal execution |
 | `/api/v1/redeem-timelocks` | GET | List redeem timelocks |
-| `/api/v1/redeem-timelocks/bulk` | GET | Bulk redeem timelock lookup |
+| `/api/v1/redeem-timelocks/bulk` | PUT | Set or update multiple vault delays |
 | `/api/v1/vaults/{chain_id}/{vault_address}/redeem-timelock` | GET | Read one vault's redeem timelock |
 
-Upkeep data drives activation and discoverability in the dashboard. Operators should treat insufficient upkeep as a launch blocker.
+Redeem timing is offchain keeper policy: the current delay applies to pending requests, including requests submitted before the setting changed.
+
+Upkeep data drives activation and discoverability in the dashboard. Read the returned threshold, shortfall, and effective activation status; exemptions can activate a vault below the funding threshold.
 
 Current upkeep responses use:
 
@@ -120,7 +122,7 @@ Current upkeep responses use:
 | `/api/v1/registry/token-assets` | GET | Browse token metadata |
 | `/api/v1/registry/token-assets/{chain_id}/{address}` | GET | Read token metadata |
 
-Yield source registry entries include active/inactive state and can carry external provider metadata. Registry create, update, delete, and sync endpoints are registry-maintainer surfaces, not normal third-party operator flows.
+Yield source registry entries include active/inactive state and can carry external provider metadata. Yield-source creation permits vault managers; other registry mutations have endpoint-specific maintainer policies. Upstream yield-source and oracle reads are public, which does not imply anonymous access through every BFF route.
 
 ## Yield Source Whitelist
 
@@ -177,7 +179,8 @@ Providers include Slack, webhook, and websocket channels.
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/pause` | PUT | Pause service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/{name}/resume` | PUT | Resume service |
 | `/api/v1/vaults/{chain_id}/{vault}/services/enabled` | PUT | Bulk enable/disable services |
-| `/api/v1/vaults/{chain_id}/{vault}/services/{name}` | PUT | Update service config |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/interval` | PATCH | Update service run interval |
+| `/api/v1/vaults/{chain_id}/{vault}/services/{name}/run` | POST | Schedule an expedited keeper visit |
 | `/api/v1/services/bulk` | PUT | Bulk service update |
 
 ## Analytics and Audit

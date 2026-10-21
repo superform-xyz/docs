@@ -1,256 +1,82 @@
 ---
 title: "Strategy Engine API Reference"
-description: "Create, order, execute, and inspect SuperVault strategies, intents, fills, and emergency locks."
+description: "Strategy definitions, lifecycle, execution plans, and read-only intent inspection."
 ---
 
-The Strategy Engine evaluates manager-defined rules and dispatches DeFiX intents to the OMS. It owns strategy lifecycle state, lane ordering, live shard state, intent history projections, and emergency locks.
+**Browser prefix:** `https://os.superform.xyz/api/strategy`. Routes below use upstream `/api/v1` paths. The browser BFF checks the session and vault role and forwards upstream credentials server-side. Direct service writes require a separately approved integration; this reference is not a token-acquisition or writer tutorial.
 
-**Base URL:** `https://strategy.superform.xyz`
+`vault_id` uses `chainId_vaultAddress`, such as the public Flagship USDC vault ID `8453_0x11820afe50ea96851ee2bdbae329d97771e41ec6`. Copy the returned ID instead of reconstructing it from a differently formatted identifier.
 
-**Auth:** `Authorization: Bearer <jwt>`
+## Access boundary
 
-<Note>
-`vault_id` uses `{chainId}:{vaultAddress}` format, for example `8453:0xdef...`. Erebor often uses separate `chain_id` and `vault_address` fields.
-</Note>
+| Surface | Access |
+|---|---|
+| Vault-scoped strategy/intent lists and intent facets | Anonymous only for verified public vaults and allowed filters |
+| Strategy detail, intent detail, intent fills, vault config | Anonymous only after resolving the owning public vault |
+| Intent events, global fills, engine status/shards | Not on the anonymous allowlist |
+| Create, update, lifecycle, reorder, and simulations | Manager authorization required |
+
+Unknown anonymous query keys can be rejected, and anonymous list limits are clamped to 100. A transaction hash or execution ID alone does not establish public vault scope. See [Authentication](/operate/authentication) and the tested [public GET workflow](/operate/ui/intent-history#read-the-same-record-with-public-get).
 
 ## Strategies
 
-### List Strategies
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/api/v1/strategies` | List; filter by `vault_id`, `kind`, `state`, `lane`, or `target_address`; paginate with `limit`/`offset` |
+| GET | `/api/v1/strategies/{id}` | Read one definition and version |
+| POST | `/api/v1/strategies` | Create a persisted `CREATED` definition |
+| PUT | `/api/v1/strategies/{id}` | Update with optimistic-concurrency `version` |
+| PATCH | `/api/v1/strategies/{id}/state` | Request `target_state` with the current `version`, subject to lifecycle policy |
+| DELETE | `/api/v1/strategies/{id}` | Archive |
+| POST | `/api/v1/strategies/reorder` | Set lane order |
 
-```bash
-GET /api/v1/strategies?vault_id={vault_id}&limit=50
-```
+Create fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`. Priority is not a create/update field. Reorder uses `vault_id`, `lane`, and `ordered_strategy_ids`, containing every non-archived `USER_DEFINED` strategy in that lane exactly once. Do not include `EMERGENCY_EXIT` definitions.
 
-Filters:
+Read back ID, version, state, rule, size, and plan after a write. On `409 Conflict`, reload and reconcile changes before retrying. Stop and reload before a risk-changing update; stopping does not cancel already submitted OMS transactions. See [safe updates](/operate/strategy/quickstart#update-an-existing-strategy).
 
-- `kind` — `USER_DEFINED` or `EMERGENCY_EXIT`.
-- `state` — lifecycle state.
-- `lane` — `DEPOSIT`, `WITHDRAWAL`, or `REBALANCE`.
-- `target_address` — lowercased target yield source / route address.
-- `limit`, `offset`.
+### Action plan
 
-Emergency strategies are separated by `kind=EMERGENCY_EXIT`; normal editor flows use `USER_DEFINED` by default.
+`action_config` carries the action, numeric `size_expr`, objective, target, execution account, source type, and execution parameters. The current plan is `execution_params.plan.steps`, alongside `execution_params.strategy_address`. Each step specifies its hook, chain, target, arguments, amount-chaining behavior, and effects.
 
-### Create Strategy
+A legacy single-hook body containing only `execution_name` and `execution_address` is not a complete current plan. The editor builds the registry-backed configuration; [Action Config](/operate/strategy/action-config) explains what to select and inspect.
 
-```bash
-POST /api/v1/strategies
-```
+Size uses the **first step's input denomination**, not universally underlying assets. Static validation does not prove runtime arithmetic, data freshness, liquidity, or settlement. See [Strategy DSL](/operate/strategy/dsl).
 
-Required fields include `id`, `vault_id`, `name`, `indicators`, `rules`, `action_config`, and `max_concurrent`.
+### Lifecycle and locks
 
-Priority is not part of create. Use the reorder endpoint after creation.
+`USER_DEFINED` strategies use the normal canvas. System-managed `EMERGENCY_EXIT` strategies belong to [Pause Operations](/operate/ui/pause).
 
-### Update Strategy
+| Method | Route | Purpose |
+|---|---|---|
+| GET / PATCH | `/api/v1/vaults/{vault_id}` | Vault engine configuration |
+| GET | `/api/v1/engine/status` | Engine status |
+| GET | `/api/v1/engine/shards/{vault_id}/state` | Live shard state, including emergency locks |
 
-```bash
-PUT /api/v1/strategies/{strategy_id}
-```
+A lock identifies `strategy_id`, `target_address`, `started_at`, and optional `reason`. It blocks user-defined publication to that target, not every strategy sharing a balance. Emergency exits do not bypass vault kill switches or rate limits.
 
-`version` is required for optimistic concurrency. A stale version returns `409 Conflict`.
+## Intent history
 
-Priority is not part of update. Use the reorder endpoint.
+| GET route | Purpose |
+|---|---|
+| `/api/v1/intents` | Search intent projections |
+| `/api/v1/intents/facets` | Filter counts |
+| `/api/v1/intents/{intent_id}` | Identity, lifecycle, summary, error, and fill count |
+| `/api/v1/intents/{intent_id}/fills` | Per-intent fills and transaction hashes |
+| `/api/v1/intents/{intent_id}/events` | Authorized OMS event audit |
+| `/api/v1/fills` | Authorized cross-intent fill search |
 
-### Transition State
+Search supports `vault_id`, `strategy_id`, action/state, chain, time ranges, and other filters according to access scope. Use repeated array keys, such as `state=FAILED&state=COMPLETED`, not bracketed `state[]`. The [public example](/operate/ui/intent-history) shows a verified filter set. Use the returned `next_cursor` for continued cursor pagination when present; do not assume an older intent remains on page one.
 
-```bash
-PATCH /api/v1/strategies/{strategy_id}/state
-{
-  "target_state": "RUNNING",
-  "version": 12
-}
-```
-
-Allowed target states include `IDLE`, `RUNNING`, `ARCHIVED`, and `ERROR` depending on current state and policy.
-
-For emergency exits, arm requests may include `emergency_arm_reason`.
-
-### Reorder Strategies
-
-```bash
-POST /api/v1/strategies/reorder
-{
-  "vault_id": "8453:0xdef...",
-  "lane": "DEPOSIT",
-  "ordered_strategy_ids": ["strategy-a", "strategy-b"]
-}
-```
-
-The backend atomically assigns priorities `1..N` inside the `(vault_id, lane)` partition.
-
-Rules:
-
-- Include every non-archived strategy in that lane exactly once.
-- Do not include archived strategies.
-- The lane must match the lane derived from each strategy action.
-- Reorder is the only priority persistence path.
-
-## Strategy Kinds
-
-| Kind | Description |
-|------|-------------|
-| `USER_DEFINED` | Manager-authored strategy visible in normal canvas flows |
-| `EMERGENCY_EXIT` | System-managed withdrawal strategy paired to one whitelisted yield source |
-
-`EMERGENCY_EXIT` strategies are controlled from [Pause Operations](/operate/ui/pause). They are read-only in normal strategy editing flows.
-
-## Vault Config and Shards
-
-```bash
-GET /api/v1/vaults/{vault_id}
-PATCH /api/v1/vaults/{vault_id}
-GET /api/v1/engine/status
-GET /api/v1/engine/shards/{vault_id}/state
-```
-
-Vault state includes kill-switch / rate-limit settings. Shard state includes live indicator values, active strategy state, yield-source allocations, and active `emergency_locks`.
-
-An emergency lock has:
-
-```json
-{
-  "strategy_id": "emergency-8453:0xdef-0xsource...",
-  "target_address": "0xsource...",
-  "started_at": "2026-05-09T14:21:00Z",
-  "reason": "Oracle anomaly"
-}
-```
-
-## Intent History
-
-The Strategy Engine maintains an operator-facing projection of OMS intent execution.
-
-### Search Intents
-
-```bash
-GET /api/v1/intents
-```
-
-Common filters:
-
-- `vault_id`
-- `strategy_id`
-- `action`
-- `state`
-- `chain_id`
-- `tx_hash`
-- `token_in`, `token_out`
-- created/completed time ranges
-- amount-in ranges
-- `error_code`
-- free-text search across `intent_id`, `execution_id`, `error_message`, and fill transaction hash
-
-Cursor pagination is preferred for large histories. Default sort is newest first.
-
-### Intent Facets
-
-```bash
-GET /api/v1/intents/facets
-```
-
-Returns counts by state, action, chain, vault, and strategy for filter UIs.
-
-### Events and Fills
-
-```bash
-GET /api/v1/intents/{intent_id}/events
-GET /api/v1/intents/{intent_id}/fills
-GET /api/v1/fills
-```
-
-Use events for lifecycle reconstruction and fills for mined transaction evidence.
-
-Intent rows may include nullable fields while OMS execution is still in flight. For example, `completed_at`, `terminal_at`, `gas_used_total`, and fill data may be `null` until execution events and receipts arrive.
+Match `intent_id`, `strategy_id`, and `execution_id` before interpreting a fill. Lifecycle timestamps and aggregate fields can be absent while execution is in flight. Raw amounts and placeholder token addresses must not be treated as a complete economic result; follow the transaction receipt.
 
 ## Simulations
 
-Simulation endpoints let operators test strategy behavior before live execution. They do not publish OMS intents or submit onchain transactions.
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/v1/simulations/backtest` | Historical model replay |
+| POST | `/api/v1/simulations/ahead` | Forward model run |
+| GET / POST | `/api/v1/simulations/saved` | List or save results |
+| GET / DELETE | `/api/v1/simulations/saved/{simulation_id}` | Read or delete a saved result |
+| POST | `/api/v1/simulations/saved/lookup` | Find an equivalent saved result |
 
-```bash
-POST /api/v1/simulations/backtest
-POST /api/v1/simulations/ahead
-GET /api/v1/simulations/saved
-GET /api/v1/simulations/saved/{simulation_id}
-POST /api/v1/simulations/saved/lookup
-POST /api/v1/simulations/saved
-DELETE /api/v1/simulations/saved/{simulation_id}
-```
-
-Use backtests for historical replay and forward simulations for current-state what-if analysis. See [Simulation](/operate/ui/simulation) for the operator flow.
-
-## Important Schemas
-
-### StrategyResponse
-
-Important fields:
-
-- `id`
-- `vault_id`
-- `name`
-- `version`
-- `state`
-- `kind`
-- `indicators`
-- `rules`
-- `action_config`
-- `priority`
-- `cooldown_ms`
-- `max_concurrent`
-
-### IntentLogEntry
-
-Important fields:
-
-- `intent_id`
-- `execution_id`
-- `strategy_id`
-- `vault_id`
-- `action`
-- `state`
-- `source`
-- `fills_count`
-- `last_event_seq`
-- lifecycle timestamps such as `acked_at`, `executing_at`, `completed_at`, `terminal_at`
-- `error_code`, `error_message`
-- `total_amount_in`, `total_amount_out`
-- `gas_used_total`
-
-### IntentFillEntry
-
-Important fields:
-
-- `fill_id`
-- `intent_id`
-- `execution_id`
-- `chain_id`
-- `tx_hash`
-- `amount_in`, `amount_out`
-- `token_in`, `token_out`
-- `gas_used`
-- `fill_time`
-- `venue`
-
-## Endpoint Inventory
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/strategies` | GET | List strategies |
-| `/api/v1/strategies` | POST | Create strategy |
-| `/api/v1/strategies/{id}` | GET | Get strategy |
-| `/api/v1/strategies/{id}` | PUT | Update strategy |
-| `/api/v1/strategies/{id}` | DELETE | Archive strategy |
-| `/api/v1/strategies/{id}/state` | PATCH | Transition state |
-| `/api/v1/strategies/reorder` | POST | Persist lane order |
-| `/api/v1/intents` | GET | Search intent projections |
-| `/api/v1/intents/facets` | GET | Intent facets |
-| `/api/v1/intents/{intent_id}/events` | GET | OMS event log |
-| `/api/v1/intents/{intent_id}/fills` | GET | Fills for one intent |
-| `/api/v1/fills` | GET | Search fills |
-| `/api/v1/simulations/backtest` | POST | Run a historical strategy simulation |
-| `/api/v1/simulations/ahead` | POST | Run a forward-looking simulation |
-| `/api/v1/simulations/saved` | GET/POST | List or save simulations |
-| `/api/v1/simulations/saved/{simulation_id}` | GET/DELETE | Read or delete a saved simulation |
-| `/api/v1/simulations/saved/lookup` | POST | Find an existing saved simulation for the same inputs |
-| `/api/v1/vaults/{vault_id}` | GET/PATCH | Vault engine config and emergency locks |
-| `/api/v1/engine/status` | GET | Engine status |
-| `/api/v1/engine/shards/{vault_id}/state` | GET | Live shard state |
+Explicit persisted `strategy_ids` can include `CREATED` or `IDLE` definitions. They run in memory without changing production state. Results use synthetic outcomes, not OMS submission. Lookup can load a cached result; unsupported inputs can prevent admission. See [Simulation](/operate/ui/simulation) for run, save, and load controls.

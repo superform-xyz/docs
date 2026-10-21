@@ -15,23 +15,19 @@ Operate is the operator control plane for SuperVaults. Its APIs split by operati
 
 ## Auth
 
-Authenticated endpoints use Dynamic-issued bearer JWTs:
+SuperformOS uses same-origin BFF routes with browser-session and vault-role checks. The server supplies the appropriate upstream authentication; a single curator JWT is not a credential for every service. The reference pages list **upstream paths**, not self-service headless access.
 
-```bash
-Authorization: Bearer <jwt>
-```
-
-Public endpoints, such as published merkle artifacts and public vault listings, do not require an operator JWT.
+Public reads are route-specific. For authenticated automation, agree the endpoint, identity, scope, and rate policy with the Superform team. See [Authentication](/operate/authentication).
 
 ## Prepare, Sign, Confirm
 
-Most protocol mutations follow this model:
+Onchain configuration changes use this model:
 
 1. API prepares calldata.
 2. Wallet signs and submits the transaction.
 3. API / indexer reads resulting state or confirms a transaction hash.
 
-Do not treat a successful prepare request as a completed setting change.
+Do not treat a successful prepare request as a completed setting change. Offchain strategy saves and service settings can apply without a wallet signature; read back their state separately.
 
 ## Vault Identity and Listing State
 
@@ -39,15 +35,15 @@ A vault can be:
 
 - Created onchain.
 - Indexed in Erebor.
-- Active / discoverable after upkeep is funded.
+- Active / discoverable under the current upkeep and exemption policy.
 - Visible and available in Superform distribution surfaces.
 
 Those are related but separate states. The dashboard setup flow tracks them together so operators do not route users into a half-configured vault.
 
 ## Strategy Execution Flow
 
-1. Operator configures hooks and publishes merkle authorization.
-2. Operator whitelists yield sources and pairs oracles.
+1. Operator whitelists yield sources and pairs oracles.
+2. Operator configures hooks, executes the authorized root update after its timelock, and publishes the proof artifacts.
 3. Operator creates and orders strategies.
 4. Strategy Engine evaluates rules and submits DeFiX intents.
 5. OMS validates authorization and executes hook transactions.

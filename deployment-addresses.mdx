@@ -1,38 +1,68 @@
 ---
 title: "Deployment Addresses"
-description: "All Superform v2 contract addresses across Ethereum, Base, Optimism, Arbitrum, BNB, Polygon, Avalanche, Unichain, and HyperEVM."
+description: "Superform v2 contract addresses across all supported chains, including core infrastructure, hooks, yield source oracles, SuperVault contracts, smart accounts, and the $UP token."
 ---
 
-Superform Core v2 contracts are deployed at deterministic addresses across Ethereum, Base, Optimism, Arbitrum, BNB, Polygon, Avalanche, Unichain, and HyperEVM.
+Superform v2 contracts are deployed with deterministic addresses. Unless a table says otherwise, an address is identical on every chain listed in its **Chains** column. Contracts whose address differs per chain, or that exist on a single chain, are listed under [Chain-Specific Addresses](#chain-specific-addresses).
+
+<Note>
+This page is generated from the production deployment outputs of the `v2-core`, `v2-periphery` and `stx-contracts` repositories (last synced 2026-11-24). Hook and oracle addresses change when new versions are deployed, so always verify against the onchain registry before integrating directly.
+</Note>
+
+## Supported Chains
+
+| Chain | Chain ID | Explorer | Core | SuperVaults |
+|---|---|---|---|---|
+| Ethereum | 1 | [etherscan.io](https://etherscan.io) | ✓ | ✓ |
+| Base | 8453 | [basescan.org](https://basescan.org) | ✓ | ✓ |
+| Optimism | 10 | [optimistic.etherscan.io](https://optimistic.etherscan.io) | ✓ |  |
+| Arbitrum | 42161 | [arbiscan.io](https://arbiscan.io) | ✓ |  |
+| BNB Chain | 56 | [bscscan.com](https://bscscan.com) | ✓ | ✓ |
+| Polygon | 137 | [polygonscan.com](https://polygonscan.com) | ✓ |  |
+| Avalanche | 43114 | [snowscan.xyz](https://snowscan.xyz) | ✓ |  |
+| Unichain | 130 | [uniscan.xyz](https://uniscan.xyz) | ✓ |  |
+| HyperEVM | 999 | [hyperevmscan.io](https://hyperevmscan.io) | ✓ | ✓ |
+| Flare | 14 | [flarescan.com](https://flarescan.com) | ✓ | ✓ |
+| Robinhood Chain | 4663 | [robinhoodchain.blockscout.com](https://robinhoodchain.blockscout.com) | ✓ | ✓ |
+| Arc | 5042 | [arc.exploreme.pro](https://arc.exploreme.pro) | ✓ | ✓ |
+| Katana | 747474 | [katanascan.com](https://katanascan.com) | ✓ | ✓ |
+| Gnosis | 100 | [gnosisscan.io](https://gnosisscan.io) | ✓ |  |
+| Sonic | 146 | [sonicscan.org](https://sonicscan.org) | ✓ |  |
+| World Chain | 480 | [worldscan.org](https://worldscan.org) | ✓ |  |
+| Stable | 988 | [stablescan.xyz](https://stablescan.xyz) | ✓ |  |
+| Linea | 59144 | [lineascan.build](https://lineascan.build) | ✓ |  |
+| Berachain | 80094 | [berascan.com](https://berascan.com) | ✓ |  |
 
 ## Core Contracts
 
 ### Infrastructure
 
-| Contract | Address |
-|----------|---------|
-| SuperExecutor | `0x9cC8EDCC41154aaFC74D261aD3D87140D21F6281` |
-| SuperDestinationExecutor | `0x6ac58e854798D4aae5989B18ad5a1C0fF17817EF` |
-| SuperValidator | `0xB46b4773C5F53FF941533F5dfEFFD0713f5f9f8E` |
-| SuperDestinationValidator | `0xADEFF5A0684392C4c273a9C638d1dB8c5dfd0098` |
-| SuperBundler | `0x1101eec94dd79bee1b5a77b96c15ac24a4691e2e` |
-| SuperSenderCreator | `0xBC6FB94D2f10A3B4349F592FFA80C4B7C97C1799` |
-| SuperLedger | `0x04916bB42564CdED96E10F55C059d65E4FCb1Be6` |
-| SuperLedgerConfiguration | `0x2e2D71289CBA19f831856f85DEC7f194B0165e69` |
-| FlatFeeLedger | `0xAb56d09Ad9975116fCeb14970F2fFb3bB0ad683E` |
-| Nexus | `0xA3AA31f8d4Da6005aAfB0d61e5012a64d15F5B3A` |
-| NexusAccountFactory | `0x4153Db38136E74a88A77b51a955A88823820C050` |
-| NexusBootstrap | `0x5eBeb4d51723bA345080D81bBF178D93E84bC9BE` |
-| NexusProxy | `0x8a3A6698C3D142b9dAD80F114947d46671A5290E` |
-| SuperNativePaymaster | `0x2288C49689c2CceD5C5bdd74Ac3b775E61a7A532` |
-| SuperSponsorshipPaymaster | `0x8C71Eb1817a2707E8e40aC978B1993b98F1366aa` |
+| Contract | Address | Chains |
+|---|---|---|
+| SuperExecutor | `0x9cC8EDCC41154aaFC74D261aD3D87140D21F6281` | All |
+| SuperDestinationExecutor | `0x6ac58e854798D4aae5989B18ad5a1C0fF17817EF` | All |
+| SuperValidator | `0xB46b4773C5F53FF941533F5dfEFFD0713f5f9f8E` | All |
+| SuperValidatorV2 | `0x231f9B0fE2554C5b37E92dF51393CcF71F82acE3` | All |
+| SuperDestinationValidator | `0xADEFF5A0684392C4c273a9C638d1dB8c5dfd0098` | All |
+| SuperSenderCreator | `0xBC6FB94D2f10A3B4349F592FFA80C4B7C97C1799` | All |
+| SuperLedger | `0x04916bB42564CdED96E10F55C059d65E4FCb1Be6` | All |
+| SuperLedgerConfiguration | `0x2e2D71289CBA19f831856f85DEC7f194B0165e69` | All |
+| FlatFeeLedger | `0xAb56d09Ad9975116fCeb14970F2fFb3bB0ad683E` | All |
+| SuperNativePaymaster | `0x30C14BF80F5230991B8eB6955437f8Ca8Bd762DE` | All |
+| SuperSponsorshipPaymaster | `0xBdf571ce14e228B370Bf6B4e5fd4cD19013e7Ef9` | All |
+| NativeFeeSponsorship | `0x5F070c16b7e004963210Efe4722F649caCDBe4a5` | All |
+
+The SuperBundler operator address is `0x1101eec94dd79bee1b5a77b96c15ac24a4691e2e` on every chain. It is an externally owned account used by the bundler service, not a deployed contract.
 
 ### Bridge Adapters
 
-| Contract | Address |
-|----------|---------|
-| AcrossV3Adapter | `0x4dC34c4Eb23973F3551526C2AFE8ffb7f70F0fD7` |
-| DebridgeAdapter | `0x5bE003c2cD2DaCD4Cd23488DB7E74568475a36d8` |
+| Contract | Address | Chains |
+|---|---|---|
+| DebridgeAdapter | `0x5bE003c2cD2DaCD4Cd23488DB7E74568475a36d8` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, HyperEVM, Robinhood Chain, Arc, Gnosis, Sonic, Linea, Berachain |
+| RelayAdapter | `0xcf91365ee9D079CCF0E09eF228aFeC45AFf676F2` | All except Flare |
+| RelayAdapterV2 | `0x85071489810C560D66112fEc6f236ec6f30E9cF4` | All except Flare |
+
+The following adapters have a different address on each chain and are listed under [Chain-Specific Addresses](#chain-specific-addresses): `AcrossV3Adapter`, `AcrossV3AdapterV2`, `CCTPAdapter`, `CircleGatewayAdapter`, `StargateAdapter`, `StargateAdapterV2`.
 
 ### Hooks
 
@@ -40,125 +70,1044 @@ Superform Core v2 contracts are deployed at deterministic addresses across Ether
 Hook addresses may vary across chains. Always verify hook addresses against the onchain registry before integrating directly.
 </Warning>
 
-| Contract | Address |
-|----------|---------|
-| AcrossSendFundsAndExecuteOnDstHook | `0x39962bE24192d0d6B6e3a19f332e3c825604d16A` |
-| ApproveAndAcrossSendFundsAndExecuteOnDstHook | `0x72422aB917e4a698369767F7AcE667a769E0F3f2` |
-| ApproveAndDeposit4626VaultHook | `0xF37535D96712FBaEf6D868e721E7b987ad1E6A86` |
-| ApproveAndDeposit5115VaultHook | `0x44c7a40f05771FdAEAee61f36902D95cbf593988` |
-| ApproveAndRequestDeposit7540VaultHook | `0x840B2b0553683dE46c5e6382D1a405f44773b43F` |
-| ApproveAndSwapKyberSwapHook | `0xdC9D10d9710DBf82924a3F7733293457Ad12D37D` |
-| ApproveAndSwapOdosV2Hook | `0x067696e1EfBD25cAfD3B55648ED253C20A7d9671` |
-| ApproveERC20Hook | `0x8b789980dc6cC7d88E30C442D704646ff7F6d306` |
-| BatchTransferFromHook | `0x816d5de8835FB7A003896f486fCce46a6DEBB00A` |
-| BatchTransferHook | `0x852c6E00A7eC7590318DEAaD03030d4ddD74C93a` |
-| CancelDepositRequest7540Hook | `0x0BBA42ddaa6ef6CCd228BD6270565F87154E921A` |
-| CancelRedeemRequest7540Hook | `0x542601AfAEeB2E5dFc7d1F2fEEF5911285f0c2c0` |
-| CircleGatewayAddDelegateHook | `0xa7aE1263fd7D6017770147393CE130f16E1fE2cC` |
-| CircleGatewayMinterHook | `0x659b720a5E8E08D2c379165D17bA5F74dd104824` |
-| CircleGatewayRemoveDelegateHook | `0x00FbC4e3608A26E0d05905759C2A6188fDa0e2Cd` |
-| CircleGatewayWalletHook | `0x6383d09cF761FeAa4108B65130793c7eDA356dB5` |
-| ClaimCancelDepositRequest7540Hook | `0xdf958A047D90b202A7097b5f9B67Bb8CB5285858` |
-| ClaimCancelRedeemRequest7540Hook | `0x0668f9a638f34928f0bD91588E7B157F0699D594` |
-| DeBridgeCancelOrderHook | `0xc5DbbBe2D8B9ff884a7ed33f1352021CD2b482C9` |
-| DeBridgeSendOrderAndExecuteOnDstHook | `0x162225095A384787a257bced9b8893b29C8f1795` |
-| Deposit4626VaultHook | `0xa067037B29431C1ff23dEB9b10CC8a1669B0698E` |
-| Deposit5115VaultHook | `0x32209A2302865784bC1Dc0bd3C55D0A6eB205851` |
-| Deposit7540VaultHook | `0x0aB1b12E090775fA67DF6e1b44DFAEe676C1DC84` |
-| EthenaCooldownSharesHook | `0x1bD7698cc3E3f4cCF5D6CBC74a611bdDEaB18aeF` |
-| EthenaUnstakeHook | `0xaEBeEc6548B727fd4f3464B19D99f4676d7e7796` |
-| MarkRootAsUsedHook | `0xE61774Aa87a05fB1B5665158F2b5E0E10C71B5e2` |
-| MerklClaimRewardHook | `0x6C12D4453Ed2278B37eCd169F4B8693537b228Df` |
-| MetaMorphoReallocateHook | `0x0709C6211aDaf33D218275FdaceEA7d8c872Ab79` |
-| MorphoBorrowHook | `0x860EC9cFA60C0FD3c0b5940C2C3376cfc57DaaF1` |
-| MorphoLendHook | `0xFdA77d57d22c7EB62ef768212BA8B08f82c9b5E3` |
-| MorphoRepayAndWithdrawHook | `0x65f289Cdf87b54095401A17af3C3Eb626B8e5e01` |
-| MorphoRepayHook | `0xF78c9aB2AD1104a0597a1E32e4b2F5e074C5c4a2` |
-| MorphoSupplyAndBorrowHook | `0xAf77F98fd73524253A19086105c6C3944039053d` |
-| MorphoSupplyHook | `0xa8d51a5E4D774D5FD65a915aF732AC23c388D1dc` |
-| MorphoWithdrawHook | `0x2E80aace37Fb7A9C858B9398f23Dd3e771D52B22` |
-| OfframpTokensHook | `0xFbbD9a7026E29e889d28882606660fc5Be0BeA73` |
-| PendleRouterRedeemHook | `0xAae2DB58E2f426b910f518cCbB627545aEdaff2F` |
-| PendleRouterSwapHook | `0x02A0A95C379220E9759960A8Ee923cBbC2d305cd` |
-| PendleUnifiedHook | `0x433f9A343e4132a294e02D4a09Da4b575EebA9aD` |
-| RecordPurchasePendlePTAmortizedOracleHook | `0x771D4fF615F87eA00488a2dbcb70DF98BDA03FA3` |
-| RecordPurchasePendlePTAmortizedOracleHookV2 | `0xA0E61eb90817E28aBbb5a40045921B69bb784431` |
-| RecordRedemptionPendlePTAmortizedOracleHook | `0xb68a34AF34E64a8b3bB72983088ACeB2fAE326Fc` |
-| RecordRedemptionPendlePTAmortizedOracleHookV2 | `0x2A4F700923324B14bd546630Fe87B1ee08C89634` |
-| Redeem4626VaultHook | `0x5c3edf3F7c43828Bb72a668e2B29f9e2D9Af5A69` |
-| Redeem5115VaultHook | `0x6aB1fD107825F9bB3E079d23508A07486b44e6F5` |
-| Redeem7540VaultHook | `0xE165FBBc89a60756F57Cf0E34c04c35Cc1BbA79D` |
-| RequestDeposit7540VaultHook | `0xBE7738b26992a322D53edEb9a39331Bf11b60097` |
-| RequestRedeem7540VaultHook | `0x9c21c130aCF3EADd781AE79d75FF5fC4Bd216797` |
-| SetOperator7540Hook | `0x86f9DcE0a1A83C501Ba95a1aB1088d67978636A8` |
-| SetSlippageHook | `0x6551d0140FFdB28920E5e84DC3DA31f4bfe4364E` |
-| Swap1InchHook | `0x1303d5f3e3D9e4a81945cB0C2e309E1940d2425C` |
-| SwapKyberSwapHook | `0x828d8a9c015CEf90b373a071500AE463eD204dF9` |
-| SwapOdosV2Hook | `0xf09106eAA87a5d81DAcFC91F6F564131c57495bE` |
-| TransferERC20Hook | `0x6031c3953BC12D9Af4651B7ed517190A31a67ca4` |
-| TransferHook | `0x0d54e1b4060bBD598eE6ec8F7A587fF1789164E9` |
+Hooks below share one address on every chain in their **Chains** column. Hooks whose address differs per chain (for example the Morpho, Across, Odos V2, Uniswap and PancakeSwap hooks) and hooks deployed on a single chain only are listed under [Chain-Specific Addresses](#chain-specific-addresses).
 
-### Yield Source Oracles
+| Contract | Address | Chains |
+|---|---|---|
+| AaveV3BorrowHook | `0xDAF819b14C9E999FDCf821249a257cB93D9F3267` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3RepayAndWithdrawHook | `0xB57ed9e213172bA3Ff1aAB1C225eF28103481C20` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3RepayAndWithdrawHookV2 | `0x532D4aa252C242Cbcff6CEb847ba6d7d2aA6ce14` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3RepayHook | `0xEdf49238fC9706854E96680B34A36782a24d9407` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3RepayHookV2 | `0x391f81374176AfF74004b1250F0b8BCaeA2C5Cef` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3RepayWithATokensHook | `0xC952CD244b4DCf14B4E2B5F0992b56F9b9446b73` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3SupplyAndBorrowHook | `0xc67b44CDA5eFC466ce8c59a48a4B0296f08CC460` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3SupplyAndBorrowHookV2 | `0xb6Eb33Bb29c7a79f791b0CFe040Fa2efF8087bdA` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3SupplyHook | `0x37941a6f3A50Eea73Ec38F44356a6Ac7Fe356c7C` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV3WithdrawHook | `0xA8c040e9C4108A4d8Ed301bdd20A66126265AA5C` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Gnosis, Sonic, Linea |
+| AaveV4BorrowHookV2 | `0xa8f63E4B3bB2b5204ad0C4a2a6a15B0F11729ed8` | All |
+| AaveV4HealthCheckHook | `0xcd22923e8f7887Faa553c346466Ce904EE198035` | All |
+| AaveV4LendHook | `0x354c65273D036AF8370f6d420254cF364A14E985` | All except Linea |
+| AaveV4RedeemHook | `0xb58519C59563D90a826292E72831e64A96Ca6309` | All except Linea |
+| AaveV4RepayAndWithdrawHookV2 | `0x068709a98221898FE27635f47d93bf20bAA21982` | All |
+| AaveV4RepayHookV2 | `0x86E7A61500925aFd9B5786823d7ae40A5DfF0fbF` | All |
+| AaveV4SupplyAndBorrowHookV2 | `0xF048EbB90af93cC8783645E3E790a8E770f54cb2` | All |
+| AaveV4SupplyHookV2 | `0xC0aC4F15eEf42a69cEf5c46096b4148A756a2F6D` | All |
+| AaveV4WithdrawHookV2 | `0xb9fD710EdEfBE98e15B042f0da7fBEe2ad4C9889` | All |
+| ApproveAndCCTPSendHook | `0xAeE5195ec226cFC57FfF1841E270de2172470FfF` | All |
+| ApproveAndDeposit4626VaultHook | `0xba687c9D5113a3B2692fd87b0F389dD5fF402808` | All |
+| ApproveAndDeposit5115VaultHook | `0x4493313127E784420e4A69893e48F15BA78b858F` | All |
+| ApproveAndRelaySendFundsAndExecuteOnDstHook | `0xAB079057e27DE6c58f04B9Ebccd3685FF6B4c45C` | All except Flare, Linea (different address on Linea, see chain-specific) |
+| ApproveAndRequestDeposit7540VaultHook | `0x3D40479c9c9B9f12FC3E08625E13A72AFe27c435` | All |
+| ApproveAndStargateSendHook | `0xB47aE8678384F482559eF6eEF296F9F9822D8BC3` | All except HyperEVM, Katana |
+| ApproveAndStargateSendHookV2 | `0xF14Ab1413406e74AF3a07B7363b33a6B71fF91FC` | All except HyperEVM, Katana |
+| ApproveAndSwapKyberSwapHook | `0xcF5419270C9415E44c97E595c505708cfA334C30` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Unichain, HyperEVM, Robinhood Chain, Arc, Sonic, Linea, Berachain |
+| ApproveAndSwapOdosV3Hook | `0xb6adcd6E912f8c8F355E9bC970E458B9d6609d0b` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Sonic, Linea |
+| ApproveERC20Hook | `0x17DdFE8988cF71BBd672e5daFc4f6D02Cf279fA4` | All |
+| BatchTransferFromHook | `0x8E835115db46BC688DDB6f4756774468D3716A15` | All |
+| BatchTransferHook | `0x6D69433fa474b3A14cB3479c584E61fAE1De7b9F` | All |
+| CCTPSendHook | `0xd0292192F9f172D7bf9570A6A17689F91A65A55e` | All |
+| CancelDepositRequest7540Hook | `0x3A61580FC4f7a8C5D97574Ca21BCD95656750Cb0` | All |
+| CancelDepositRequestWithId7540Hook | `0x05B79c1CCC26019a8d93579818cb6aA586b81AE9` | All |
+| CancelRedeemRequest7540Hook | `0x60Fd46210DACA64d91b6bc6d6566238723514c8B` | All |
+| CancelRedeemRequestWithId7540Hook | `0x4929d62Dd0c1f418Ff31f4f949571A2820290500` | All |
+| CircleGatewayAddDelegateHook | `0x4eFf6E5bA0944B442aA7855eeB80Bff296eC7687` | All |
+| CircleGatewayMinterHook | `0x74D704aeB53E26Cf5a0EBB2a7f56D0FACd1F2767` | All |
+| CircleGatewayRemoveDelegateHook | `0xEB0Ec9175D82351c0A6fCf851a485100C1c8EC61` | All |
+| CircleGatewayWalletHook | `0xf4C12121b6D2F61452b0066aEc4a50f67045b5f4` | All |
+| ClaimCancelDepositRequest7540Hook | `0xD43dff350CcABfC4c9b3AaAc01FFf0858B312Dc2` | All |
+| ClaimCancelDepositRequestWithId7540Hook | `0x3f96d92Af8b6a8632419DC9a9D7A794FBb3EF38d` | All |
+| ClaimCancelRedeemRequest7540Hook | `0x249F12885455CF42815AB51eC236270692d3a029` | All |
+| ClaimCancelRedeemRequestWithId7540Hook | `0xE60D2e44182dF25A20e350859E20D4fce287aD2b` | All |
+| ClaimFailedTransferHook | `0x0975cc0673D208b56c6D135554a3c26420825a45` | All |
+| DeBridgeCancelOrderHook | `0x496E35fa5Ea7b6D83C115B29066EEFf4EFD5f4Be` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, HyperEVM, Robinhood Chain, Arc, Gnosis, Sonic, Linea, Berachain |
+| DeBridgeSendOrderAndExecuteOnDstHook | `0x4cA3A2564B5eFae4336F2FDf7a2cEbc21C590ae5` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, HyperEVM, Robinhood Chain, Arc, Gnosis, Sonic, Linea, Berachain |
+| Deposit4626VaultHook | `0x71761d36cF081A3762E5347b4e3635CeCAd5156b` | All |
+| Deposit5115VaultHook | `0x984F91d6500e3fFB7F68393132ac1376E7C3ba9e` | All |
+| Deposit7540VaultHook | `0x70b604978aB85aF6f58Df2F4e7313dFd40525646` | All |
+| EthenaCooldownSharesHook | `0xFA1F7E5F4233607BBcd67BfB0060ba4c0b37da99` | All |
+| EthenaUnstakeHook | `0xeE60788dbA6ce731f57bA8Cf78eB790891FdE70C` | All |
+| FeeSplittingHook | `0xA27d8C375e4E99a3A2067deE2df0b8848928Be86` | All |
+| FetchNativeFeeHook | `0xF294E9215B23824bd6D0CBa219f00Cc63427787c` | All |
+| ForceDeallocateMorphoHook | `0x9F1ebE4080C1E7cf26c7F5fAd62A6B608A56e754` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Robinhood Chain, Katana |
+| MarkRootAsUsedHook | `0xBE9Ac12c097c7Fd5B654dBb5676edF84f44EcE2c` | All |
+| MerklClaimRewardHook | `0x5977c7cA74067f3Bc899B3303ce00B47c815813A` | All except Flare |
+| MetaMorphoReallocateHook | `0x71D621914fc19a81C9196A4538dB0fb43846691c` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Robinhood Chain, Katana |
+| OfframpTokensHook | `0x83d8833161Ce1325f581e8C310aBAC2c488f9c69` | All |
+| PendlePTHook | `0xB3C73b0a9b78B6a9d428208dccf028dd4CC88e0d` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| PendleRouterRedeemHook | `0xCedB04Bf60413fe9c6405b4a6C49649e6F1c469A` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| PendleRouterSwapHook | `0x0B043Eaa329E41D82Fc1f03B1ECFd70a045a8a40` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| PendleUnifiedHook | `0xf1E281d87447F6b8FA386d987F37653836Bfdb16` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| RecordPurchasePendlePTAmortizedOracleHook | `0x24586fDD3FB9FF366BbAf0706BcEd0b2294bDD8b` | All |
+| RecordPurchasePendlePTAmortizedOracleHookV2 | `0x512af3e11aFB35836f709350AEd0A0df2584563e` | All |
+| RecordPurchasePendlePTHook | `0x9103dfEdFA1031a2024C389F2629422a8bFaf668` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| RecordRedemptionPendlePTAmortizedOracleHook | `0x190BfE6EADA5a2504dbaf5d9F0B8F52B36981Dc3` | All |
+| RecordRedemptionPendlePTAmortizedOracleHookV2 | `0xaD6C9313DBA08e2c0f031217c172D1A4F9481425` | All |
+| RecordRedemptionPendlePTHook | `0xeB6F4A99A2550ef871565691812CD43E8Cdf1e0B` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, HyperEVM, Sonic, Berachain |
+| Redeem4626VaultHook | `0x95C61fE513885E23Bd7DA1f27B1ad9B16AE29f81` | All |
+| Redeem5115VaultHook | `0x7043E187aFd0190aacdf747728B4846accc48B14` | All |
+| Redeem7540VaultHook | `0xAaBdD86B2cE655422F319C22765e26CfA6873943` | All |
+| RedeemWithId7540VaultHook | `0x51580e817988B4b56d839827c78A8F39D38036aA` | All |
+| RelaySendFundsAndExecuteOnDstHook | `0x16cEAaF4218791b81Be291ECc1C0630E9bB04352` | All except Flare, Linea (different address on Linea, see chain-specific) |
+| RequestDeposit7540VaultHook | `0x6B0Fa663F1276b04E12C463B3002c58cFbD59CB3` | All |
+| RequestRedeem7540VaultHook | `0x343Cd015339Be39d62d220313654600BbC24cd08` | All |
+| SetOperator7540Hook | `0x3731e9Ca56837a5Fb38753Ad1204Bc578566De4a` | All |
+| SetSlippageHook | `0x78Be4075B50dD4AD54044289bA20Ea1d8BFeab2F` | All |
+| StargateSendHook | `0x1E2E242EDf6e07652d3dE4697f0C8fE1d558909D` | All except HyperEVM, Katana |
+| StargateSendHookV2 | `0xE8cF418a6F3738F3eb78364483122400fF9F7C93` | All except HyperEVM, Katana |
+| Swap1InchHook | `0x288b70f80a2ac87Cd53c4849fD49aE6cECefC181` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Unichain, Robinhood Chain, Gnosis, Sonic, Linea |
+| SwapKyberSwapHook | `0x05c49e05bb8575afdf1142cC95dA6747b069174A` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Unichain, HyperEVM, Robinhood Chain, Arc, Sonic, Linea, Berachain |
+| SwapOdosV3Hook | `0x30842A0c57e69E1cB74F573E77b9CDFfA6907C92` | Ethereum, Base, Optimism, Arbitrum, BNB Chain, Polygon, Avalanche, Sonic, Linea |
+| TransferERC20Hook | `0x0234Da531FfB8765397aB8Ee91Db448963F545f2` | All |
+| TransferHook | `0x2a2CD39c1b72f85F291d06BD02f1f4CB2de5081A` | All |
+| Withdraw7540VaultHook | `0xdd4d3e33a2231f4062E1c7df0991BaE09b069E4e` | All |
+| WithdrawWithId7540VaultHook | `0xE03A772E17a8383103Ecd743D1167ACA48f50Bd2` | All |
 
-| Contract | Address |
-|----------|---------|
-| ERC4626YieldSourceOracle | `0xd12A40B2aBD166e17f18854f57ccd202091D9fB8` |
-| ERC5115YieldSourceOracle | `0xEC64fE4256e9e2B935F9acb13cF0B1cE06C6DD5C` |
-| ERC7540YieldSourceOracle | `0x8963d668adCE629996cA0247885771B490612005` |
-| FirelightYieldSourceOracle | `0x211E048350c5b61704245BDABfefe95a1239dfE7` |
-| PendlePTAmortizedOracle | `0xD64089698f82cbCD91ba5e0422aDFa81D247eB62` |
-| PendlePTAmortizedOracleV2 | `0x2185B40476510Ad27d17AF90889CE91BE9282A04` |
-| PendlePTYieldSourceOracle | `0x98D40e5B9D0911F15278223D58fdDCB5cB4799A6` |
-| SpectraPTYieldSourceOracle | `0x30Ecd1150B3d198d75c51DBb41Bb7711Bd1E3260` |
-| StakingYieldSourceOracle | `0x6A685CAD15b7BB46094497243DcF94aD6557394c` |
-| SuperYieldSourceOracle | `0x98F0682ef39dE9cd6028D91090Be6EdAE129f52D` |
-| SuperVaultYieldSourceOracle | `0xeEbb42210D8a8B165dCF154b325C588EE8dF149A` |
-| YoYieldSourceOracle | `0x125d43f5F35c032a45aaD41EBE344d5c65D626D4` |
+### Yield Source Oracles and Registries
+
+| Contract | Address | Chains |
+|---|---|---|
+| AaveV4DebtOracle | `0xeb097a8e0219938e25D5eAB0724aa92715cD54C8` | All except Katana |
+| AaveV4ReserveOracle | `0xFC6a204A1E9bFde616654F7305C978550B59630c` | All |
+| AaveV4ReserveRegistry | `0x6f0d5f0Ed77511F5f23942e0c49ae5503DA9fa93` | All except Katana |
+| AaveV4ReserveRegistryV2 | `0x9cc14A9d6826427b6af5533a4613bB67784BB4Db` | All |
+| AaveV4SupplyYieldSourceOracle | `0x03d30af3910549B16AAA946e6E581f96e84409ce` | All except Katana |
+| DETHYieldSourceOracle | `0x016Eed0cF690C98cD50c08419E44089098D643b1` | All |
+| ERC20YieldSourceOracle | `0x313F4c3782d02BfA067aB3F9ab516c799B2b891f` | All |
+| ERC4626YieldSourceOracle | `0x2412A5d7261995b49D1F3a731F8452641B916994` | All |
+| ERC5115YieldSourceOracle | `0x53Ab533023db9f16e47774109D4Ba57b06A52b10` | All |
+| ERC7540YieldSourceOracle | `0x24aEEB728814aF79aD57305Bec5E328DC10341a0` | All |
+| EulerDebtOracle | `0xb527503dDa0B3D0df6F748DaddA5865991A5E13e` | All |
+| FirelightYieldSourceOracle | `0x211E048350c5b61704245BDABfefe95a1239dfE7` | All |
+| MorphoBlueDebtOracle | `0x24412F6Cd813925A94190459Df2AB8549dCE3141` | All |
+| MorphoBlueMarketRegistry | `0x058F8B818D1AB68d4ed915E9a7f414A7960d8292` | All |
+| MorphoBlueYieldSourceOracle | `0x2c04DC80bc02eD240Fd0175Becd912B1af9FB3d4` | All |
+| PendlePTAmortizedOracle | `0xD64089698f82cbCD91ba5e0422aDFa81D247eB62` | All |
+| PendlePTAmortizedOracleV2 | `0x2185B40476510Ad27d17AF90889CE91BE9282A04` | All |
+| PendlePTYieldSourceOracle | `0x19DC36954d1EC3dE3bDDaB5c68241edAB2603291` | All |
+| SpectraMetaVaultOracle | `0x7564485A51213443CdCa944B768c56606A028974` | All |
+| SpectraPTYieldSourceOracle | `0xF7DB5389ED49DfB3F260dB6e3389C7d28076E601` | All |
+| StakingYieldSourceOracle | `0x985A6B8DDD9AacEA06ffbF3fc69DaEF48bC819ce` | All |
+| SuperVaultYieldSourceOracle | `0xeEbb42210D8a8B165dCF154b325C588EE8dF149A` | All |
+| SuperYieldSourceOracle | `0x98F0682ef39dE9cd6028D91090Be6EdAE129f52D` | All |
+| UniV3CLPRegistry | `0xB9E1fdE89988D667e2161E29C3a74FC06646F822` | All |
+| UniV3CLPYieldSourceOracle | `0x779bceBF0161Ed88Aba07C561248650301C97a77` | All |
+| YoYieldSourceOracle | `0x125d43f5F35c032a45aaD41EBE344d5c65D626D4` | All |
 
 ## SuperVault Contracts
 
-Core SuperVault infrastructure contracts. These addresses are the same on both Ethereum and Base.
+SuperVault infrastructure is deployed on 8 chains: Ethereum, Base, BNB Chain, HyperEVM, Flare, Robinhood Chain, Arc, Katana. The addresses below are the same on each of them.
 
-| Contract | Address |
-|----------|---------|
-| SuperGovernor | [`0xB5396ef2bF8CA360cEB4166b77AFb2bed20e74d4`](https://etherscan.io/address/0xB5396ef2bF8CA360cEB4166b77AFb2bed20e74d4) |
-| SuperVaultAggregator | [`0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698`](https://etherscan.io/address/0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698) |
-| ECDSAPPSOracle | [`0x366d88F03B8EF34eb49F32a927ff6e1609F694F2`](https://etherscan.io/address/0x366d88F03B8EF34eb49F32a927ff6e1609F694F2) |
-| SuperBank | [`0x6fCc6a6A825FC14e6e56Fd14978FC6B97ACB5d15`](https://etherscan.io/address/0x6fCc6a6A825FC14e6e56Fd14978FC6B97ACB5d15) |
-| SuperOracle | [`0x8943128DbAb4279D561654dEED2930Bb975AA070`](https://etherscan.io/address/0x8943128DbAb4279D561654dEED2930Bb975AA070) |
+| Contract | Address | Chains |
+|---|---|---|
+| SuperGovernor | `0xB5396ef2bF8CA360cEB4166b77AFb2bed20e74d4` | All |
+| SuperVaultAggregator | `0x10AC0b33e1C4501CF3ec1cB1AE51ebfdbd2d4698` | All |
+| SuperBank | `0x6fCc6a6A825FC14e6e56Fd14978FC6B97ACB5d15` | All |
+| ECDSAPPSOracle | `0x366d88F03B8EF34eb49F32a927ff6e1609F694F2` | All |
+| FixedPriceOracle | `0x66b30A0Dda7F868796ADC3d70232950D65F3565c` | All |
+| SuperVaultExecutor | `0x183e3171EEf801cE2A29FD48B3b21188f241875d` | All |
+| SuperVaultBatchOperator | `0x73d3f46d3a9f98C55C512DEca29993D28F93817c` | All except Flare (different address on Flare, see chain-specific) |
+| SuperVault (implementation) | `0x303834cd8681BD6Bd31ce7508822b12E2f38D9f2` | All |
+| SuperVaultStrategy (implementation) | `0x770abd170404B8ed8182c04f380E567e647b457D` | All |
+| SuperVaultEscrow (implementation) | `0x8982cf48eaB6616f2892888410afad9b0CD2BC9B` | All |
+| SuperformGasOracle | `0x473b88f017dE39d85a102DA01A35a1b3507eBcFc` | All except Ethereum, Robinhood Chain (different address on Robinhood Chain, see chain-specific) |
+
+Chain-specific SuperVault contracts (`BasefeeGasOracle`, `SuperBuilderCodeRegistry`, `SuperOracle`, `SuperOracleL2`, `SuperVaultBatchOperator`, `SuperformGasOracle`, `UpOFTAdapter`, `ValidatorBonding`, `ValidatorBonding_DEPRECATED_DO_NOT_FUND`) are listed under [Chain-Specific Addresses](#chain-specific-addresses).
 
 <Note>
-Individual vault, strategy, and escrow addresses vary per deployment. To look up a specific SuperVault's contracts, visit [SuperformOS](https://os.superform.xyz).
+Individual vault, strategy, and escrow addresses vary per deployment. To look up a specific SuperVault's contracts, visit [SuperformOS](https://os.superform.xyz) or see [SuperVault Instances](#supervault-instances) below.
 </Note>
+
+## Smart Accounts (Nexus)
+
+Superform v2 executes through [Nexus](https://github.com/bcnmy/nexus) ERC-7579 smart accounts. Two Nexus deployments are in production.
+
+### Nexus (v2-core)
+
+Deployed on every supported chain except Linea.
+
+| Contract | Address |
+|---|---|
+| Nexus | `0xA3AA31f8d4Da6005aAfB0d61e5012a64d15F5B3A` |
+| NexusAccountFactory | `0x4153Db38136E74a88A77b51a955A88823820C050` |
+| NexusBootstrap | `0x5eBeb4d51723bA345080D81bBF178D93E84bC9BE` |
+| NexusProxy | `0x8a3A6698C3D142b9dAD80F114947d46671A5290E` |
+
+### Nexus and MEE (stx-contracts)
+
+The [stx-contracts](https://github.com/superform-xyz/stx-contracts) deployment bundles Nexus with the Biconomy Modular Execution Environment (MEE) used for SuperTransactions. Deployed on every supported chain except Linea.
+
+| Contract | Address |
+|---|---|
+| Nexus | `0x813D4A8747f5F2F67510F7FF364A6a46450ca2f0` |
+| NexusAccountFactory | `0x3715ca8abcc1F01358798EB7ac6036d7DC1ECbdF` |
+| NexusBootstrap | `0xb2b3Eef53a05355B1e0C4862122f6a2aD863897D` |
+| NexusProxy | `0xEFF46350E611E1694ca5D35b0B810A2D24a88320` |
+
+The `AccountResolver` is deployed per chain:
+
+| Chain | AccountResolver |
+|---|---|
+| Ethereum | [`0xb13324a9B0368aD521b2Dd44Be64D9cEB9B18F6c`](https://etherscan.io/address/0xb13324a9B0368aD521b2Dd44Be64D9cEB9B18F6c) |
+| Base | [`0x23947B15Ce55B3F57a652f606D12019C1574d4b4`](https://basescan.org/address/0x23947B15Ce55B3F57a652f606D12019C1574d4b4) |
+| Optimism | [`0xEF8490c5aAA0E3f9C602a82eBbdd472695704d89`](https://optimistic.etherscan.io/address/0xEF8490c5aAA0E3f9C602a82eBbdd472695704d89) |
+| Arbitrum | [`0x51f9f3D2C80f848362C43EE48010cec6cc32ab8E`](https://arbiscan.io/address/0x51f9f3D2C80f848362C43EE48010cec6cc32ab8E) |
+| BNB Chain | [`0x5bE8e2D71a81A550800fF42cc602f79A0849f1A0`](https://bscscan.com/address/0x5bE8e2D71a81A550800fF42cc602f79A0849f1A0) |
+| Polygon | [`0x1462A45a233D96E3B06AcEbb6Ee6959Dce605dD8`](https://polygonscan.com/address/0x1462A45a233D96E3B06AcEbb6Ee6959Dce605dD8) |
+| Avalanche | [`0xA45CB1e74056bEeb676B35de8BFB9cbEEF44f677`](https://snowscan.xyz/address/0xA45CB1e74056bEeb676B35de8BFB9cbEEF44f677) |
+| Unichain | [`0xd09A4DeD9465B5F150701d5748c403Df8e31A993`](https://uniscan.xyz/address/0xd09A4DeD9465B5F150701d5748c403Df8e31A993) |
+| HyperEVM | [`0x2731d1A476d3519b1F3617424214152CA5f58f89`](https://hyperevmscan.io/address/0x2731d1A476d3519b1F3617424214152CA5f58f89) |
+| Flare | [`0xC0821881B288d57961cff50AD1Fb1C97a375b132`](https://flarescan.com/address/0xC0821881B288d57961cff50AD1Fb1C97a375b132) |
+| Robinhood Chain | [`0xD1610e2d751BD5E81C90Bf272580252Dadc63Df2`](https://robinhoodchain.blockscout.com/address/0xD1610e2d751BD5E81C90Bf272580252Dadc63Df2) |
+| Arc | [`0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B`](https://arc.exploreme.pro/address/0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B) |
+| Katana | [`0x72452A4c0eF30A0DcFf32f451fA2Cf1E31cD66Cf`](https://katanascan.com/address/0x72452A4c0eF30A0DcFf32f451fA2Cf1E31cD66Cf) |
+| Gnosis | [`0x847aa9021D52cCFA5ec41B66304B2CFbA19E94C1`](https://gnosisscan.io/address/0x847aa9021D52cCFA5ec41B66304B2CFbA19E94C1) |
+| Sonic | [`0xfdc74A9B72FAB66B67e0065926295523570f1458`](https://sonicscan.org/address/0xfdc74A9B72FAB66B67e0065926295523570f1458) |
+| World Chain | [`0x68B9289ff201f30303c1f88bf0aAF6C3e9444260`](https://worldscan.org/address/0x68B9289ff201f30303c1f88bf0aAF6C3e9444260) |
+| Stable | [`0x96822B89f3364D62630362E4E53a034Dd6AC5A50`](https://stablescan.xyz/address/0x96822B89f3364D62630362E4E53a034Dd6AC5A50) |
+| Berachain | [`0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B`](https://berascan.com/address/0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B) |
 
 ## $UP Token
 
 | Chain | Address |
-|-------|---------|
-| Ethereum | [`0x1d926bbe67425c9f507b9a0e8030eedc7880bf33`](https://etherscan.io/token/0x1d926bbe67425c9f507b9a0e8030eedc7880bf33) |
-| Base (LayerZero OFT) | [`0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b`](https://basescan.org/address/0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b) |
-| HyperEVM (LayerZero OFT) | [`0x642fFC3496AcA19106BAB7A42F1F221a329654fe`](https://hyperevmscan.io/address/0x642fFC3496AcA19106BAB7A42F1F221a329654fe) |
+|---|---|
+| Ethereum (canonical ERC-20) | [`0x1d926bbe67425c9f507b9a0e8030eedc7880bf33`](https://etherscan.io/token/0x1d926bbe67425c9f507b9a0e8030eedc7880bf33) |
+| Ethereum (LayerZero OFT adapter) | [`0x722ff7C0665F4b1823c9C4cFcDF73A43de5865BD`](https://etherscan.io/address/0x722ff7C0665F4b1823c9C4cFcDF73A43de5865BD) |
+| Base (LayerZero OFT) | [`0x5b2193fDc451C1f847bE09CA9d13A4Bf60f8c86B`](https://basescan.org/address/0x5b2193fDc451C1f847bE09CA9d13A4Bf60f8c86B) |
 | BNB Chain (LayerZero OFT) | [`0x5b2193fDc451C1f847bE09CA9d13A4Bf60f8c86B`](https://bscscan.com/address/0x5b2193fDc451C1f847bE09CA9d13A4Bf60f8c86B) |
-| Robinhood Chain (LayerZero OFT) | `0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E` |
-| Flare (LayerZero OFT) | [`0xe030A89fd2b7f858c8aA47725679CA25D467dFD1`](https://flare-explorer.flare.network/address/0xe030A89fd2b7f858c8aA47725679CA25D467dFD1) |
+| HyperEVM (LayerZero OFT) | [`0x642fFC3496AcA19106BAB7A42F1F221a329654fe`](https://hyperevmscan.io/address/0x642fFC3496AcA19106BAB7A42F1F221a329654fe) |
+| Flare (LayerZero OFT) | [`0xe030A89fd2b7f858c8aA47725679CA25D467dFD1`](https://flarescan.com/address/0xe030A89fd2b7f858c8aA47725679CA25D467dFD1) |
+| Robinhood Chain (LayerZero OFT) | [`0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E`](https://robinhoodchain.blockscout.com/address/0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E) |
+| Arc (LayerZero OFT) | [`0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E`](https://arc.exploreme.pro/address/0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E) |
+| Katana (LayerZero OFT) | [`0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E`](https://katanascan.com/address/0xA85abEf37c7e812ACA761b2BEC62fFF7f3728F1E) |
 | sUP (Base staking vault) | [`0x2c71f70e2Ec720AE061Ae7E0316fC9654d94f417`](https://basescan.org/address/0x2c71f70e2Ec720AE061Ae7E0316fC9654d94f417) |
 
-## SuperVault Instances (Base, chain ID 8453)
+## SuperVault Instances
 
-All addresses verified from `GET https://persephone.superform.xyz/v1/supervaults?chain_id=8453`.
+Live SuperVaults, grouped by chain. Addresses are sourced from `GET https://persephone.superform.xyz/v1/supervaults`.
+
+
+### Ethereum (chain ID 1)
 
 | Vault | Symbol | Underlying | Vault address | Underlying address |
 |---|---|---|---|---|
-| NVDA SuperVault | superNVDA | NVDAc | `0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc` | `0xb20000000000000000000078ee7ce2fe4908108c` |
-| TSLA SuperVault | superTSLA | TSLAc | `0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7` | `0xb2000000000000000000001e800a7f5189430cd0` |
-| SPCX SuperVault | superSPCX | SPCXc | `0x02b12a394f0a98b80e53d85f6831041932f1b621` | `0xb2000000000000000000007b9fcbd005511acbd5` |
-| AAPL SuperVault | superAAPL | AAPLc | `0x301a1ceb684d62833101b373ab6c395349b24033` | `0xb200000000000000000000c2e324d24d7eecd1fb` |
-| GOOGL SuperVault | superGOOGL | GOOGLc | `0x363600ac7173e8d91bcfee68d711bb93e992c110` | `0xb2000000000000000000002d0ba3164cc74f58b7` |
-| META SuperVault | superMETA | METAc | `0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3` | `0xb2000000000000000000008bc8786b856e61707c` |
-| AMZN SuperVault | superAMZN | AMZNc | `0x4855b2756910b7525d5b466292c394669ee74e7e` | `0xb200000000000000000000d9192b6b456483c2e8` |
-| MSFT SuperVault | superMSFT | MSFTc | `0x7778192c7e2c22a27c63d63485699888148d5919` | `0xb200000000000000000000ab99cfa739e253872b` |
-| Stocks USDC SuperVault | superStocksUSDC | USDC | `0x557202e4dea65af6a4460f04044732ce482c8627` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
-| Flagship USDC SuperVault | superUSDC | USDC | `0x11820afe50ea96851ee2bdbae329d97771e41ec6` | `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
-| Flagship WETH SuperVault | superWETH | WETH | `0x0e70c10fa06931f7b878653a15aecc86145c1af7` | `0x4200000000000000000000000000000000000006` |
-| Flagship CBBTC SuperVault | superCBBTC | cbBTC | `0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce` | `0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf` |
-| Staked UP Vault | sUP | UP | `0x2c71f70e2ec720ae061ae7e0316fc9654d94f417` | `0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b` |
+| Flagship USDC SuperVault | superUSDC | USDC | [`0xf6ebea08a0dfd44825f67fa9963911c81be2a947`](https://etherscan.io/address/0xf6ebea08a0dfd44825f67fa9963911c81be2a947) | [`0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`](https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48) |
+| Flagship WBTC SuperVault | superWBTC | WBTC | [`0x8c365af7094eaac29314edee577b435892ca93a3`](https://etherscan.io/address/0x8c365af7094eaac29314edee577b435892ca93a3) | [`0x2260fac5e5542a773aa44fbcfedf7c193bc2c599`](https://etherscan.io/address/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599) |
+| Flagship WETH SuperVault | superWETH | WETH | [`0xa036823b9a24f63c32553367bf181ee04229c3ac`](https://etherscan.io/address/0xa036823b9a24f63c32553367bf181ee04229c3ac) | [`0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2`](https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2) |
+
+### Base (chain ID 8453)
+
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| Flagship CBBTC SuperVault | superCBBTC | cbBTC | [`0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce`](https://basescan.org/address/0xfc8a6526ffcd8248b8d0f8dac8037dbe438924ce) | [`0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf`](https://basescan.org/address/0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf) |
+| Flagship USDC SuperVault | superUSDC | USDC | [`0x11820afe50ea96851ee2bdbae329d97771e41ec6`](https://basescan.org/address/0x11820afe50ea96851ee2bdbae329d97771e41ec6) | [`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`](https://basescan.org/address/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) |
+| Flagship WETH SuperVault | superWETH | WETH | [`0x0e70c10fa06931f7b878653a15aecc86145c1af7`](https://basescan.org/address/0x0e70c10fa06931f7b878653a15aecc86145c1af7) | [`0x4200000000000000000000000000000000000006`](https://basescan.org/address/0x4200000000000000000000000000000000000006) |
+| Staked UP Vault | sUP | UP | [`0x2c71f70e2ec720ae061ae7e0316fc9654d94f417`](https://basescan.org/address/0x2c71f70e2ec720ae061ae7e0316fc9654d94f417) | [`0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b`](https://basescan.org/address/0x5b2193fdc451c1f847be09ca9d13a4bf60f8c86b) |
+| AAPL SuperVault | superAAPL | AAPLc | [`0x301a1ceb684d62833101b373ab6c395349b24033`](https://basescan.org/address/0x301a1ceb684d62833101b373ab6c395349b24033) | [`0xb200000000000000000000c2e324d24d7eecd1fb`](https://basescan.org/address/0xb200000000000000000000c2e324d24d7eecd1fb) |
+| AMZN SuperVault | superAMZN | AMZNc | [`0x4855b2756910b7525d5b466292c394669ee74e7e`](https://basescan.org/address/0x4855b2756910b7525d5b466292c394669ee74e7e) | [`0xb200000000000000000000d9192b6b456483c2e8`](https://basescan.org/address/0xb200000000000000000000d9192b6b456483c2e8) |
+| ANT SuperVault | superANT | ANTc | [`0x3ffce79a4ac139dded4c171c62ea51f50fc7c960`](https://basescan.org/address/0x3ffce79a4ac139dded4c171c62ea51f50fc7c960) | [`0xb20000000000000000000016e38fd364d271ba28`](https://basescan.org/address/0xb20000000000000000000016e38fd364d271ba28) |
+| GOOGL SuperVault | superGOOGL | GOOGLc | [`0x363600ac7173e8d91bcfee68d711bb93e992c110`](https://basescan.org/address/0x363600ac7173e8d91bcfee68d711bb93e992c110) | [`0xb2000000000000000000002d0ba3164cc74f58b7`](https://basescan.org/address/0xb2000000000000000000002d0ba3164cc74f58b7) |
+| META SuperVault | superMETA | METAc | [`0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3`](https://basescan.org/address/0xc63374bf46d7a9654a96b14a3dc363c92b26d5a3) | [`0xb2000000000000000000008bc8786b856e61707c`](https://basescan.org/address/0xb2000000000000000000008bc8786b856e61707c) |
+| MSFT SuperVault | superMSFT | MSFTc | [`0x7778192c7e2c22a27c63d63485699888148d5919`](https://basescan.org/address/0x7778192c7e2c22a27c63d63485699888148d5919) | [`0xb200000000000000000000ab99cfa739e253872b`](https://basescan.org/address/0xb200000000000000000000ab99cfa739e253872b) |
+| NVDA SuperVault | superNVDA | NVDAc | [`0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc`](https://basescan.org/address/0xc441a2cc3a528b6312740448a70cc4d40f4d7bfc) | [`0xb20000000000000000000078ee7ce2fe4908108c`](https://basescan.org/address/0xb20000000000000000000078ee7ce2fe4908108c) |
+| SPCX SuperVault | superSPCX | SPCXc | [`0x02b12a394f0a98b80e53d85f6831041932f1b621`](https://basescan.org/address/0x02b12a394f0a98b80e53d85f6831041932f1b621) | [`0xb2000000000000000000007b9fcbd005511acbd5`](https://basescan.org/address/0xb2000000000000000000007b9fcbd005511acbd5) |
+| Stocks USDC SuperVault | superStocksUSDC | USDC | [`0x557202e4dea65af6a4460f04044732ce482c8627`](https://basescan.org/address/0x557202e4dea65af6a4460f04044732ce482c8627) | [`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`](https://basescan.org/address/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) |
+| TSLA SuperVault | superTSLA | TSLAc | [`0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7`](https://basescan.org/address/0xaf0edf09ec7f9357292f6bc6445a09aa84a31fa7) | [`0xb2000000000000000000001e800a7f5189430cd0`](https://basescan.org/address/0xb2000000000000000000001e800a7f5189430cd0) |
+
+### Flare (chain ID 14)
+
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| Bizantine FXRP SuperVault | bizFXRP | FXRP | [`0x34f90dfa0f1b2f691ee3a3a87954f8d282193c16`](https://flarescan.com/address/0x34f90dfa0f1b2f691ee3a3a87954f8d282193c16) | [`0xad552a648c74d49e10027ab8a618a3ad4901c5be`](https://flarescan.com/address/0xad552a648c74d49e10027ab8a618a3ad4901c5be) |
+| Bizantine USDT0 SuperVault | bizUSDT0 | USDT0 | [`0xb7c1c8f7191c7d76b5c6650a6fb20f6f8027bf0d`](https://flarescan.com/address/0xb7c1c8f7191c7d76b5c6650a6fb20f6f8027bf0d) | [`0xe7cd86e13ac4309349f30b3435a9d337750fc82d`](https://flarescan.com/address/0xe7cd86e13ac4309349f30b3435a9d337750fc82d) |
+
+### Robinhood Chain (chain ID 4663)
+
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| Flagship USDG SuperVault | superUSDG | USDG | [`0x56e3142c974caf59d7a4c897c8121aa4714e6599`](https://robinhoodchain.blockscout.com/address/0x56e3142c974caf59d7a4c897c8121aa4714e6599) | [`0x5fc5360d0400a0fd4f2af552add042d716f1d168`](https://robinhoodchain.blockscout.com/address/0x5fc5360d0400a0fd4f2af552add042d716f1d168) |
+
+### Katana (chain ID 747474)
+
+| Vault | Symbol | Underlying | Vault address | Underlying address |
+|---|---|---|---|---|
+| Katana USDC SuperVault | katanaUSDC | USDC | [`0x1d3f3041c8f8dc6aea7e1eebe4a24fafc3dfd634`](https://katanascan.com/address/0x1d3f3041c8f8dc6aea7e1eebe4a24fafc3dfd634) | [`0x203a662b0bd271a6ed5a60edfbd04bfce608fd36`](https://katanascan.com/address/0x203a662b0bd271a6ed5a60edfbd04bfce608fd36) |
+
+## Chain-Specific Addresses
+
+Contracts below either have a different address on each chain or are only deployed on a single chain.
+
+<AccordionGroup>
+
+  <Accordion title="Ethereum (chain ID 1)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x4dC34c4Eb23973F3551526C2AFE8ffb7f70F0fD7`](https://etherscan.io/address/0x4dC34c4Eb23973F3551526C2AFE8ffb7f70F0fD7) |
+| AcrossV3AdapterV2 | [`0xaa90922Bf3cBD191e48385e6F8b8Cd80A2C1f1D9`](https://etherscan.io/address/0xaa90922Bf3cBD191e48385e6F8b8Cd80A2C1f1D9) |
+| CCTPAdapter | [`0x34987a00e61B5f5B9986Ac2580Ca81ac11493d01`](https://etherscan.io/address/0x34987a00e61B5f5B9986Ac2580Ca81ac11493d01) |
+| CircleGatewayAdapter | [`0x92B7EfA1Cf1EF693ab18632a5343e4dF96e0f0A6`](https://etherscan.io/address/0x92B7EfA1Cf1EF693ab18632a5343e4dF96e0f0A6) |
+| StargateAdapter | [`0x5998F618e5f0F6809F978e35de623DB94db2F15D`](https://etherscan.io/address/0x5998F618e5f0F6809F978e35de623DB94db2F15D) |
+| StargateAdapterV2 | [`0x3deBC7F15FF7F3Aa1A657a05EFE0Dc132648e8E2`](https://etherscan.io/address/0x3deBC7F15FF7F3Aa1A657a05EFE0Dc132648e8E2) |
+| UpOFTAdapter | [`0x722ff7C0665F4b1823c9C4cFcDF73A43de5865BD`](https://etherscan.io/address/0x722ff7C0665F4b1823c9C4cFcDF73A43de5865BD) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AaveV4BorrowHook | [`0x87c6B53a1458a294e3761410ff4e347CFAb3f653`](https://etherscan.io/address/0x87c6B53a1458a294e3761410ff4e347CFAb3f653) |
+| AaveV4RepayAndWithdrawHook | [`0x20a2eEA092BC1C914836F7448b1C74640230e57a`](https://etherscan.io/address/0x20a2eEA092BC1C914836F7448b1C74640230e57a) |
+| AaveV4RepayHook | [`0xC0541916302A3748F1f39d41A4eDd0cdFd8Df863`](https://etherscan.io/address/0xC0541916302A3748F1f39d41A4eDd0cdFd8Df863) |
+| AaveV4SupplyAndBorrowHook | [`0x65294A269A0ABaD4D02ac228Df68bd03340B3807`](https://etherscan.io/address/0x65294A269A0ABaD4D02ac228Df68bd03340B3807) |
+| AaveV4SupplyHook | [`0x15bfA8749809d331586cd678D6798b7d3468955a`](https://etherscan.io/address/0x15bfA8749809d331586cd678D6798b7d3468955a) |
+| AaveV4WithdrawHook | [`0x8a45DfD418Bd64F8e42cB396dae1565E36aD0BdB`](https://etherscan.io/address/0x8a45DfD418Bd64F8e42cB396dae1565E36aD0BdB) |
+| AcrossSendFundsAndExecuteOnDstHook | [`0xeA1b9ab11EC33F40fB36548cad1032DA9293c5f3`](https://etherscan.io/address/0xeA1b9ab11EC33F40fB36548cad1032DA9293c5f3) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x3FD1C727867f1733759D77B9Fb3395A8beA067ca`](https://etherscan.io/address/0x3FD1C727867f1733759D77B9Fb3395A8beA067ca) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0xDeF02397EDBF7D0Da1E10fE297362c3aDf358fA1`](https://etherscan.io/address/0xDeF02397EDBF7D0Da1E10fE297362c3aDf358fA1) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x84f6bC7A314970D006009eed9b89e96e9628BdA3`](https://etherscan.io/address/0x84f6bC7A314970D006009eed9b89e96e9628BdA3) |
+| ApproveAndRequestRedeemDETHHook | [`0x0A482856E6980d0Cc4A1F4083ebaA666Bf04ED8f`](https://etherscan.io/address/0x0A482856E6980d0Cc4A1F4083ebaA666Bf04ED8f) |
+| ApproveAndSwapOdosV2Hook | [`0x3b2dbedf63aB4D5F7652D8845C0EDA1fA42263cd`](https://etherscan.io/address/0x3b2dbedf63aB4D5F7652D8845C0EDA1fA42263cd) |
+| ApproveAndSwapPancakeSwapHook | [`0x023abA09C850861f490548d9C62b712A91D52eeC`](https://etherscan.io/address/0x023abA09C850861f490548d9C62b712A91D52eeC) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f`](https://etherscan.io/address/0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f) |
+| ClaimAssetsDETHHook | [`0xAC2C0Ef6602A83A40Ce307fb6134e7b86497aC5C`](https://etherscan.io/address/0xAC2C0Ef6602A83A40Ce307fb6134e7b86497aC5C) |
+| ForceDeallocateMorphoVaultHook | [`0xEdC2CeF2cd229Ee4783f582D89d845fa9642593F`](https://etherscan.io/address/0xEdC2CeF2cd229Ee4783f582D89d845fa9642593F) |
+| ForceRedeemMorphoVaultHook | [`0x317A5787966ea90B40e75c75d2eEa95A9828B7C1`](https://etherscan.io/address/0x317A5787966ea90B40e75c75d2eEa95A9828B7C1) |
+| MorphoBorrowHook | [`0x9e66124f542708761D2e67fac7cD444d3031a97e`](https://etherscan.io/address/0x9e66124f542708761D2e67fac7cD444d3031a97e) |
+| MorphoBorrowHookV2 | [`0x83133725a1a830f6461a01217De01Ece7bFc483E`](https://etherscan.io/address/0x83133725a1a830f6461a01217De01Ece7bFc483E) |
+| MorphoHealthCheckHook | [`0x357bE3e7F988626DD026D2646b8C1F076A32aAA1`](https://etherscan.io/address/0x357bE3e7F988626DD026D2646b8C1F076A32aAA1) |
+| MorphoLendHook | [`0xAE31c480077311Da19572A05bDdE030261f832C2`](https://etherscan.io/address/0xAE31c480077311Da19572A05bDdE030261f832C2) |
+| MorphoRepayAndWithdrawHook | [`0xFb7eEde01cCfd74cBfB756Be8379C064BA7B37F0`](https://etherscan.io/address/0xFb7eEde01cCfd74cBfB756Be8379C064BA7B37F0) |
+| MorphoRepayAndWithdrawHookV2 | [`0x5C5E5c8Df86eF3c3C5073e15eA4789F2877f4Edc`](https://etherscan.io/address/0x5C5E5c8Df86eF3c3C5073e15eA4789F2877f4Edc) |
+| MorphoRepayHook | [`0x372C50067Cd3B79339571B7ee5e167Aabb7a652d`](https://etherscan.io/address/0x372C50067Cd3B79339571B7ee5e167Aabb7a652d) |
+| MorphoRepayHookV2 | [`0x35526Df5eFcAf16cD2e7943C60beee69C39F8307`](https://etherscan.io/address/0x35526Df5eFcAf16cD2e7943C60beee69C39F8307) |
+| MorphoSupplyAndBorrowHook | [`0x369F6AC3E5e65976964d5eFD2B9D350b3Ef6947C`](https://etherscan.io/address/0x369F6AC3E5e65976964d5eFD2B9D350b3Ef6947C) |
+| MorphoSupplyAndBorrowHookV2 | [`0x334f1b0Aa3eFb69861A561B675ED1832fCeF44Ff`](https://etherscan.io/address/0x334f1b0Aa3eFb69861A561B675ED1832fCeF44Ff) |
+| MorphoSupplyHook | [`0xF01299564Ee5ba1B9EB48EE9049E5834083265B1`](https://etherscan.io/address/0xF01299564Ee5ba1B9EB48EE9049E5834083265B1) |
+| MorphoSupplyHookV2 | [`0x5ADcCE5F323AB29c6AFEa9569496Cb3C46b21ce2`](https://etherscan.io/address/0x5ADcCE5F323AB29c6AFEa9569496Cb3C46b21ce2) |
+| MorphoWithdrawCollateralHookV2 | [`0xC8a1163EEb6850a08691ef511118d358402779Ee`](https://etherscan.io/address/0xC8a1163EEb6850a08691ef511118d358402779Ee) |
+| MorphoWithdrawHook | [`0xc673c0BcD43e3fD782607e5ca5Eae928BAc312eA`](https://etherscan.io/address/0xc673c0BcD43e3fD782607e5ca5Eae928BAc312eA) |
+| RequestRedeemDETHHook | [`0x38A404933f95E519E3926B35c1F86ecff758710F`](https://etherscan.io/address/0x38A404933f95E519E3926B35c1F86ecff758710F) |
+| SpectraExchangeDepositHook | [`0xCEF1817AAfC500D6526330cC3310E0E788540bE7`](https://etherscan.io/address/0xCEF1817AAfC500D6526330cC3310E0E788540bE7) |
+| SpectraExchangeRedeemHook | [`0x5ad1Ef5a61C74f7228A6da504C1819a8db886FCf`](https://etherscan.io/address/0x5ad1Ef5a61C74f7228A6da504C1819a8db886FCf) |
+| SwapOdosV2Hook | [`0x38AA8bFD18a6477A51fc9772B9513098E98916C4`](https://etherscan.io/address/0x38AA8bFD18a6477A51fc9772B9513098E98916C4) |
+| SwapPancakeSwapHook | [`0x0691cA6B6977205483b2310174b572e2D5d070b4`](https://etherscan.io/address/0x0691cA6B6977205483b2310174b572e2D5d070b4) |
+| SwapUniswapV3Router02Hook | [`0x7A173c248e6382A7800215FeBE2faA92CAc32CC9`](https://etherscan.io/address/0x7A173c248e6382A7800215FeBE2faA92CAc32CC9) |
+| SwapUniswapV4Hook | [`0xC22089a09Badf21b4f547e4C979D5AF97c25BF3A`](https://etherscan.io/address/0xC22089a09Badf21b4f547e4C979D5AF97c25BF3A) |
+| WrappedNativeHook | [`0x49e652fA641bc0f696F7e32063569f4AD4FbB5Db`](https://etherscan.io/address/0x49e652fA641bc0f696F7e32063569f4AD4FbB5Db) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| BasefeeGasOracle | [`0xD9f4B84E23742fF126ee0868FE3a3361E08E9c95`](https://etherscan.io/address/0xD9f4B84E23742fF126ee0868FE3a3361E08E9c95) |
+| SuperOracle | [`0x8943128DbAb4279D561654dEED2930Bb975AA070`](https://etherscan.io/address/0x8943128DbAb4279D561654dEED2930Bb975AA070) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xb13324a9B0368aD521b2Dd44Be64D9cEB9B18F6c`](https://etherscan.io/address/0xb13324a9B0368aD521b2Dd44Be64D9cEB9B18F6c) |
+
+  </Accordion>
+
+  <Accordion title="Base (chain ID 8453)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA`](https://basescan.org/address/0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA) |
+| AcrossV3AdapterV2 | [`0x04E4aa141335888Aa99B0700A6281f673cE77A2F`](https://basescan.org/address/0x04E4aa141335888Aa99B0700A6281f673cE77A2F) |
+| CCTPAdapter | [`0xe3a6f54251b081506683B203bF74060Ab86488Ce`](https://basescan.org/address/0xe3a6f54251b081506683B203bF74060Ab86488Ce) |
+| CircleGatewayAdapter | [`0x4b0b9792dacC942ccf1DA8F4c057f5312E421AfD`](https://basescan.org/address/0x4b0b9792dacC942ccf1DA8F4c057f5312E421AfD) |
+| StargateAdapter | [`0xb14D8Ae4C6AA3559837D90e6691E8F0af69E703F`](https://basescan.org/address/0xb14D8Ae4C6AA3559837D90e6691E8F0af69E703F) |
+| StargateAdapterV2 | [`0xA51d4fB6C0665D6B1f6c1956aE4f1493081D4C95`](https://basescan.org/address/0xA51d4fB6C0665D6B1f6c1956aE4f1493081D4C95) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xF583a7826Da0917a8d45eC4457d45D26D251B152`](https://basescan.org/address/0xF583a7826Da0917a8d45eC4457d45D26D251B152) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1`](https://basescan.org/address/0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a`](https://basescan.org/address/0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529`](https://basescan.org/address/0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529) |
+| ApproveAndSwapAerodromeUniversalRouterHook | [`0xD7ea0f0e98fF546BE3F289f844480CBD0539b190`](https://basescan.org/address/0xD7ea0f0e98fF546BE3F289f844480CBD0539b190) |
+| ApproveAndSwapOdosV2Hook | [`0x2334321db75F2889b44d10826b511ABE57C62Adf`](https://basescan.org/address/0x2334321db75F2889b44d10826b511ABE57C62Adf) |
+| ApproveAndSwapPancakeSwapHook | [`0x023abA09C850861f490548d9C62b712A91D52eeC`](https://basescan.org/address/0x023abA09C850861f490548d9C62b712A91D52eeC) |
+| ApproveAndSwapSparkPSMExactInHook | [`0xc4D7478389cd38F9de69e085A7a4a303ECF53c32`](https://basescan.org/address/0xc4D7478389cd38F9de69e085A7a4a303ECF53c32) |
+| ApproveAndSwapSparkPSMExactOutHook | [`0x3816B42652d20EDb2a2b924F9Ed8cba8e28Ed211`](https://basescan.org/address/0x3816B42652d20EDb2a2b924F9Ed8cba8e28Ed211) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x02f375459a7EF96e9022ca4672A4e9A086eAAdCF`](https://basescan.org/address/0x02f375459a7EF96e9022ca4672A4e9A086eAAdCF) |
+| EulerDepositCollateralAndBorrowHook | [`0x75D8AC38eEEab181b88608631032f43344d6Fb7c`](https://basescan.org/address/0x75D8AC38eEEab181b88608631032f43344d6Fb7c) |
+| EulerRepayAndWithdrawHook | [`0xb57553f304b8f6a0bfa0d86F1Af8912a871952dC`](https://basescan.org/address/0xb57553f304b8f6a0bfa0d86F1Af8912a871952dC) |
+| EulerRepayHook | [`0xF077AD3103fb70AadF4732bc40a46a9Fe2376834`](https://basescan.org/address/0xF077AD3103fb70AadF4732bc40a46a9Fe2376834) |
+| ForceDeallocateMorphoVaultHook | [`0xEdC2CeF2cd229Ee4783f582D89d845fa9642593F`](https://basescan.org/address/0xEdC2CeF2cd229Ee4783f582D89d845fa9642593F) |
+| ForceRedeemMorphoVaultHook | [`0x317A5787966ea90B40e75c75d2eEa95A9828B7C1`](https://basescan.org/address/0x317A5787966ea90B40e75c75d2eEa95A9828B7C1) |
+| MorphoBorrowHook | [`0x9e66124f542708761D2e67fac7cD444d3031a97e`](https://basescan.org/address/0x9e66124f542708761D2e67fac7cD444d3031a97e) |
+| MorphoBorrowHookV2 | [`0x83133725a1a830f6461a01217De01Ece7bFc483E`](https://basescan.org/address/0x83133725a1a830f6461a01217De01Ece7bFc483E) |
+| MorphoHealthCheckHook | [`0x357bE3e7F988626DD026D2646b8C1F076A32aAA1`](https://basescan.org/address/0x357bE3e7F988626DD026D2646b8C1F076A32aAA1) |
+| MorphoLendHook | [`0xAE31c480077311Da19572A05bDdE030261f832C2`](https://basescan.org/address/0xAE31c480077311Da19572A05bDdE030261f832C2) |
+| MorphoRepayAndWithdrawHook | [`0xFb7eEde01cCfd74cBfB756Be8379C064BA7B37F0`](https://basescan.org/address/0xFb7eEde01cCfd74cBfB756Be8379C064BA7B37F0) |
+| MorphoRepayAndWithdrawHookV2 | [`0x5C5E5c8Df86eF3c3C5073e15eA4789F2877f4Edc`](https://basescan.org/address/0x5C5E5c8Df86eF3c3C5073e15eA4789F2877f4Edc) |
+| MorphoRepayHook | [`0x372C50067Cd3B79339571B7ee5e167Aabb7a652d`](https://basescan.org/address/0x372C50067Cd3B79339571B7ee5e167Aabb7a652d) |
+| MorphoRepayHookV2 | [`0x35526Df5eFcAf16cD2e7943C60beee69C39F8307`](https://basescan.org/address/0x35526Df5eFcAf16cD2e7943C60beee69C39F8307) |
+| MorphoSupplyAndBorrowHook | [`0x369F6AC3E5e65976964d5eFD2B9D350b3Ef6947C`](https://basescan.org/address/0x369F6AC3E5e65976964d5eFD2B9D350b3Ef6947C) |
+| MorphoSupplyAndBorrowHookV2 | [`0x334f1b0Aa3eFb69861A561B675ED1832fCeF44Ff`](https://basescan.org/address/0x334f1b0Aa3eFb69861A561B675ED1832fCeF44Ff) |
+| MorphoSupplyHook | [`0xF01299564Ee5ba1B9EB48EE9049E5834083265B1`](https://basescan.org/address/0xF01299564Ee5ba1B9EB48EE9049E5834083265B1) |
+| MorphoSupplyHookV2 | [`0x5ADcCE5F323AB29c6AFEa9569496Cb3C46b21ce2`](https://basescan.org/address/0x5ADcCE5F323AB29c6AFEa9569496Cb3C46b21ce2) |
+| MorphoWithdrawCollateralHookV2 | [`0xC8a1163EEb6850a08691ef511118d358402779Ee`](https://basescan.org/address/0xC8a1163EEb6850a08691ef511118d358402779Ee) |
+| MorphoWithdrawHook | [`0xc673c0BcD43e3fD782607e5ca5Eae928BAc312eA`](https://basescan.org/address/0xc673c0BcD43e3fD782607e5ca5Eae928BAc312eA) |
+| SpectraExchangeDepositHook | [`0xCEF1817AAfC500D6526330cC3310E0E788540bE7`](https://basescan.org/address/0xCEF1817AAfC500D6526330cC3310E0E788540bE7) |
+| SpectraExchangeRedeemHook | [`0x5ad1Ef5a61C74f7228A6da504C1819a8db886FCf`](https://basescan.org/address/0x5ad1Ef5a61C74f7228A6da504C1819a8db886FCf) |
+| SwapAerodromeUniversalRouterHook | [`0xf5f5ad499cDF23bc9d48b998fFEfA9cc83A497Dd`](https://basescan.org/address/0xf5f5ad499cDF23bc9d48b998fFEfA9cc83A497Dd) |
+| SwapOdosV2Hook | [`0xE03FDd61D40045079e7aF3A381F80DD74739546e`](https://basescan.org/address/0xE03FDd61D40045079e7aF3A381F80DD74739546e) |
+| SwapPancakeSwapHook | [`0x0691cA6B6977205483b2310174b572e2D5d070b4`](https://basescan.org/address/0x0691cA6B6977205483b2310174b572e2D5d070b4) |
+| SwapSparkPSMExactInHook | [`0xa6Ef188b45f61D0cb5AC5511b95a52968e60d3B6`](https://basescan.org/address/0xa6Ef188b45f61D0cb5AC5511b95a52968e60d3B6) |
+| SwapSparkPSMExactOutHook | [`0xad4b32e58Ac08586d42EE847ea1Ca6c9A23988c0`](https://basescan.org/address/0xad4b32e58Ac08586d42EE847ea1Ca6c9A23988c0) |
+| SwapUniswapV3Router02Hook | [`0x017cD1AC246C6EE8Ea167cfB95A909397173BBEA`](https://basescan.org/address/0x017cD1AC246C6EE8Ea167cfB95A909397173BBEA) |
+| SwapUniswapV4Hook | [`0xA44739B5C3aa014f9394d3926BE03D609fC56839`](https://basescan.org/address/0xA44739B5C3aa014f9394d3926BE03D609fC56839) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperBuilderCodeRegistry | [`0x5f4a89321917279547468ade27bED8CbCfA267d3`](https://basescan.org/address/0x5f4a89321917279547468ade27bED8CbCfA267d3) |
+| SuperOracleL2 | [`0xDd004b9F749014cD7bd73dC0818345c66bc641c8`](https://basescan.org/address/0xDd004b9F749014cD7bd73dC0818345c66bc641c8) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x23947B15Ce55B3F57a652f606D12019C1574d4b4`](https://basescan.org/address/0x23947B15Ce55B3F57a652f606D12019C1574d4b4) |
+| ValidatorBonding | [`0x2466b82212f3ee3ee5FFA1b925eF5ec3Fa3c67C7`](https://basescan.org/address/0x2466b82212f3ee3ee5FFA1b925eF5ec3Fa3c67C7) |
+| ValidatorBonding (deprecated, do not fund) | [`0x557760077fE26D9699D5dB779b0883EF96519B01`](https://basescan.org/address/0x557760077fE26D9699D5dB779b0883EF96519B01) |
+
+  </Accordion>
+
+  <Accordion title="Optimism (chain ID 10)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x946Df68ca1284D02cAe4F634d0f150E7fD88e29D`](https://optimistic.etherscan.io/address/0x946Df68ca1284D02cAe4F634d0f150E7fD88e29D) |
+| AcrossV3AdapterV2 | [`0x216e9f23619Ce120a9301347598a3bCE1Fd12A59`](https://optimistic.etherscan.io/address/0x216e9f23619Ce120a9301347598a3bCE1Fd12A59) |
+| CCTPAdapter | [`0x7EB73aF24E430FbfBcF42e121c8F1734B5334b9b`](https://optimistic.etherscan.io/address/0x7EB73aF24E430FbfBcF42e121c8F1734B5334b9b) |
+| CircleGatewayAdapter | [`0xC5ff72138A29dF1a7749f40B3e9BbD457faEA305`](https://optimistic.etherscan.io/address/0xC5ff72138A29dF1a7749f40B3e9BbD457faEA305) |
+| StargateAdapter | [`0x75eB6c6cEDB104518B664D50f789fA47f3cDe546`](https://optimistic.etherscan.io/address/0x75eB6c6cEDB104518B664D50f789fA47f3cDe546) |
+| StargateAdapterV2 | [`0x81eae6dE20497A3A5f09FDE47e28b47021A7E899`](https://optimistic.etherscan.io/address/0x81eae6dE20497A3A5f09FDE47e28b47021A7E899) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xA30Fc7E0F913c62D8151eD7adDE7e96e11722c86`](https://optimistic.etherscan.io/address/0xA30Fc7E0F913c62D8151eD7adDE7e96e11722c86) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x468e3c9bC33bC8705a8173523325CF55607fCf99`](https://optimistic.etherscan.io/address/0x468e3c9bC33bC8705a8173523325CF55607fCf99) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0xBCef1687bAe51ae7ca4457a98117aA7B681EDEcD`](https://optimistic.etherscan.io/address/0xBCef1687bAe51ae7ca4457a98117aA7B681EDEcD) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x4dA880b516E4E1B264DFABCc45e3acfC85A952B2`](https://optimistic.etherscan.io/address/0x4dA880b516E4E1B264DFABCc45e3acfC85A952B2) |
+| ApproveAndSwapOdosV2Hook | [`0x5dE7bF20e63d0c9C13aadca6f253b72c83b0404E`](https://optimistic.etherscan.io/address/0x5dE7bF20e63d0c9C13aadca6f253b72c83b0404E) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f`](https://optimistic.etherscan.io/address/0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f) |
+| ForceDeallocateMorphoVaultHook | [`0xa9eE61580BFFc3902bBcb6F19A60cf67f7a87430`](https://optimistic.etherscan.io/address/0xa9eE61580BFFc3902bBcb6F19A60cf67f7a87430) |
+| ForceRedeemMorphoVaultHook | [`0xd38A8F4AaAB6B6C0F55f426d432a8e52A9F61f1D`](https://optimistic.etherscan.io/address/0xd38A8F4AaAB6B6C0F55f426d432a8e52A9F61f1D) |
+| MorphoBorrowHook | [`0x7e4cBF82605a43aD4f3a8fBd722f17914eC4f671`](https://optimistic.etherscan.io/address/0x7e4cBF82605a43aD4f3a8fBd722f17914eC4f671) |
+| MorphoBorrowHookV2 | [`0x34E60d74Dc9Fe5A044Cf1FAFF7135eF7a61556Dd`](https://optimistic.etherscan.io/address/0x34E60d74Dc9Fe5A044Cf1FAFF7135eF7a61556Dd) |
+| MorphoHealthCheckHook | [`0xCc2D064b9Ef8970F8F66eBB7A9466B3F998910A2`](https://optimistic.etherscan.io/address/0xCc2D064b9Ef8970F8F66eBB7A9466B3F998910A2) |
+| MorphoLendHook | [`0x7B0298fa15784643a344Ea831D2FAC35A200E729`](https://optimistic.etherscan.io/address/0x7B0298fa15784643a344Ea831D2FAC35A200E729) |
+| MorphoRepayAndWithdrawHook | [`0x29ac133B73B731fAa269e0154F16EBd1c95a9C80`](https://optimistic.etherscan.io/address/0x29ac133B73B731fAa269e0154F16EBd1c95a9C80) |
+| MorphoRepayAndWithdrawHookV2 | [`0xdA2Be9B0196493b89C12f79E74A22938d2e1be97`](https://optimistic.etherscan.io/address/0xdA2Be9B0196493b89C12f79E74A22938d2e1be97) |
+| MorphoRepayHook | [`0x40AB1557e7e68D6C4FC7f9610b442CDA24097088`](https://optimistic.etherscan.io/address/0x40AB1557e7e68D6C4FC7f9610b442CDA24097088) |
+| MorphoRepayHookV2 | [`0xaaAA17723e6314fe682e9EBB6dFd9D2A0f79048D`](https://optimistic.etherscan.io/address/0xaaAA17723e6314fe682e9EBB6dFd9D2A0f79048D) |
+| MorphoSupplyAndBorrowHook | [`0xc5F18353Ab137fDc55deCAd9a1d7753D80F28395`](https://optimistic.etherscan.io/address/0xc5F18353Ab137fDc55deCAd9a1d7753D80F28395) |
+| MorphoSupplyAndBorrowHookV2 | [`0xd97587FF4889CD80D343B545471e5f4B797A0f18`](https://optimistic.etherscan.io/address/0xd97587FF4889CD80D343B545471e5f4B797A0f18) |
+| MorphoSupplyHook | [`0xEC5dB3Fc23A9AD9CE805dc1d4a4D8c57Fb774275`](https://optimistic.etherscan.io/address/0xEC5dB3Fc23A9AD9CE805dc1d4a4D8c57Fb774275) |
+| MorphoSupplyHookV2 | [`0x8b8752181BEd310Ed0465b3682eF0011c5F61ad2`](https://optimistic.etherscan.io/address/0x8b8752181BEd310Ed0465b3682eF0011c5F61ad2) |
+| MorphoWithdrawCollateralHookV2 | [`0x9d4380B99Aa19ca81A749B1103118164Bb1d3419`](https://optimistic.etherscan.io/address/0x9d4380B99Aa19ca81A749B1103118164Bb1d3419) |
+| MorphoWithdrawHook | [`0xaB5B6d00efe4320532c1b68BF7F2874915EFCE14`](https://optimistic.etherscan.io/address/0xaB5B6d00efe4320532c1b68BF7F2874915EFCE14) |
+| SpectraExchangeDepositHook | [`0x7485300b533312f9C94Ec85013C4bfB571b9E9f7`](https://optimistic.etherscan.io/address/0x7485300b533312f9C94Ec85013C4bfB571b9E9f7) |
+| SpectraExchangeRedeemHook | [`0xE26899243cEa57c671d065Fc3846B7402cd1CD4D`](https://optimistic.etherscan.io/address/0xE26899243cEa57c671d065Fc3846B7402cd1CD4D) |
+| SwapOdosV2Hook | [`0x336977f61F92a599A3175F55dC16e0B0A713A75B`](https://optimistic.etherscan.io/address/0x336977f61F92a599A3175F55dC16e0B0A713A75B) |
+| SwapUniswapV3Router02Hook | [`0x7A173c248e6382A7800215FeBE2faA92CAc32CC9`](https://optimistic.etherscan.io/address/0x7A173c248e6382A7800215FeBE2faA92CAc32CC9) |
+| SwapUniswapV4Hook | [`0xb462fA1e3800C4e1C2533848aE5fc514b4518f69`](https://optimistic.etherscan.io/address/0xb462fA1e3800C4e1C2533848aE5fc514b4518f69) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xEF8490c5aAA0E3f9C602a82eBbdd472695704d89`](https://optimistic.etherscan.io/address/0xEF8490c5aAA0E3f9C602a82eBbdd472695704d89) |
+
+  </Accordion>
+
+  <Accordion title="Arbitrum (chain ID 42161)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x4858bD9a13EeEc482d440bF1FcAE2100D37AD315`](https://arbiscan.io/address/0x4858bD9a13EeEc482d440bF1FcAE2100D37AD315) |
+| AcrossV3AdapterV2 | [`0x48AEfFb9A2DB3Ee887c8A728F90bA2A6102fCFb8`](https://arbiscan.io/address/0x48AEfFb9A2DB3Ee887c8A728F90bA2A6102fCFb8) |
+| CCTPAdapter | [`0xe1c4714780a865f928E3E91062e137Cc5ca00fe7`](https://arbiscan.io/address/0xe1c4714780a865f928E3E91062e137Cc5ca00fe7) |
+| CircleGatewayAdapter | [`0x4A9Bd20aE27D9C7Fa8032c2544b12262B40021A3`](https://arbiscan.io/address/0x4A9Bd20aE27D9C7Fa8032c2544b12262B40021A3) |
+| StargateAdapter | [`0xAcBc414e4358ea489E3DAff69e1e93264c001Ab2`](https://arbiscan.io/address/0xAcBc414e4358ea489E3DAff69e1e93264c001Ab2) |
+| StargateAdapterV2 | [`0xA72B4a6b4F63f982680b2136A8b501Ea6dEfFed8`](https://arbiscan.io/address/0xA72B4a6b4F63f982680b2136A8b501Ea6dEfFed8) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xaDfaBAcC7990E22F63e817c661A4733A1603333B`](https://arbiscan.io/address/0xaDfaBAcC7990E22F63e817c661A4733A1603333B) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x4Fabd852bbffB6A3315eC3Fb8b04f2F03D3a3125`](https://arbiscan.io/address/0x4Fabd852bbffB6A3315eC3Fb8b04f2F03D3a3125) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x13F6f47f9b60865EeC599d887d6A7037fB577361`](https://arbiscan.io/address/0x13F6f47f9b60865EeC599d887d6A7037fB577361) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xC2cb233C9797d591EF13A710499f6867c398b0D5`](https://arbiscan.io/address/0xC2cb233C9797d591EF13A710499f6867c398b0D5) |
+| ApproveAndSwapOdosV2Hook | [`0x8DC3407E3b292fB64139dB4A9E198e64D17d228F`](https://arbiscan.io/address/0x8DC3407E3b292fB64139dB4A9E198e64D17d228F) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f`](https://arbiscan.io/address/0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f) |
+| ForceDeallocateMorphoVaultHook | [`0xbEa4edb37Eb2B8C4B31A7e944E08F685db299110`](https://arbiscan.io/address/0xbEa4edb37Eb2B8C4B31A7e944E08F685db299110) |
+| ForceRedeemMorphoVaultHook | [`0x4CA378E1353d0669c6261Fb3be687383B66646eD`](https://arbiscan.io/address/0x4CA378E1353d0669c6261Fb3be687383B66646eD) |
+| MorphoBorrowHook | [`0xa41572a0c45cDEa8250Ebb98DB8592391aE1Bd79`](https://arbiscan.io/address/0xa41572a0c45cDEa8250Ebb98DB8592391aE1Bd79) |
+| MorphoBorrowHookV2 | [`0x9664637203Cb1d349996FF995b1230eEDC3856ec`](https://arbiscan.io/address/0x9664637203Cb1d349996FF995b1230eEDC3856ec) |
+| MorphoHealthCheckHook | [`0x2AD6fC63e0c40e57544D97bd63fAFA67f24569b8`](https://arbiscan.io/address/0x2AD6fC63e0c40e57544D97bd63fAFA67f24569b8) |
+| MorphoLendHook | [`0x8ef82F281ceBE50BA724c5BB309A32F347c1B27D`](https://arbiscan.io/address/0x8ef82F281ceBE50BA724c5BB309A32F347c1B27D) |
+| MorphoRepayAndWithdrawHook | [`0x9f7163DA5317Dd13c400bE0398F42F14890b6831`](https://arbiscan.io/address/0x9f7163DA5317Dd13c400bE0398F42F14890b6831) |
+| MorphoRepayAndWithdrawHookV2 | [`0x7c114B3d0772e62210f11431ed88073Bec095a12`](https://arbiscan.io/address/0x7c114B3d0772e62210f11431ed88073Bec095a12) |
+| MorphoRepayHook | [`0x6B900776CD2912d1a58E5091d927f230A1e3af41`](https://arbiscan.io/address/0x6B900776CD2912d1a58E5091d927f230A1e3af41) |
+| MorphoRepayHookV2 | [`0xC547B4fec1C68e35704572fE3eE25BA226a850C5`](https://arbiscan.io/address/0xC547B4fec1C68e35704572fE3eE25BA226a850C5) |
+| MorphoSupplyAndBorrowHook | [`0x71bc136Cf5130C9BdC9ffA727E34a6a9DC905941`](https://arbiscan.io/address/0x71bc136Cf5130C9BdC9ffA727E34a6a9DC905941) |
+| MorphoSupplyAndBorrowHookV2 | [`0x182Ee5777c8233d7883De727e7357A1962BC9EB2`](https://arbiscan.io/address/0x182Ee5777c8233d7883De727e7357A1962BC9EB2) |
+| MorphoSupplyHook | [`0xe90bc6BD4e20186552bDF72F1ADDf76c4c8B61A9`](https://arbiscan.io/address/0xe90bc6BD4e20186552bDF72F1ADDf76c4c8B61A9) |
+| MorphoSupplyHookV2 | [`0x299e8897DD512035176B2a4FB1d517A416902544`](https://arbiscan.io/address/0x299e8897DD512035176B2a4FB1d517A416902544) |
+| MorphoWithdrawCollateralHookV2 | [`0x63F495d18b8dA693854653CccB3E8bd0da68C3d0`](https://arbiscan.io/address/0x63F495d18b8dA693854653CccB3E8bd0da68C3d0) |
+| MorphoWithdrawHook | [`0x35149F97d9B022fC91f48e2D7F659DF9C9316765`](https://arbiscan.io/address/0x35149F97d9B022fC91f48e2D7F659DF9C9316765) |
+| SpectraExchangeDepositHook | [`0xBe8eBFEab4bff680663e3e9aa7e96654f19d9a87`](https://arbiscan.io/address/0xBe8eBFEab4bff680663e3e9aa7e96654f19d9a87) |
+| SpectraExchangeRedeemHook | [`0x6cD2E3880B3b451E25E781b0FE6335fCD6dB4073`](https://arbiscan.io/address/0x6cD2E3880B3b451E25E781b0FE6335fCD6dB4073) |
+| SwapOdosV2Hook | [`0x116d46f13bb783b630a4F29fC30E31d8FFc50d3d`](https://arbiscan.io/address/0x116d46f13bb783b630a4F29fC30E31d8FFc50d3d) |
+| SwapUniswapV3Router02Hook | [`0x7A173c248e6382A7800215FeBE2faA92CAc32CC9`](https://arbiscan.io/address/0x7A173c248e6382A7800215FeBE2faA92CAc32CC9) |
+| SwapUniswapV4Hook | [`0x0325D0Da3d46333aC41B7B88c8C398eB8087becc`](https://arbiscan.io/address/0x0325D0Da3d46333aC41B7B88c8C398eB8087becc) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x51f9f3D2C80f848362C43EE48010cec6cc32ab8E`](https://arbiscan.io/address/0x51f9f3D2C80f848362C43EE48010cec6cc32ab8E) |
+
+  </Accordion>
+
+  <Accordion title="BNB Chain (chain ID 56)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x6DAfED46E7250A2653A5d4ed16F793d19B501ff7`](https://bscscan.com/address/0x6DAfED46E7250A2653A5d4ed16F793d19B501ff7) |
+| AcrossV3AdapterV2 | [`0x9CCDc5D274De347247BBcDBcA96E7A7Ac17caF5C`](https://bscscan.com/address/0x9CCDc5D274De347247BBcDBcA96E7A7Ac17caF5C) |
+| StargateAdapter | [`0x1305Bd5f9C005867490C7018961627986d194F67`](https://bscscan.com/address/0x1305Bd5f9C005867490C7018961627986d194F67) |
+| StargateAdapterV2 | [`0x53B9f0d19C1d698C9A3A6587f82c8F34F40eb6ac`](https://bscscan.com/address/0x53B9f0d19C1d698C9A3A6587f82c8F34F40eb6ac) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xe866Bc03417DFd798970a3B2678e0Aedead371cb`](https://bscscan.com/address/0xe866Bc03417DFd798970a3B2678e0Aedead371cb) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xA9A45b39fA698B84bDFfD015A4684DEd94aeFDf2`](https://bscscan.com/address/0xA9A45b39fA698B84bDFfD015A4684DEd94aeFDf2) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x91Ed97Ca0AFF65ed3F06140bFC6F6B8b1cf21631`](https://bscscan.com/address/0x91Ed97Ca0AFF65ed3F06140bFC6F6B8b1cf21631) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x107BFA1811e81f5bC75bB0c12cD9580E04F643ce`](https://bscscan.com/address/0x107BFA1811e81f5bC75bB0c12cD9580E04F643ce) |
+| ApproveAndSwapBinanceHook | [`0x77591499Eb266d9142FcF33d9e1C2A880493327b`](https://bscscan.com/address/0x77591499Eb266d9142FcF33d9e1C2A880493327b) |
+| ApproveAndSwapOdosV2Hook | [`0x909983d686b55d1CE7FB04822A39Ce59cf83cf2E`](https://bscscan.com/address/0x909983d686b55d1CE7FB04822A39Ce59cf83cf2E) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x9fab7f863D165c5B35AB99E99dFC81855707d2B0`](https://bscscan.com/address/0x9fab7f863D165c5B35AB99E99dFC81855707d2B0) |
+| ForceDeallocateMorphoVaultHook | [`0x227CbC09349fbFCE19dE105004B7F3549007D36e`](https://bscscan.com/address/0x227CbC09349fbFCE19dE105004B7F3549007D36e) |
+| ForceRedeemMorphoVaultHook | [`0x362D697f3fa1e5Fd03cfe74fbD3eF27DAB2C3cB3`](https://bscscan.com/address/0x362D697f3fa1e5Fd03cfe74fbD3eF27DAB2C3cB3) |
+| MorphoBorrowHook | [`0xE99d6ae9603fa7226FEE33E1EC521C2d418fcb80`](https://bscscan.com/address/0xE99d6ae9603fa7226FEE33E1EC521C2d418fcb80) |
+| MorphoBorrowHookV2 | [`0x8F8Cc804bB0f6afFBD319B5034c4bc2F7cd67Bf9`](https://bscscan.com/address/0x8F8Cc804bB0f6afFBD319B5034c4bc2F7cd67Bf9) |
+| MorphoHealthCheckHook | [`0xa41452dA410A8890435a1D9aD891f4f01C7D8319`](https://bscscan.com/address/0xa41452dA410A8890435a1D9aD891f4f01C7D8319) |
+| MorphoLendHook | [`0xe4c0feF645BE49F38a9AB02463314C79744dd666`](https://bscscan.com/address/0xe4c0feF645BE49F38a9AB02463314C79744dd666) |
+| MorphoRepayAndWithdrawHook | [`0x1bE51Ad8A4a034F5a77Df9e2aE3cF2CE508aac69`](https://bscscan.com/address/0x1bE51Ad8A4a034F5a77Df9e2aE3cF2CE508aac69) |
+| MorphoRepayAndWithdrawHookV2 | [`0xe3d1c7aeeb73EA578A85F0D6c93A2b2D3658EB69`](https://bscscan.com/address/0xe3d1c7aeeb73EA578A85F0D6c93A2b2D3658EB69) |
+| MorphoRepayHook | [`0x4Dc9d5e76193aa2532BcBcc20C24188295cB79ab`](https://bscscan.com/address/0x4Dc9d5e76193aa2532BcBcc20C24188295cB79ab) |
+| MorphoRepayHookV2 | [`0x8FDD51A6baFe34002a80582E22f90baB54Bd2c0f`](https://bscscan.com/address/0x8FDD51A6baFe34002a80582E22f90baB54Bd2c0f) |
+| MorphoSupplyAndBorrowHook | [`0x1C6eCc5fc2Db50f675a891e15b8CDED021f78279`](https://bscscan.com/address/0x1C6eCc5fc2Db50f675a891e15b8CDED021f78279) |
+| MorphoSupplyAndBorrowHookV2 | [`0x200d89A4cAca0d7efDD6164109e2b08F523a0686`](https://bscscan.com/address/0x200d89A4cAca0d7efDD6164109e2b08F523a0686) |
+| MorphoSupplyHook | [`0x527C3DaF34ae0c00809161f6c87DE04f1383550c`](https://bscscan.com/address/0x527C3DaF34ae0c00809161f6c87DE04f1383550c) |
+| MorphoSupplyHookV2 | [`0xAe00b3847AC28471e2e2cC01A448f264D3dfd7f9`](https://bscscan.com/address/0xAe00b3847AC28471e2e2cC01A448f264D3dfd7f9) |
+| MorphoWithdrawCollateralHookV2 | [`0x8585A476ca7f52b0Ed24B272f063674877e4d40a`](https://bscscan.com/address/0x8585A476ca7f52b0Ed24B272f063674877e4d40a) |
+| MorphoWithdrawHook | [`0x9DF7A45eCFBd18cd4BE0472B09080Ab3364D0b7a`](https://bscscan.com/address/0x9DF7A45eCFBd18cd4BE0472B09080Ab3364D0b7a) |
+| SpectraExchangeDepositHook | [`0x7485300b533312f9C94Ec85013C4bfB571b9E9f7`](https://bscscan.com/address/0x7485300b533312f9C94Ec85013C4bfB571b9E9f7) |
+| SpectraExchangeRedeemHook | [`0xE26899243cEa57c671d065Fc3846B7402cd1CD4D`](https://bscscan.com/address/0xE26899243cEa57c671d065Fc3846B7402cd1CD4D) |
+| SwapOdosV2Hook | [`0x8D34145E0e27119801cf2B45678eae5946CDACa6`](https://bscscan.com/address/0x8D34145E0e27119801cf2B45678eae5946CDACa6) |
+| SwapUniswapV3Router02Hook | [`0x8c35030E7e0Baf5fcd3Ec6bF2F12BaB697c96b9c`](https://bscscan.com/address/0x8c35030E7e0Baf5fcd3Ec6bF2F12BaB697c96b9c) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperOracle | [`0x673ec4771F86Ddc9E6fDc47Ab44B91a8231De5eC`](https://bscscan.com/address/0x673ec4771F86Ddc9E6fDc47Ab44B91a8231De5eC) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x5bE8e2D71a81A550800fF42cc602f79A0849f1A0`](https://bscscan.com/address/0x5bE8e2D71a81A550800fF42cc602f79A0849f1A0) |
+
+  </Accordion>
+
+  <Accordion title="Polygon (chain ID 137)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x8D58754A88bD1F1Ccf8dd22860d913e9933463e5`](https://polygonscan.com/address/0x8D58754A88bD1F1Ccf8dd22860d913e9933463e5) |
+| AcrossV3AdapterV2 | [`0x69e37EB5E59cF0cF5639A375Df56271a6E3a0CaD`](https://polygonscan.com/address/0x69e37EB5E59cF0cF5639A375Df56271a6E3a0CaD) |
+| CCTPAdapter | [`0xEfEda06C5347175E6581D051aA9c3584e3c115B2`](https://polygonscan.com/address/0xEfEda06C5347175E6581D051aA9c3584e3c115B2) |
+| CircleGatewayAdapter | [`0xf2a471C5d61e5C65D84803E4C24aE30413C0793a`](https://polygonscan.com/address/0xf2a471C5d61e5C65D84803E4C24aE30413C0793a) |
+| StargateAdapter | [`0x884F68eB747a2cBDF6A4dFA1F274623DF0fAd275`](https://polygonscan.com/address/0x884F68eB747a2cBDF6A4dFA1F274623DF0fAd275) |
+| StargateAdapterV2 | [`0xf0ecfB45b8d25839a6caf481e45eB7346caEbD20`](https://polygonscan.com/address/0xf0ecfB45b8d25839a6caf481e45eB7346caEbD20) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0x06B349717DCf30EceAe3B8112d822B775FA7dAec`](https://polygonscan.com/address/0x06B349717DCf30EceAe3B8112d822B775FA7dAec) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x9058885dEBb03bb51D054418ed147Bb0Eca939d6`](https://polygonscan.com/address/0x9058885dEBb03bb51D054418ed147Bb0Eca939d6) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x42a3f7D8B1b59d54512117623d98cB6227870c64`](https://polygonscan.com/address/0x42a3f7D8B1b59d54512117623d98cB6227870c64) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xeCd42AE709070F71EB84685b4C04e519d36613F9`](https://polygonscan.com/address/0xeCd42AE709070F71EB84685b4C04e519d36613F9) |
+| ApproveAndSwapOdosV2Hook | [`0x3CCFaE45ACe0ed67CB546AE14B613DfBeffED62c`](https://polygonscan.com/address/0x3CCFaE45ACe0ed67CB546AE14B613DfBeffED62c) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f`](https://polygonscan.com/address/0x6165C5dB2e4C97A3F165CA0eF8c08009919efe8f) |
+| SwapOdosV2Hook | [`0xb2a0c51a7d66adBc9FC609062B93B727A50De2fD`](https://polygonscan.com/address/0xb2a0c51a7d66adBc9FC609062B93B727A50De2fD) |
+| SwapUniswapV3Router02Hook | [`0x7A173c248e6382A7800215FeBE2faA92CAc32CC9`](https://polygonscan.com/address/0x7A173c248e6382A7800215FeBE2faA92CAc32CC9) |
+| SwapUniswapV4Hook | [`0x9769ca7B48EC99a5F0a8dCc844ecaB7D4a960aFE`](https://polygonscan.com/address/0x9769ca7B48EC99a5F0a8dCc844ecaB7D4a960aFE) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x1462A45a233D96E3B06AcEbb6Ee6959Dce605dD8`](https://polygonscan.com/address/0x1462A45a233D96E3B06AcEbb6Ee6959Dce605dD8) |
+
+  </Accordion>
+
+  <Accordion title="Avalanche (chain ID 43114)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3AdapterV2 | [`0xA660e5777088fD5547bFF315D4c967ca8Ce5C961`](https://snowscan.xyz/address/0xA660e5777088fD5547bFF315D4c967ca8Ce5C961) |
+| CCTPAdapter | [`0xB3D6f1dEbDde3F3D3Ca954f7247bbB3a283D2d37`](https://snowscan.xyz/address/0xB3D6f1dEbDde3F3D3Ca954f7247bbB3a283D2d37) |
+| CircleGatewayAdapter | [`0x6A5da59b4D1c09A7584A01308fCA4E5B20AFc0c1`](https://snowscan.xyz/address/0x6A5da59b4D1c09A7584A01308fCA4E5B20AFc0c1) |
+| StargateAdapter | [`0xA93C017bf655fcc63deB81CD1561dCD4859ffF70`](https://snowscan.xyz/address/0xA93C017bf655fcc63deB81CD1561dCD4859ffF70) |
+| StargateAdapterV2 | [`0x059bA0E313C7C24874aBbA562DE108C8A08BdDAC`](https://snowscan.xyz/address/0x059bA0E313C7C24874aBbA562DE108C8A08BdDAC) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x3e293A35249cD8DCc6B37a2d21aA48cbac5D51A7`](https://snowscan.xyz/address/0x3e293A35249cD8DCc6B37a2d21aA48cbac5D51A7) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x42830A6848447E8dAD41044ebfE58e1b26Fa5f7a`](https://snowscan.xyz/address/0x42830A6848447E8dAD41044ebfE58e1b26Fa5f7a) |
+| ApproveAndSwapOdosV2Hook | [`0x8Eb04cF593f549729271e33F49C84aE747aF6033`](https://snowscan.xyz/address/0x8Eb04cF593f549729271e33F49C84aE747aF6033) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0xe431AB4024C25DBf469Ab076c9E4A30de9AAdd4C`](https://snowscan.xyz/address/0xe431AB4024C25DBf469Ab076c9E4A30de9AAdd4C) |
+| SpectraExchangeDepositHook | [`0x7485300b533312f9C94Ec85013C4bfB571b9E9f7`](https://snowscan.xyz/address/0x7485300b533312f9C94Ec85013C4bfB571b9E9f7) |
+| SpectraExchangeRedeemHook | [`0xE26899243cEa57c671d065Fc3846B7402cd1CD4D`](https://snowscan.xyz/address/0xE26899243cEa57c671d065Fc3846B7402cd1CD4D) |
+| SwapOdosV2Hook | [`0xD2DD62185EfAf27A08247285507Ac482aaFc1ded`](https://snowscan.xyz/address/0xD2DD62185EfAf27A08247285507Ac482aaFc1ded) |
+| SwapUniswapV3Router02Hook | [`0x36b5386A24193Cb68406e1918F09200A5247Eb3B`](https://snowscan.xyz/address/0x36b5386A24193Cb68406e1918F09200A5247Eb3B) |
+| SwapUniswapV4Hook | [`0xf166F1aC8EB49aaE7E9AfC412d5a1985750AB54E`](https://snowscan.xyz/address/0xf166F1aC8EB49aaE7E9AfC412d5a1985750AB54E) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xA45CB1e74056bEeb676B35de8BFB9cbEEF44f677`](https://snowscan.xyz/address/0xA45CB1e74056bEeb676B35de8BFB9cbEEF44f677) |
+
+  </Accordion>
+
+  <Accordion title="Unichain (chain ID 130)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA`](https://uniscan.xyz/address/0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA) |
+| AcrossV3AdapterV2 | [`0x04E4aa141335888Aa99B0700A6281f673cE77A2F`](https://uniscan.xyz/address/0x04E4aa141335888Aa99B0700A6281f673cE77A2F) |
+| CCTPAdapter | [`0x16a092D0D0Ae79f634A359376a2116CdA00a7616`](https://uniscan.xyz/address/0x16a092D0D0Ae79f634A359376a2116CdA00a7616) |
+| CircleGatewayAdapter | [`0xdD9B3767e578Aa2FB02683A00D143DF8233DB9f8`](https://uniscan.xyz/address/0xdD9B3767e578Aa2FB02683A00D143DF8233DB9f8) |
+| StargateAdapter | [`0x09654679e5b3b084c370fBa88DbFbf9d0dF5b2d6`](https://uniscan.xyz/address/0x09654679e5b3b084c370fBa88DbFbf9d0dF5b2d6) |
+| StargateAdapterV2 | [`0xBF8d870a34EfB6E6D612df0617b92F5040bBacEA`](https://uniscan.xyz/address/0xBF8d870a34EfB6E6D612df0617b92F5040bBacEA) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xF583a7826Da0917a8d45eC4457d45D26D251B152`](https://uniscan.xyz/address/0xF583a7826Da0917a8d45eC4457d45D26D251B152) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1`](https://uniscan.xyz/address/0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a`](https://uniscan.xyz/address/0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529`](https://uniscan.xyz/address/0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529) |
+| ApproveAndSwapOdosV2Hook | [`0x55D273d97BF41F65D60C203Ecef798DbC64f11b9`](https://uniscan.xyz/address/0x55D273d97BF41F65D60C203Ecef798DbC64f11b9) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0xcCbc8BAc9B9A309706b44eEE51F04527Eb1635Af`](https://uniscan.xyz/address/0xcCbc8BAc9B9A309706b44eEE51F04527Eb1635Af) |
+| SwapOdosV2Hook | [`0x3a0A83aA624712762Fc7CcbE1639511f72C6669C`](https://uniscan.xyz/address/0x3a0A83aA624712762Fc7CcbE1639511f72C6669C) |
+| SwapUniswapV3Router02Hook | [`0x3A48F6C4B09115443b3E91175aDCFFb56337F866`](https://uniscan.xyz/address/0x3A48F6C4B09115443b3E91175aDCFFb56337F866) |
+| SwapUniswapV4Hook | [`0x22a2bAe444EC90D04b95185e436E253A4D95b973`](https://uniscan.xyz/address/0x22a2bAe444EC90D04b95185e436E253A4D95b973) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xd09A4DeD9465B5F150701d5748c403Df8e31A993`](https://uniscan.xyz/address/0xd09A4DeD9465B5F150701d5748c403Df8e31A993) |
+
+  </Accordion>
+
+  <Accordion title="HyperEVM (chain ID 999)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x381D5EA470D13ceb51e5dFDd2A28a03b15d4F054`](https://hyperevmscan.io/address/0x381D5EA470D13ceb51e5dFDd2A28a03b15d4F054) |
+| AcrossV3AdapterV2 | [`0x779408F097d88c47f2Bceb65279d60A7679bF7F8`](https://hyperevmscan.io/address/0x779408F097d88c47f2Bceb65279d60A7679bF7F8) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xc5147702Cfd4d8ab5F028e57B30253460583b54d`](https://hyperevmscan.io/address/0xc5147702Cfd4d8ab5F028e57B30253460583b54d) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0x8C6aB0ef88F855A991033d9De37F9e06905Ab61B`](https://hyperevmscan.io/address/0x8C6aB0ef88F855A991033d9De37F9e06905Ab61B) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x8643A93724F97b60D3d5d64cb44d0F3e012e2CDe`](https://hyperevmscan.io/address/0x8643A93724F97b60D3d5d64cb44d0F3e012e2CDe) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x8905c8403B22b827749a349269ace41B78C78f2B`](https://hyperevmscan.io/address/0x8905c8403B22b827749a349269ace41B78C78f2B) |
+| ApproveAndHyperCoreDepositUsdcPerpHook | [`0xCF90E02ede782E6Cdce58fA6E4d2509614dF784D`](https://hyperevmscan.io/address/0xCF90E02ede782E6Cdce58fA6E4d2509614dF784D) |
+| ApproveAndSwapUniswapV3Hook | [`0xbC4E2d35F616592FEF5B91CD87E617505855eceB`](https://hyperevmscan.io/address/0xbC4E2d35F616592FEF5B91CD87E617505855eceB) |
+| HyperCoreAddApiWalletHook | [`0x7d4610dbEe9A5DDD4DF43F438dd1C1709D431385`](https://hyperevmscan.io/address/0x7d4610dbEe9A5DDD4DF43F438dd1C1709D431385) |
+| HyperCoreApproveBuilderFeeHook | [`0xe4cF68598878B13Bec9985baBc46Cc6b6733164e`](https://hyperevmscan.io/address/0xe4cF68598878B13Bec9985baBc46Cc6b6733164e) |
+| HyperCoreGasTopUpHook | [`0xc089fbEc2d959C99ac309702e50fdCbEAd43bB14`](https://hyperevmscan.io/address/0xc089fbEc2d959C99ac309702e50fdCbEAd43bB14) |
+| HyperCoreSendAssetHook | [`0x90dc9d2BB3cFF8E3b228F4a48Bb9678eCF52CD2E`](https://hyperevmscan.io/address/0x90dc9d2BB3cFF8E3b228F4a48Bb9678eCF52CD2E) |
+| HyperCoreUsdClassTransferHook | [`0x50c925F20993E0A1C91623df444b226417866DEE`](https://hyperevmscan.io/address/0x50c925F20993E0A1C91623df444b226417866DEE) |
+| SpectraExchangeDepositHook | [`0x489710b7777BA2A67bA98Efa3D05925d0D92d6e8`](https://hyperevmscan.io/address/0x489710b7777BA2A67bA98Efa3D05925d0D92d6e8) |
+| SpectraExchangeRedeemHook | [`0x5b03B19Af5De0EddE9734cBB31e813E84b5881FA`](https://hyperevmscan.io/address/0x5b03B19Af5De0EddE9734cBB31e813E84b5881FA) |
+| SwapUniswapV3Hook | [`0x650df1F828203224A262f047AcA2D03ADc59fD08`](https://hyperevmscan.io/address/0x650df1F828203224A262f047AcA2D03ADc59fD08) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| HyperCorePerpPositionOracle | [`0xB493FDebc1b5758A24680ac691e6349dE12f95cd`](https://hyperevmscan.io/address/0xB493FDebc1b5758A24680ac691e6349dE12f95cd) |
+| SuperOracle | [`0x40c72A5667572641Ca428a2DFa8456EBD4623c10`](https://hyperevmscan.io/address/0x40c72A5667572641Ca428a2DFa8456EBD4623c10) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x2731d1A476d3519b1F3617424214152CA5f58f89`](https://hyperevmscan.io/address/0x2731d1A476d3519b1F3617424214152CA5f58f89) |
+
+  </Accordion>
+
+  <Accordion title="Flare (chain ID 14)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| StargateAdapter | [`0xa899D7909aE1c7eAc00FBd6C6aecd6c7c7744b8D`](https://flarescan.com/address/0xa899D7909aE1c7eAc00FBd6C6aecd6c7c7744b8D) |
+| StargateAdapterV2 | [`0x4855B4F675697FBcCc4ab61045D750937adF2AdE`](https://flarescan.com/address/0x4855B4F675697FBcCc4ab61045D750937adF2AdE) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| ApproveAndSwapAlgebraIntegralHook | [`0x87E8958d0a2Bd030060fa63852770d5bdA303153`](https://flarescan.com/address/0x87E8958d0a2Bd030060fa63852770d5bdA303153) |
+| ApproveAndSwapOpenOceanHook | [`0x88832253c5BFBD07d37A02E6EDFaa28F6e280227`](https://flarescan.com/address/0x88832253c5BFBD07d37A02E6EDFaa28F6e280227) |
+| ApproveAndSwapUniswapV2Hook | [`0x59A3F41190AEFF53F507D43d3Bf44Ae0167aa0C3`](https://flarescan.com/address/0x59A3F41190AEFF53F507D43d3Bf44Ae0167aa0C3) |
+| ClaimRFLRHook | [`0x8704fAD97ab95d4a8392B0667fE08903a46d102b`](https://flarescan.com/address/0x8704fAD97ab95d4a8392B0667fE08903a46d102b) |
+| ClaimRFLRV2Hook | [`0xfd0A3e316Ffe711d5302F91a30F02dbB7F35C95A`](https://flarescan.com/address/0xfd0A3e316Ffe711d5302F91a30F02dbB7F35C95A) |
+| ClaimRFLRV3Hook | [`0x2FAa029F0959D53A4E3B73c41fE2AC524432816d`](https://flarescan.com/address/0x2FAa029F0959D53A4E3B73c41fE2AC524432816d) |
+| ClaimWithdrawFirelightVaultHook | [`0x6CEb5551506e7225514dF1056941307ed8D28094`](https://flarescan.com/address/0x6CEb5551506e7225514dF1056941307ed8D28094) |
+| DepositWFLRHook | [`0xCF45f5b0983FAcA218c704d51be5b9e2Cfffe0C3`](https://flarescan.com/address/0xCF45f5b0983FAcA218c704d51be5b9e2Cfffe0C3) |
+| RedeemFirelightVaultHook | [`0x9D573F3018baDD42Dd292d44F8887FBbCf488Dc8`](https://flarescan.com/address/0x9D573F3018baDD42Dd292d44F8887FBbCf488Dc8) |
+| SwapAlgebraIntegralHook | [`0xF7291FD5Ef4c59bc81314BCf2A1546008edF8F41`](https://flarescan.com/address/0xF7291FD5Ef4c59bc81314BCf2A1546008edF8F41) |
+| SwapOpenOceanHook | [`0xd4Ca1E1afCD79a932D1933dD161f5211790B42d7`](https://flarescan.com/address/0xd4Ca1E1afCD79a932D1933dD161f5211790B42d7) |
+| SwapUniswapV2Hook | [`0xABe4A358988bfAFfd077a3601e131E5C256d04cA`](https://flarescan.com/address/0xABe4A358988bfAFfd077a3601e131E5C256d04cA) |
+| WithdrawRFLRHook | [`0x45Eb9379f77867560114A398309b6444c51376e6`](https://flarescan.com/address/0x45Eb9379f77867560114A398309b6444c51376e6) |
+| WithdrawRFLRHookV2 | [`0x4667a6F5E0285dc1aCA46C6A4f4Bb5DACe7bb880`](https://flarescan.com/address/0x4667a6F5E0285dc1aCA46C6A4f4Bb5DACe7bb880) |
+| WithdrawVestedRFLRHook | [`0x44f6A4014776355B267D4B659a55184Bb968a387`](https://flarescan.com/address/0x44f6A4014776355B267D4B659a55184Bb968a387) |
+| WithdrawVestedRFLRHookV2 | [`0xB6Dfa4efA5F401E1b7C914c8A3510b2EFf64c06e`](https://flarescan.com/address/0xB6Dfa4efA5F401E1b7C914c8A3510b2EFf64c06e) |
+| WrappedNativeHook | [`0xC10248c8C66D802b08E7DF42caD4028c45fa97CA`](https://flarescan.com/address/0xC10248c8C66D802b08E7DF42caD4028c45fa97CA) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperOracle | [`0xA6480646D4c27Fc67f56eD3176838B8dED6Ca333`](https://flarescan.com/address/0xA6480646D4c27Fc67f56eD3176838B8dED6Ca333) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xC0821881B288d57961cff50AD1Fb1C97a375b132`](https://flarescan.com/address/0xC0821881B288d57961cff50AD1Fb1C97a375b132) |
+| SuperVaultBatchOperator | [`0xb7e49A6b09bAfC63bc66a8AdEdebe2828b65B84D`](https://flarescan.com/address/0xb7e49A6b09bAfC63bc66a8AdEdebe2828b65B84D) |
+
+  </Accordion>
+
+  <Accordion title="Robinhood Chain (chain ID 4663)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x678aEcBA928B6296B978e3016EA7b6D354794E89`](https://robinhoodchain.blockscout.com/address/0x678aEcBA928B6296B978e3016EA7b6D354794E89) |
+| AcrossV3AdapterV2 | [`0x8f0ebcBF5675b558f18FdADDF12CA158f48aB330`](https://robinhoodchain.blockscout.com/address/0x8f0ebcBF5675b558f18FdADDF12CA158f48aB330) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xf2D69C07B4729A2Af541C3387edaa9FA2DF9650b`](https://robinhoodchain.blockscout.com/address/0xf2D69C07B4729A2Af541C3387edaa9FA2DF9650b) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xB3d909e1837056dF6cadb7529c74E7400B87006C`](https://robinhoodchain.blockscout.com/address/0xB3d909e1837056dF6cadb7529c74E7400B87006C) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x91C5bf1B80465c7E86EB624d5DC84c75201afdAC`](https://robinhoodchain.blockscout.com/address/0x91C5bf1B80465c7E86EB624d5DC84c75201afdAC) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0x65391075722aAC790B55e62B7524AB04218f3fE8`](https://robinhoodchain.blockscout.com/address/0x65391075722aAC790B55e62B7524AB04218f3fE8) |
+| ApproveAndSwapPancakeSwapHook | [`0xE70B7b74bA5E9baAaa0a3a5CC5793756586aaB29`](https://robinhoodchain.blockscout.com/address/0xE70B7b74bA5E9baAaa0a3a5CC5793756586aaB29) |
+| ForceDeallocateMorphoVaultHook | [`0xBaD6ce947f22C7856d85e9A27Ce153B481440851`](https://robinhoodchain.blockscout.com/address/0xBaD6ce947f22C7856d85e9A27Ce153B481440851) |
+| ForceRedeemMorphoVaultHook | [`0x3D0CAf17257eC49E2299c9F496de826D381E747C`](https://robinhoodchain.blockscout.com/address/0x3D0CAf17257eC49E2299c9F496de826D381E747C) |
+| MorphoBorrowHook | [`0xF9Dd451003cDA8ccfE424c1E8Ec78F65cE2122B8`](https://robinhoodchain.blockscout.com/address/0xF9Dd451003cDA8ccfE424c1E8Ec78F65cE2122B8) |
+| MorphoBorrowHookV2 | [`0x85704c0Fa0940E24B5D4d67dc53c0bc43bdA2Ce0`](https://robinhoodchain.blockscout.com/address/0x85704c0Fa0940E24B5D4d67dc53c0bc43bdA2Ce0) |
+| MorphoHealthCheckHook | [`0xB906418b11A221942a2C668239A5dD0C1766E825`](https://robinhoodchain.blockscout.com/address/0xB906418b11A221942a2C668239A5dD0C1766E825) |
+| MorphoLendHook | [`0xd08e98d07F03B46750E700F2c4bf77268aA88591`](https://robinhoodchain.blockscout.com/address/0xd08e98d07F03B46750E700F2c4bf77268aA88591) |
+| MorphoRepayAndWithdrawHook | [`0x97D6ec7CD56dF9A3521d29a25B656E8Abb42bE89`](https://robinhoodchain.blockscout.com/address/0x97D6ec7CD56dF9A3521d29a25B656E8Abb42bE89) |
+| MorphoRepayAndWithdrawHookV2 | [`0x3C619585a20Cc4A66C81082c7952D4da9a43A29E`](https://robinhoodchain.blockscout.com/address/0x3C619585a20Cc4A66C81082c7952D4da9a43A29E) |
+| MorphoRepayHook | [`0x404695d9abAC8b947d3223f21789f127A181dA80`](https://robinhoodchain.blockscout.com/address/0x404695d9abAC8b947d3223f21789f127A181dA80) |
+| MorphoRepayHookV2 | [`0xe1cfe003199d7b6Bd52aF17a4C2Cae8D6F326565`](https://robinhoodchain.blockscout.com/address/0xe1cfe003199d7b6Bd52aF17a4C2Cae8D6F326565) |
+| MorphoSupplyAndBorrowHook | [`0xD2e84f42AfE6988dD9281edDF5B73565C446028C`](https://robinhoodchain.blockscout.com/address/0xD2e84f42AfE6988dD9281edDF5B73565C446028C) |
+| MorphoSupplyAndBorrowHookV2 | [`0x60Fadb50374A2ddA4b1FF2106f678aFE32695D5f`](https://robinhoodchain.blockscout.com/address/0x60Fadb50374A2ddA4b1FF2106f678aFE32695D5f) |
+| MorphoSupplyHook | [`0x363F2c624220870B11FbAA4D2d1e24A065c760Ad`](https://robinhoodchain.blockscout.com/address/0x363F2c624220870B11FbAA4D2d1e24A065c760Ad) |
+| MorphoSupplyHookV2 | [`0x507fe06FeD5657169163F599a5f1192Da54dB31e`](https://robinhoodchain.blockscout.com/address/0x507fe06FeD5657169163F599a5f1192Da54dB31e) |
+| MorphoWithdrawCollateralHookV2 | [`0xedc339EE7E1fBe1aC76c5c445135ba75f0f9424d`](https://robinhoodchain.blockscout.com/address/0xedc339EE7E1fBe1aC76c5c445135ba75f0f9424d) |
+| MorphoWithdrawHook | [`0x69610FdEC500aac2b883400ede77B38C0d282871`](https://robinhoodchain.blockscout.com/address/0x69610FdEC500aac2b883400ede77B38C0d282871) |
+| SwapPancakeSwapHook | [`0x82b513dfB793c7cb489aA2A239A703D188A31309`](https://robinhoodchain.blockscout.com/address/0x82b513dfB793c7cb489aA2A239A703D188A31309) |
+| SwapUniswapV4Hook | [`0x14A7EF2e1AC711FCa10C3Dfc71bFF01bEa8e9714`](https://robinhoodchain.blockscout.com/address/0x14A7EF2e1AC711FCa10C3Dfc71bFF01bEa8e9714) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperOracle | [`0xb674bEd358F74ECa35a405778B338C18e9DB92Ca`](https://robinhoodchain.blockscout.com/address/0xb674bEd358F74ECa35a405778B338C18e9DB92Ca) |
+| SuperformGasOracle | [`0x986c1431D8e157723dBCB2a30F1FF7b4cD29bBc0`](https://robinhoodchain.blockscout.com/address/0x986c1431D8e157723dBCB2a30F1FF7b4cD29bBc0) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xD1610e2d751BD5E81C90Bf272580252Dadc63Df2`](https://robinhoodchain.blockscout.com/address/0xD1610e2d751BD5E81C90Bf272580252Dadc63Df2) |
+
+  </Accordion>
+
+  <Accordion title="Arc (chain ID 5042)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3AdapterV2 | [`0x5156c0E6A3ED37B1b22217DCF9e1f36824DB2798`](https://arc.exploreme.pro/address/0x5156c0E6A3ED37B1b22217DCF9e1f36824DB2798) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xC16409b87e539106BE1A0315070b382Af85f4C71`](https://arc.exploreme.pro/address/0xC16409b87e539106BE1A0315070b382Af85f4C71) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xF26194c7dB0906658e55bC2eE158c30ACeA7Dd4f`](https://arc.exploreme.pro/address/0xF26194c7dB0906658e55bC2eE158c30ACeA7Dd4f) |
+| ApproveAndSwapPancakeSwapHook | [`0x7Af4cb9F622544Bbbc920a246edE50D71F4F0fE9`](https://arc.exploreme.pro/address/0x7Af4cb9F622544Bbbc920a246edE50D71F4F0fE9) |
+| SwapPancakeSwapHook | [`0x37E60113705eF4a70EF9f247182100cb0A753011`](https://arc.exploreme.pro/address/0x37E60113705eF4a70EF9f247182100cb0A753011) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperOracle | [`0x15fC3d92d31b1a19c1368f9Db801a418060e46B1`](https://arc.exploreme.pro/address/0x15fC3d92d31b1a19c1368f9Db801a418060e46B1) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B`](https://arc.exploreme.pro/address/0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B) |
+
+  </Accordion>
+
+  <Accordion title="Katana (chain ID 747474)">
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| ApproveAndSwapEverlongHook | [`0xEaDC0633A91e03fb6A057a325aa5d0e7E57A5F2D`](https://katanascan.com/address/0xEaDC0633A91e03fb6A057a325aa5d0e7E57A5F2D) |
+| ApproveAndSwapSushiSwapHook | [`0x7EB04546025D95493Cc507be688F616dd2e1E344`](https://katanascan.com/address/0x7EB04546025D95493Cc507be688F616dd2e1E344) |
+| ForceDeallocateMorphoVaultHook | [`0xD142f2DEC668Ff5922B7Eb04771A5bc05bB944E0`](https://katanascan.com/address/0xD142f2DEC668Ff5922B7Eb04771A5bc05bB944E0) |
+| ForceRedeemMorphoVaultHook | [`0x553c3c44c64534F75CE9d17Bd3D12A28dD1f473C`](https://katanascan.com/address/0x553c3c44c64534F75CE9d17Bd3D12A28dD1f473C) |
+| MorphoBorrowHook | [`0x3277F5C7a57Bcf4D2ebE87021aBe0997167B2b08`](https://katanascan.com/address/0x3277F5C7a57Bcf4D2ebE87021aBe0997167B2b08) |
+| MorphoBorrowHookV2 | [`0xEaaB9d4893C06E4F0E0D6Fd3A8c29beda2a90A8a`](https://katanascan.com/address/0xEaaB9d4893C06E4F0E0D6Fd3A8c29beda2a90A8a) |
+| MorphoHealthCheckHook | [`0xB35A20ec38c7cF04d1307a737B53654BA4833a5D`](https://katanascan.com/address/0xB35A20ec38c7cF04d1307a737B53654BA4833a5D) |
+| MorphoLendHook | [`0x886467C1634cfd379aD59F13bDdd4448181Fd19B`](https://katanascan.com/address/0x886467C1634cfd379aD59F13bDdd4448181Fd19B) |
+| MorphoRepayAndWithdrawHook | [`0xe847F156dd7e241409bB4E1Bc47B61CBf0E32C19`](https://katanascan.com/address/0xe847F156dd7e241409bB4E1Bc47B61CBf0E32C19) |
+| MorphoRepayAndWithdrawHookV2 | [`0xbb59f780E9a88f8D8bA1D807f09510DA15C22010`](https://katanascan.com/address/0xbb59f780E9a88f8D8bA1D807f09510DA15C22010) |
+| MorphoRepayHook | [`0x0D5C8be6d3a2D45babb44910a28Cb5B4455db16B`](https://katanascan.com/address/0x0D5C8be6d3a2D45babb44910a28Cb5B4455db16B) |
+| MorphoRepayHookV2 | [`0x12a68998a56EC4eeBd513f5D83EC0fEF2F9EC207`](https://katanascan.com/address/0x12a68998a56EC4eeBd513f5D83EC0fEF2F9EC207) |
+| MorphoSupplyAndBorrowHook | [`0x7c95BD1fea38e8Dc7F79f3C47f3AADaE5292e6A7`](https://katanascan.com/address/0x7c95BD1fea38e8Dc7F79f3C47f3AADaE5292e6A7) |
+| MorphoSupplyAndBorrowHookV2 | [`0x2e5263f399439dcB6D8509D25b0750E0b370751C`](https://katanascan.com/address/0x2e5263f399439dcB6D8509D25b0750E0b370751C) |
+| MorphoSupplyHook | [`0x8240bC9f5289aF79839614CBc6Ef90653d932500`](https://katanascan.com/address/0x8240bC9f5289aF79839614CBc6Ef90653d932500) |
+| MorphoSupplyHookV2 | [`0x636080B6308605da01c5B4B5Ad67fdb6d162f684`](https://katanascan.com/address/0x636080B6308605da01c5B4B5Ad67fdb6d162f684) |
+| MorphoWithdrawCollateralHookV2 | [`0x44BBE293E01349e64A7dcf74729986831E2057A7`](https://katanascan.com/address/0x44BBE293E01349e64A7dcf74729986831E2057A7) |
+| MorphoWithdrawHook | [`0x9889F20C3176f0911c3D98C9C3FBe7f620D672ee`](https://katanascan.com/address/0x9889F20C3176f0911c3D98C9C3FBe7f620D672ee) |
+| SwapEverlongHook | [`0xea1c14642d11Bac46150b4C97Be51FDd49D2119C`](https://katanascan.com/address/0xea1c14642d11Bac46150b4C97Be51FDd49D2119C) |
+| SwapSushiSwapHook | [`0xC0Be59Db95744c4f869d2C70c4dBE418045F8D9d`](https://katanascan.com/address/0xC0Be59Db95744c4f869d2C70c4dBE418045F8D9d) |
+
+**Oracles and registries**
+
+| Contract | Address |
+|---|---|
+| SuperOracle | [`0x7d02Dff6A19204441ED8B60bF49c974c16b6C201`](https://katanascan.com/address/0x7d02Dff6A19204441ED8B60bF49c974c16b6C201) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x72452A4c0eF30A0DcFf32f451fA2Cf1E31cD66Cf`](https://katanascan.com/address/0x72452A4c0eF30A0DcFf32f451fA2Cf1E31cD66Cf) |
+
+  </Accordion>
+
+  <Accordion title="Gnosis (chain ID 100)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| StargateAdapter | [`0x97629b86e5D6cfaF8df22a5603212a4Cb512F23b`](https://gnosisscan.io/address/0x97629b86e5D6cfaF8df22a5603212a4Cb512F23b) |
+| StargateAdapterV2 | [`0x2F7b34888061d337430c26092DC57D43d1d7BD8E`](https://gnosisscan.io/address/0x2F7b34888061d337430c26092DC57D43d1d7BD8E) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x847aa9021D52cCFA5ec41B66304B2CFbA19E94C1`](https://gnosisscan.io/address/0x847aa9021D52cCFA5ec41B66304B2CFbA19E94C1) |
+
+  </Accordion>
+
+  <Accordion title="Sonic (chain ID 146)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| CCTPAdapter | [`0x4939CB5f97f40e3a0f6299E43d49DfAc0D84F41F`](https://sonicscan.org/address/0x4939CB5f97f40e3a0f6299E43d49DfAc0D84F41F) |
+| CircleGatewayAdapter | [`0xBaD73D26F9B3B28Ba89981952F4f45B849E93fFa`](https://sonicscan.org/address/0xBaD73D26F9B3B28Ba89981952F4f45B849E93fFa) |
+| StargateAdapter | [`0xF7D67B962dfdF4c6FC03bCe58cE423ca17BD88C5`](https://sonicscan.org/address/0xF7D67B962dfdF4c6FC03bCe58cE423ca17BD88C5) |
+| StargateAdapterV2 | [`0xcFdeA34E9FAE44736Fd969166dD564dFA2748c90`](https://sonicscan.org/address/0xcFdeA34E9FAE44736Fd969166dD564dFA2748c90) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| ApproveAndSwapOdosV2Hook | [`0xcf912260325bfbeeD9E08679c82fC838B8c60AaD`](https://sonicscan.org/address/0xcf912260325bfbeeD9E08679c82fC838B8c60AaD) |
+| SpectraExchangeDepositHook | [`0xb02b355bFD543E21DE9607F1B6e772203674a9f5`](https://sonicscan.org/address/0xb02b355bFD543E21DE9607F1B6e772203674a9f5) |
+| SpectraExchangeRedeemHook | [`0xf3b69424fFb21D4A1266Eb5a5de2db31CB65416C`](https://sonicscan.org/address/0xf3b69424fFb21D4A1266Eb5a5de2db31CB65416C) |
+| SwapOdosV2Hook | [`0xB294000cb020c822Bf62776245AAF4f50e4D5f0F`](https://sonicscan.org/address/0xB294000cb020c822Bf62776245AAF4f50e4D5f0F) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xfdc74A9B72FAB66B67e0065926295523570f1458`](https://sonicscan.org/address/0xfdc74A9B72FAB66B67e0065926295523570f1458) |
+
+  </Accordion>
+
+  <Accordion title="World Chain (chain ID 480)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA`](https://worldscan.org/address/0x59d557E862E11c2Ac55Af11c4E0458f66bAb1BeA) |
+| AcrossV3AdapterV2 | [`0x04E4aa141335888Aa99B0700A6281f673cE77A2F`](https://worldscan.org/address/0x04E4aa141335888Aa99B0700A6281f673cE77A2F) |
+| CCTPAdapter | [`0xF949F4587C3f1cB27E81350DfD7c296abb83B89b`](https://worldscan.org/address/0xF949F4587C3f1cB27E81350DfD7c296abb83B89b) |
+| CircleGatewayAdapter | [`0xaDAa3107180b6D94DC48f6A205877758ef927f62`](https://worldscan.org/address/0xaDAa3107180b6D94DC48f6A205877758ef927f62) |
+| StargateAdapter | [`0xa2cCAA51627cAe4C3EbB129Eb6D81F01273fadF4`](https://worldscan.org/address/0xa2cCAA51627cAe4C3EbB129Eb6D81F01273fadF4) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xF583a7826Da0917a8d45eC4457d45D26D251B152`](https://worldscan.org/address/0xF583a7826Da0917a8d45eC4457d45D26D251B152) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1`](https://worldscan.org/address/0xdbF538F10A25D146ede5EB1CFacb974bfaf01dC1) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a`](https://worldscan.org/address/0x3170e72b2F8Ea2a7028374B051C5D443F5bcA91a) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529`](https://worldscan.org/address/0xc2D9A8f9eF78719a088E65C7bdCDD5816A786529) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0xFdA4d2217877650ee1f272cBed1974E1F1AC1750`](https://worldscan.org/address/0xFdA4d2217877650ee1f272cBed1974E1F1AC1750) |
+| SwapUniswapV3Router02Hook | [`0x723C9C92F74aCB9F21c8dd7803cbDc49B92EE35C`](https://worldscan.org/address/0x723C9C92F74aCB9F21c8dd7803cbDc49B92EE35C) |
+| SwapUniswapV4Hook | [`0x40215B88241bDb53F0EB876d344C7EAffcAC2f55`](https://worldscan.org/address/0x40215B88241bDb53F0EB876d344C7EAffcAC2f55) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x68B9289ff201f30303c1f88bf0aAF6C3e9444260`](https://worldscan.org/address/0x68B9289ff201f30303c1f88bf0aAF6C3e9444260) |
+
+  </Accordion>
+
+  <Accordion title="Stable (chain ID 988)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| StargateAdapter | [`0x97413d6D4a14fCc4Fb259a4D67A783FB29D0170F`](https://stablescan.xyz/address/0x97413d6D4a14fCc4Fb259a4D67A783FB29D0170F) |
+| StargateAdapterV2 | [`0xeB84369adb4ac1C4917100EcaDe8DDB87000Eaa9`](https://stablescan.xyz/address/0xeB84369adb4ac1C4917100EcaDe8DDB87000Eaa9) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| ApproveAndSwapUniswapV3Router02Hook | [`0x9Adaf9F802C46Cf5D97b5c0e02943c2B933B9A04`](https://stablescan.xyz/address/0x9Adaf9F802C46Cf5D97b5c0e02943c2B933B9A04) |
+| SwapUniswapV3Router02Hook | [`0x7FE77695326894E893eFFf1BbD40413CB9c442B2`](https://stablescan.xyz/address/0x7FE77695326894E893eFFf1BbD40413CB9c442B2) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0x96822B89f3364D62630362E4E53a034Dd6AC5A50`](https://stablescan.xyz/address/0x96822B89f3364D62630362E4E53a034Dd6AC5A50) |
+
+  </Accordion>
+
+  <Accordion title="Linea (chain ID 59144)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| AcrossV3Adapter | [`0x8C21534b731335B28b112120FcFf3af9b488A47e`](https://lineascan.build/address/0x8C21534b731335B28b112120FcFf3af9b488A47e) |
+| AcrossV3AdapterV2 | [`0x4a4CB51849518E5B581f65f351847f1e45d99d11`](https://lineascan.build/address/0x4a4CB51849518E5B581f65f351847f1e45d99d11) |
+| CCTPAdapter | [`0x4c24eCac1D3EbfdF071D9867013F50F1dBC6bc4e`](https://lineascan.build/address/0x4c24eCac1D3EbfdF071D9867013F50F1dBC6bc4e) |
+| StargateAdapter | [`0x876313434E09993C8D576e2445Fb0e247cfCEE0C`](https://lineascan.build/address/0x876313434E09993C8D576e2445Fb0e247cfCEE0C) |
+| StargateAdapterV2 | [`0xD622f690582e5aB51A3a424A18360f44b0123199`](https://lineascan.build/address/0xD622f690582e5aB51A3a424A18360f44b0123199) |
+
+**Hooks**
+
+| Contract | Address |
+|---|---|
+| AcrossSendFundsAndExecuteOnDstHook | [`0xE19ddBA1EC54Ac7182e1063111B1E819C8B97fC0`](https://lineascan.build/address/0xE19ddBA1EC54Ac7182e1063111B1E819C8B97fC0) |
+| AcrossSendFundsAndExecuteOnDstHookV2 | [`0xa871006d3a162d712D765112491A25c44Cf68324`](https://lineascan.build/address/0xa871006d3a162d712D765112491A25c44Cf68324) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHook | [`0xcFC02D7d6EC44Ede06dE8190971342de502272Af`](https://lineascan.build/address/0xcFC02D7d6EC44Ede06dE8190971342de502272Af) |
+| ApproveAndAcrossSendFundsAndExecuteOnDstHookV2 | [`0xEA1d55F2bBEB38B162b8aBC94D5136519a0a67Ae`](https://lineascan.build/address/0xEA1d55F2bBEB38B162b8aBC94D5136519a0a67Ae) |
+| ApproveAndRelaySendFundsAndExecuteOnDstHook | [`0x57a31461993f0Dba34D5208EF18D2E255bA0baA1`](https://lineascan.build/address/0x57a31461993f0Dba34D5208EF18D2E255bA0baA1) |
+| ApproveAndSwapOdosV2Hook | [`0xE3C8F354ed827199221A3B3f55b98415463B39f2`](https://lineascan.build/address/0xE3C8F354ed827199221A3B3f55b98415463B39f2) |
+| ApproveAndSwapUniswapV3Router02Hook | [`0x895bEc043DE1525183B28bA5E37Ec4cF49a37e96`](https://lineascan.build/address/0x895bEc043DE1525183B28bA5E37Ec4cF49a37e96) |
+| RelaySendFundsAndExecuteOnDstHook | [`0xD71b913cf1325F8a73A1B033DE185F8F4A03b60D`](https://lineascan.build/address/0xD71b913cf1325F8a73A1B033DE185F8F4A03b60D) |
+| SwapOdosV2Hook | [`0x345F6f66231e03725829FE737E4f27Ad916bD30e`](https://lineascan.build/address/0x345F6f66231e03725829FE737E4f27Ad916bD30e) |
+| SwapUniswapV3Router02Hook | [`0xbe717E357Af708bdCBb9a4ECd08CE27a15B7F163`](https://lineascan.build/address/0xbe717E357Af708bdCBb9a4ECd08CE27a15B7F163) |
+
+  </Accordion>
+
+  <Accordion title="Berachain (chain ID 80094)">
+
+**Bridge adapters**
+
+| Contract | Address |
+|---|---|
+| StargateAdapter | [`0xB87a734d78C155d031b318134cedc4156407c652`](https://berascan.com/address/0xB87a734d78C155d031b318134cedc4156407c652) |
+| StargateAdapterV2 | [`0xc6177648e89dCE5dea240d6Fc7a072f7cbCD0ebD`](https://berascan.com/address/0xc6177648e89dCE5dea240d6Fc7a072f7cbCD0ebD) |
+
+**Other**
+
+| Contract | Address |
+|---|---|
+| AccountResolver | [`0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B`](https://berascan.com/address/0xf3ec7bC4c29eff6f5e6bc3c66DB4E2a1Ef3f9F8B) |
+
+  </Accordion>
+</AccordionGroup>

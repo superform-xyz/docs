@@ -1,0 +1,92 @@
+---
+title: "Builder Codes"
+description: "Request a builder code, attribute supported SuperVault activity to your integration, and view partner reporting."
+---
+
+Builder codes attribute supported SuperVault actions to your project. Add your registered code to the Bundler request when building an action, then view aggregated activity in SuperformOS.
+
+A code provides attribution, not automatic fees, rewards, or guaranteed earnings. Any commercial terms are agreed separately.
+
+## Request a code
+
+Use the form below with your **project name**, **website**, **contact email or Telegram**, and **payout and code-management EVM wallet address**. No Google sign-in, wallet connection, signature, or transaction is required to submit a request.
+
+The wallet must be a nonzero public address you control. It also controls changes to the code's metadata and payout address. Do not use an exchange deposit address or a wallet you cannot transact from.
+
+You can optionally provide:
+
+- **Preferred code:** 1–32 lowercase letters, digits, or underscores, matching `^[a-z0-9_]{1,32}$`. No uppercase, spaces, or hyphens. Availability is subject to review.
+- **Metadata URI:** a reference to public JSON describing your app, recommended fields `app.name` and `app.url`, following [ERC-8021 code metadata](https://eip.tools/eip/8021#code-metadata). The URI is optional and limited to 2,048 UTF-8 bytes. It is not a logo upload or private contact record.
+- **Wallet type:** EOA, Safe, or other multisig, to help the team check compatibility.
+
+Your wallet must be able to transact on the registry network. Confirm wallet compatibility with the team during review, particularly for multisigs or custodial setups; do not assume that contract support also means dashboard login support.
+
+<Note>
+Google hosts this form. Superform uses your submission to review and follow up on your request; form responses are private. Approved registry details, including your code, payout address, and metadata URI, are public onchain. Keep contact details out of public metadata. Never submit private keys, seed phrases, or sensitive documents.
+</Note>
+
+<a href="https://docs.google.com/forms/d/e/1FAIpQLSfgMkB6jC8SOLmLiO0VMAkQyYLaH_S6f4QDCtM8lnLW-chBVw/viewform" target="_blank" rel="noopener noreferrer">Open request form in a new tab</a>
+
+<iframe
+  src="https://docs.google.com/forms/d/e/1FAIpQLSfgMkB6jC8SOLmLiO0VMAkQyYLaH_S6f4QDCtM8lnLW-chBVw/viewform?embedded=true"
+  title="Request a Superform builder code"
+  width="100%"
+  height="1800"
+  style={{ border: 0 }}
+  loading="lazy"
+/>
+
+## Approval and activation
+
+Requests are reviewed manually. The team checks project legitimacy, wallet control, and compatibility before an authorized governor registers the code onchain. Submitting a request does not register or activate a code; registration is not self-service.
+
+After approval, obtain:
+
+- Your exact registered **code** and team-generated **partner ID**.
+- The registered payout/code-management wallet, registry network and address, and transaction confirmation.
+- A supported request example, dashboard instructions, and your Superform support contact.
+
+You do not generate or supply a partner ID in the request. It is a permanent identity independent of the wallet; multiple codes can share it. Keep it for the dashboard filter. Wait for registration confirmation before using the code for attributed activity.
+
+## Add your code to requests
+
+Follow the [Quickstart](/build/earn/quickstart) and [Deposit guide](/build/earn/deposit) for the complete transaction flow. Add the optional **top-level** `builder_code` field at the appropriate step:
+
+| Account flow | Request that accepts `builder_code` |
+|---|---|
+| Smart account | `POST /executor/build`, after obtaining hooks from `POST /hooks/suggest` |
+| Non-smart-account | `POST /hooks/suggest/non-smart-account` |
+
+Do **not** put it on the smart-account `POST /hooks/suggest` request or inside an action or hook.
+
+The following is a **field-only JSON fragment**, not a complete request. Merge it into the top level of the applicable request body and replace `your_registered_code` with the exact code from your approval:
+
+```json
+{
+  "builder_code": "your_registered_code"
+}
+```
+
+The [copy-paste clients](/build/sdk) do not currently expose a builder-code argument in their deposit helpers. Use the raw request or extend your own wrapper to pass this field; do not assume an SDK helper supports it.
+
+Valid formatting alone does not prove registration. Preserve the calldata returned by the supported Bundler flow rather than manually appending attribution data.
+
+## View activity
+
+Open [Integrators in SuperformOS](https://os.superform.xyz/integrators), authenticate with your wallet, and paste the team-issued **partner ID** into the partner filter. Choose 7, 30, or 90 days and open daily history. The page does not automatically discover codes owned by the connected wallet.
+
+Reporting is public partner-level aggregation, not a private transaction ledger or earnings statement:
+
+- Deposits and withdrawal requests cover the selected period. Withdrawals count when requested, not settled.
+- Net deposits and attributed balance include earlier history. Balance includes yield valuation; it is not fees owed.
+- Transfers, claims, and cancellations are excluded.
+
+After your first supported action, check its attribution once indexing catches up. An empty report alone does not mean registration failed. Ask your Superform contact to check the code, partner ID, and action if activity is missing.
+
+## Update payout or metadata
+
+Contact your Superform representative for guidance. The dashboard has no payout or metadata editor; only the current payout wallet can authorize those onchain changes.
+
+<Warning>
+Changing the payout address immediately transfers code-management control to the new address, without an acceptance step. The old wallet loses authority. There is no admin override to recover a lost controller or reverse a mistaken transfer. Your partner identity does not change.
+</Warning>

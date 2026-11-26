@@ -5,6 +5,8 @@ description: "ERC-7540 async redemption lifecycle: request, fulfillment, and cla
 
 SuperVaults use ERC-7540 async redemptions. Shares go into escrow on request; a keeper fulfills within ~1 hour; the user then claims assets.
 
+If you cancelled your redemption, follow [Claim shares after a redemption cancellation](#claim-shares-after-a-redemption-cancellation).
+
 <Warning>
 **Non-standard ERC-4626 behavior.** `maxWithdraw(account)` and `maxRedeem(account)` return `0` until the keeper fulfills the request. Shares are in escrow; assets have not yet been freed. Poll `pendingRedeemRequest(0, account)` to confirm the request is queued, then poll `maxWithdraw(account)` until positive before sending the claim.
 </Warning>
@@ -99,10 +101,36 @@ interface ISuperVault {
 
 </CodeGroup>
 
-**State machine**
+**Standard redemption states**
 
 | State | How to detect | Next action |
 |---|---|---|
 | Pending | `pendingRedeemRequest(0, account) > 0` and `maxWithdraw(account) == 0` | Wait for keeper (~1 hour) |
 | Fulfilled | `maxWithdraw(account) > 0` | Send `REDEEM_CLAIM` or call `withdraw()` |
 | Claimed | `maxWithdraw(account) == 0` and `pendingRedeemRequest(0, account) == 0` | Done |
+
+## Claim shares after a redemption cancellation
+
+Once a keeper fulfills your cancellation, your **SuperVault shares** are available in escrow. The Superform app does not currently offer a claim button for cancelled redemptions. Submit the claim directly to the **SuperVault contract** on the chain where you requested redemption.
+
+1. Open the receipt for your original redemption request in the chain’s block explorer. The contract that emitted `RedeemRequest` is the vault. Copy the `controller` address from that event.
+2. Read `claimableCancelRedeemRequest(0, controller)` on that vault. A positive value is the claimable balance in the vault share token’s smallest units. If it is zero, there are no shares to claim. The pending cancellation flag can stay true after fulfillment.
+3. From the controller account, call `claimCancelRedeemRequest(0, receiver, controller)` with **0 native token**. If a smart account is the controller, execute the call through that smart account.
+
+| Argument, in order | Value to enter |
+| --- | --- |
+| `requestId` (`uint256`) | `0` for SuperVaults. |
+| `receiver` (`address`) | The address that will receive the shares. Use the controller address to return them to the original account. |
+| `controller` (`address`) | The controller recorded on the original redemption request. |
+
+For **superUSDC on Base**, check the balance under **Read as Proxy** on BaseScan. To submit the claim from a connected wallet, open **Write as Proxy**, choose `claimCancelRedeemRequest` and enter the three arguments above. The explorer may leave the first argument unnamed. [Read superUSDC](https://basescan.org/address/0x11820afe50ea96851ee2bdbae329d97771e41ec6#readContract) · [Write superUSDC](https://basescan.org/address/0x11820afe50ea96851ee2bdbae329d97771e41ec6#writeContract)
+
+A vault-approved operator can also submit the claim and must set `receiver` to `controller`. The call transfers the entire claimable share balance in one transaction.
+
+For a wallet that accepts transaction data, this Foundry command encodes a claim back to the controller. Set `CONTROLLER` to your controller address, then paste the output into the transaction’s **Data** field and set **To** to the vault address.
+
+```bash
+cast calldata 'claimCancelRedeemRequest(uint256,address,address)' 0 "$CONTROLLER" "$CONTROLLER"
+```
+
+After confirmation, the vault emits `CancelRedeemClaim` with the receiver and share amount. Reading `claimableCancelRedeemRequest(0, controller)` again returns zero.
